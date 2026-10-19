@@ -55,6 +55,7 @@ test('a teacher builds a room with a lock and a door, and tries it', async ({ pa
   // A second scene, then back to the first for the door.
   await page.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /^Scene 2/ }).click()
   await expect(page.getByRole('region', { name: 'Scenen Scene 2' })).toBeVisible()
+  await page.getByLabel('Fortællertekst').fill('Døren smækker bag jer. Nu er I alene i mørket.')
   await page.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /^Scene 1/ }).click()
 
   // A new door leads to the other scene; it should appear once the lock is solved.
@@ -97,4 +98,10 @@ test('a teacher builds a room with a lock and a door, and tries it', async ({ pa
   await expect(play.getByRole('button', { name: 'Åben lås: Hvad er 3 · 4?' })).toBeVisible()
   await play.getByRole('button', { name: 'Dør til Scene 2' }).click()
   await expect(play.getByRole('region', { name: 'Scene 2' })).toBeVisible()
+
+  // Scene 2 opens with the teacher's story.
+  const story = play.getByRole('region', { name: 'Fortælling' })
+  await expect(story).toHaveText(/Døren smækker bag jer/)
+  await story.getByRole('button', { name: 'Videre' }).click()
+  await expect(story).toHaveCount(0)
 })

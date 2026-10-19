@@ -14,6 +14,7 @@ export const playRoom: PlayRoom = {
       name: 'Klasselokalet',
       backgroundImageKey: 'builtin:classroom',
       backgroundImageUrl: null,
+      narration: null,
       objects: [
         {
           id: 'letter',
@@ -66,6 +67,7 @@ export const playRoom: PlayRoom = {
       name: 'Biblioteket',
       backgroundImageKey: 'builtin:library',
       backgroundImageUrl: null,
+      narration: null,
       objects: [
         {
           id: 'choice-lock',

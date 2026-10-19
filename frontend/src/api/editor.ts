@@ -55,6 +55,8 @@ export interface EditorScene {
   backgroundImageKey: string
   /** A short-lived link to an uploaded background; null for built-in ones. */
   backgroundImageUrl: string | null
+  /** The story text students see when they enter the scene; empty when there is none. */
+  narration: string
   objects: EditorObject[]
 }
 
@@ -106,7 +108,7 @@ interface ObjectJson {
 
 interface RoomJson extends Omit<EditorRoom, 'scenes' | 'startSceneId'> {
   startSceneId: string | null
-  scenes: (Omit<EditorScene, 'objects'> & { objects: ObjectJson[] })[]
+  scenes: (Omit<EditorScene, 'objects' | 'narration'> & { narration: string | null; objects: ObjectJson[] })[]
 }
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
@@ -213,6 +215,7 @@ export async function getEditorRoom(roomId: string, signal?: AbortSignal): Promi
     scenes: room.scenes.map((scene) => ({
       ...scene,
       backgroundImageKey: knownBackground(scene.backgroundImageKey),
+      narration: scene.narration ?? '',
       objects: scene.objects.map(fromJson),
     })),
   }
@@ -233,6 +236,7 @@ export async function saveEditorRoom(roomId: string, revision: number, document:
         id: scene.id,
         name: scene.name,
         backgroundImageKey: scene.backgroundImageKey,
+        narration: scene.narration.trim() === '' ? null : scene.narration,
         objects: scene.objects.map(toJson),
       })),
     }),

@@ -639,6 +639,72 @@ main.play {
   font-size: 2rem;
 }
 
+/* The teacher's story for a scene: the picture stays visible, dimmed, behind a sheet of paper. */
+.narration {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgb(15 20 28 / 55%);
+}
+
+.narration-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(38rem, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 1.5rem 1.75rem;
+  border: 2px solid #1d2b3a;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #1d2b3a;
+  animation: narration-in 400ms ease-out;
+}
+
+.narration-card .primary {
+  align-self: flex-end;
+  border-color: #1d2b3a;
+  background: #1d2b3a;
+  color: #ffffff;
+}
+
+.narration-text {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+@keyframes narration-in {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narration-card {
+    animation: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .narration {
+    padding: 0.5rem;
+  }
+
+  .narration-card {
+    padding: 1rem;
+  }
+
+  .narration-text {
+    font-size: 1rem;
+  }
+}
+
 /* Shown at the top of the play view when a teacher is trying their own room. */
 .preview-banner {
   margin: 0.75rem 0 0;
@@ -1041,15 +1107,29 @@ main.editor {
   box-shadow: inset 0 -0.3rem 0 var(--signal);
 }
 
-.scene-tab-start {
+/* Small labels on the scene picture: where students start, and whether the scene has a story. */
+.scene-tab-badges {
   position: absolute;
   top: 0.4rem;
   left: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  max-width: calc(100% - 2.5rem);
+}
+
+.scene-tab-start,
+.scene-tab-story {
   padding: 0 0.4rem;
   border-radius: 0.25rem;
   background: var(--signal);
   color: #1d2b3a;
   font-size: 0.75rem;
+}
+
+.scene-tab-story {
+  background: #1d2b3a;
+  color: #ffffff;
 }
 
 .add-scene {

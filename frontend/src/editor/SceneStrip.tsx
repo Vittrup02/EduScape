@@ -36,7 +36,10 @@ export function SceneStrip({ document, currentSceneId, onOpen, onAdd, onRemove }
               >
                 {background !== undefined && <img src={background} alt="" draggable={false} />}
                 <span className="scene-tab-name">{name}</span>
-                {scene.id === document.startSceneId && <span className="scene-tab-start">{t('editor.scene.startBadge')}</span>}
+                <span className="scene-tab-badges">
+                  {scene.id === document.startSceneId && <span className="scene-tab-start">{t('editor.scene.startBadge')}</span>}
+                  {scene.narration.trim() !== '' && <span className="scene-tab-story">{t('editor.scene.storyBadge')}</span>}
+                </span>
               </button>
               {canRemove && (
                 <button

@@ -206,6 +206,10 @@
       "makeStart": "Lad eleverne starte her",
       "remove": "Slet scenen",
       "removeNamed": "Slet {{name}}",
+      "narration": "Fortællertekst",
+      "narrationPlaceholder": "Fx: Det er 1943. I har gemt jer på loftet, og om lidt kommer soldaterne …",
+      "narrationHint": "Vises stort for eleverne, når de kommer ind i scenen. Brug den til at fortælle historien og sætte stemningen.",
+      "storyBadge": "Fortælling",
       "removed": "{{name}} er slettet.",
       "defaultName": "Scene {{n}}",
       "unnamed": "Uden navn",
@@ -252,6 +256,11 @@
     "nickname": "Du er med som {{nickname}}.",
     "leave": "Forlad sessionen",
     "preview": "Prøveversion – kun du kan se den, og den tæller ikke med i din historik.",
+    "narration": {
+      "label": "Fortælling",
+      "continue": "Videre",
+      "reread": "Læs fortællingen igen"
+    },
     "joinAgain": "Deltag i en ny session",
     "noRoom": "Rummet kan ikke spilles endnu. Spørg din lærer.",
     "scenes": "Scener",

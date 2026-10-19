@@ -35,6 +35,8 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
   const [sceneId, setSceneId] = useState(room.startSceneId)
   const [openObjectId, setOpenObjectId] = useState<string | null>(null)
   const [readLetterIds, setReadLetterIds] = useState<ReadonlySet<string>>(new Set())
+  // Scenes whose story the student has read on this device; the story opens again on request.
+  const [readNarrationIds, setReadNarrationIds] = useState<ReadonlySet<string>>(new Set())
   const [busy, setBusy] = useState(false)
   const [errorCode, setErrorCode] = useState<string | null>(null)
 
@@ -128,6 +130,19 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
     setOpenObjectId(null)
   }
   const background = backgroundImage(scene.backgroundImageKey, scene.backgroundImageUrl)
+  const narration = scene.narration?.trim() ? scene.narration : null
+  const showNarration = narration !== null && !readNarrationIds.has(scene.id)
+  const setNarrationRead = (read: boolean) => {
+    setReadNarrationIds((ids) => {
+      const next = new Set(ids)
+      if (read) {
+        next.add(scene.id)
+      } else {
+        next.delete(scene.id)
+      }
+      return next
+    })
+  }
 
   return (
     <>
@@ -158,7 +173,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
               type="button"
               className="room-object"
               aria-label={label(object)}
-              disabled={!online || busy}
+              disabled={!online || busy || showNarration}
               style={objectStyle(object.x, object.y, asset)}
               onClick={() => {
                 activate(object)
@@ -168,7 +183,34 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
             </button>
           )
         })}
+        {showNarration && (
+          <div className="narration">
+            <section className="narration-card" aria-label={t('play.narration.label')}>
+              <p className="narration-text">{narration}</p>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  setNarrationRead(true)
+                }}
+              >
+                {t('play.narration.continue')}
+              </button>
+            </section>
+          </div>
+        )}
       </section>
+      {narration !== null && !showNarration && (
+        <button
+          type="button"
+          className="quiet"
+          onClick={() => {
+            setNarrationRead(false)
+          }}
+        >
+          {t('play.narration.reread')}
+        </button>
+      )}
       {errorCode !== null && (
         <p role="alert" className="error">
           {t(errorKey(errorCode))}

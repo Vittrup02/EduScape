@@ -13,6 +13,7 @@ interface ScenePanelProps {
   canRemove: boolean
   uploadsEnabled: boolean
   onRename: (name: string) => void
+  onNarration: (narration: string) => void
   onBackground: (key: string, url: string | null) => void
   onMakeStart: () => void
   onRemove: () => void
@@ -26,6 +27,7 @@ export function ScenePanel({
   canRemove,
   uploadsEnabled,
   onRename,
+  onNarration,
   onBackground,
   onMakeStart,
   onRemove,
@@ -33,6 +35,7 @@ export function ScenePanel({
 }: ScenePanelProps) {
   const { t } = useTranslation()
   const nameId = useId()
+  const narrationId = useId()
   const uploadId = useId()
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -76,6 +79,21 @@ export function ScenePanel({
           onBlur={onSeal}
         />
         {scene.name.trim() === '' && <p className="error">{t('editor.scene.nameRequired')}</p>}
+      </div>
+
+      <div className="field">
+        <label htmlFor={narrationId}>{t('editor.scene.narration')}</label>
+        <textarea
+          id={narrationId}
+          rows={4}
+          value={scene.narration}
+          placeholder={t('editor.scene.narrationPlaceholder')}
+          onChange={(event) => {
+            onNarration(event.target.value)
+          }}
+          onBlur={onSeal}
+        />
+        <p className="field-hint">{t('editor.scene.narrationHint')}</p>
       </div>
 
       <fieldset className="backgrounds">

@@ -33,8 +33,8 @@ export function editorRoom(overrides: Partial<EditorRoom> = {}): EditorRoom {
     revision: 3,
     startSceneId: 'hall',
     scenes: [
-      { id: 'hall', name: 'Gangen', backgroundImageKey: 'builtin:classroom', backgroundImageUrl: null, objects: [lock, door] },
-      { id: 'library', name: 'Biblioteket', backgroundImageKey: 'builtin:library', backgroundImageUrl: null, objects: [] },
+      { id: 'hall', name: 'Gangen', backgroundImageKey: 'builtin:classroom', backgroundImageUrl: null, narration: '', objects: [lock, door] },
+      { id: 'library', name: 'Biblioteket', backgroundImageKey: 'builtin:library', backgroundImageUrl: null, narration: '', objects: [] },
     ],
     validationErrors: [],
     uploadsEnabled: false,

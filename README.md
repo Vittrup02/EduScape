@@ -120,6 +120,7 @@ Læreren bygger rum på `/teacher/rooms/:id/edit`. Et nyt rum kræver kun titel,
 - **Fortryd/gentag** (også Ctrl+Z / Ctrl+Y) går gennem hele versioner af rummet. Et træk eller én omgang skrivning i et felt er ét skridt.
 - **Autosave:** editoren sender hele rummet med `PUT /api/teacher/rooms/{id}/editor` kort efter hver ændring. Scener og objekter får id'er i klienten (UUID v7), så fortryd kan genskabe dem præcis. Hver gemning bærer rummets `revision`; en ældre revision afvises med `ROOM_CHANGED`, så to faner ikke overskriver hinanden.
 - **Kladder er tilladt:** en lås uden spørgsmål eller en dør uden mål kan gemmes. Serveren returnerer problemerne (`EscapeRoom.Validate()`), og editoren viser dem med et link til objektet. Et rum med problemer kan ikke startes eller prøves (`ROOM_INVALID`).
+- **Fortællertekst:** hver scene kan have en tekst (scenepanelet), som vises stort oven på billedet, når eleven kommer ind i scenen. Eleven trykker "Videre" og kan læse den igen. Den bruges til at fortælle historien og sætte stemningen, fx i en indledningsscene.
 - **Kortet** viser scenerne og dørene imellem dem fra startscenen og frem. Scener, ingen dør fører til, er stiplede.
 - **Prøv rummet** (`POST /api/teacher/rooms/{id}/preview`) starter en skjult preview-session i Individual-mode uden klasse, melder lærerens enhed ind og låser den straks. Elevvisningen åbner i en ny fane og spilles på serveren som enhver anden session. Preview-sessioner vises ikke på dashboardet eller i historikken og udløber efter 2 timer (`Sessions__PreviewLifetime`).
 

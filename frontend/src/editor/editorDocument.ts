@@ -118,7 +118,7 @@ const backgrounds = assetsOfType('Background')
 export function createScene(document: RoomDocument, name: string): EditorScene {
   const used = new Set(document.scenes.map((s) => s.backgroundImageKey))
   const background = backgrounds.find((b) => !used.has(b.key)) ?? backgrounds[0]
-  return { id: newId(), name, backgroundImageKey: background.key, backgroundImageUrl: null, objects: [] }
+  return { id: newId(), name, backgroundImageKey: background.key, backgroundImageUrl: null, narration: '', objects: [] }
 }
 
 export function addScene(document: RoomDocument, scene: EditorScene): RoomDocument {
@@ -128,7 +128,7 @@ export function addScene(document: RoomDocument, scene: EditorScene): RoomDocume
 export function updateScene(
   document: RoomDocument,
   sceneId: string,
-  changes: Partial<Pick<EditorScene, 'name' | 'backgroundImageKey' | 'backgroundImageUrl'>>,
+  changes: Partial<Pick<EditorScene, 'name' | 'backgroundImageKey' | 'backgroundImageUrl' | 'narration'>>,
 ): RoomDocument {
   return mapScenes(document, (scene) => (scene.id === sceneId ? { ...scene, ...changes } : scene))
 }
