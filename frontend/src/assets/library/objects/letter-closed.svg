@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <rect id="envelope" x="16" y="52" width="128" height="90" rx="8"/>
+  </defs>
+  <use href="#envelope" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="23" stroke-linejoin="round"/>
+  <use href="#envelope" fill="#EBC98A"/>
+  <path d="M22 137l44-38M138 137L94 99" fill="none" stroke="#1D2B3A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M16 60q0-8 8-8h112q8 0 8 8l-60 46q-4 3-8 0z" fill="#D9B26C" stroke="#1D2B3A" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M30 60h36" fill="none" stroke="#F6DFAE" stroke-width="5" stroke-linecap="round"/>
+  <use href="#envelope" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <circle cx="80" cy="102" r="13" fill="#C8342B" stroke="#1D2B3A" stroke-width="5"/>
+  <circle cx="80" cy="102" r="5.5" fill="none" stroke="#E8786D" stroke-width="3"/>
+</svg>

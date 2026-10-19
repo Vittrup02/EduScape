@@ -27,10 +27,16 @@ public abstract class RoomObject
 
     public Position Position { get; private set; }
 
-    /// <summary>R2 object key of the graphic shown in the locked (or only) state.</summary>
+    /// <summary>
+    /// Graphic shown in the locked (or only) state: a built-in asset key ("builtin:padlock", see
+    /// frontend/src/assets/ASSETS.md) or the R2 object key of an uploaded image.
+    /// </summary>
     public string GraphicKey { get; private set; }
 
-    /// <summary>R2 object key of the graphic shown once the object is solved/opened.</summary>
+    /// <summary>
+    /// R2 object key of an uploaded graphic shown once the object is solved/opened. Null for built-in assets,
+    /// which bring their own open state.
+    /// </summary>
     public string? UnlockedGraphicKey { get; private set; }
 
     /// <summary>The object that must be completed before this one is available; null means visible from start.</summary>

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <defs>
+    <pattern id="bricks" width="160" height="80" patternUnits="userSpaceOnUse">
+      <rect width="160" height="80" fill="#363E49"/>
+      <rect x="3" y="3" width="154" height="34" rx="3" fill="#48525F"/>
+      <rect x="-77" y="43" width="154" height="34" rx="3" fill="#434C58"/>
+      <rect x="83" y="43" width="154" height="34" rx="3" fill="#4C5663"/>
+    </pattern>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A414B"/>
+      <stop offset="1" stop-color="#262B32"/>
+    </linearGradient>
+    <radialGradient id="bulb-light" cx="820" cy="200" r="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD98A" stop-opacity="0.5"/>
+      <stop offset="0.35" stop-color="#FFC768" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFC768" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bulb-halo" r="0.5">
+      <stop offset="0" stop-color="#FFF3C4"/>
+      <stop offset="0.3" stop-color="#FFE08A" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#FFE08A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="window-light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9DB8E0" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#9DB8E0" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.35" r="0.8">
+      <stop offset="0.35" stop-color="#0B0F15" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0B0F15" stop-opacity="0.75"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bricks)"/>
+
+  <!-- small barred window high on the wall -->
+  <rect x="190" y="110" width="250" height="110" rx="4" fill="#2A3240"/>
+  <rect x="204" y="124" width="222" height="82" fill="#6F89AE"/>
+  <path d="M248 124v82M292 124v82M336 124v82M380 124v82" stroke="#2A3240" stroke-width="10"/>
+  <path d="M204 206h222l140 494H110z" fill="url(#window-light)"/>
+
+  <!-- pipes -->
+  <rect y="40" width="1600" height="30" fill="#5F6B78"/>
+  <rect y="44" width="1600" height="6" fill="#7D8996"/>
+  <g fill="#4E5966">
+    <rect x="300" y="32" width="26" height="46" rx="4"/>
+    <rect x="980" y="32" width="26" height="46" rx="4"/>
+    <rect x="1420" y="32" width="26" height="46" rx="4"/>
+  </g>
+  <rect x="1500" y="70" width="28" height="630" fill="#5F6B78"/>
+  <rect x="1505" y="70" width="6" height="630" fill="#7D8996"/>
+  <rect x="1494" y="360" width="40" height="22" rx="4" fill="#4E5966"/>
+
+  <!-- floor -->
+  <rect y="700" width="1600" height="200" fill="url(#floor)"/>
+  <rect y="700" width="1600" height="10" fill="#4A525C"/>
+  <path d="M300 770l60 30 40-10 80 40M1100 840l50-26 70 8" fill="none" stroke="#1E2228" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- crates -->
+  <g>
+    <rect x="1130" y="540" width="200" height="160" fill="#6D5233"/>
+    <rect x="1340" y="580" width="140" height="120" fill="#5E4629"/>
+    <rect x="1170" y="410" width="160" height="130" fill="#5E4629"/>
+    <g fill="none" stroke="#4A361F" stroke-width="8">
+      <rect x="1134" y="544" width="192" height="152"/>
+      <path d="M1134 696l192-152"/>
+      <rect x="1344" y="584" width="132" height="112"/>
+      <path d="M1344 640h132"/>
+      <rect x="1174" y="414" width="152" height="122"/>
+      <path d="M1174 475h152"/>
+    </g>
+  </g>
+  <!-- old chair -->
+  <g fill="#3E3328">
+    <rect x="160" y="560" width="150" height="20" rx="4"/>
+    <rect x="166" y="440" width="18" height="260"/>
+    <rect x="286" y="580" width="18" height="120"/>
+    <rect x="166" y="460" width="130" height="16"/>
+    <rect x="166" y="510" width="130" height="16"/>
+  </g>
+
+  <rect width="1600" height="900" fill="url(#bulb-light)"/>
+
+  <!-- hanging bulb -->
+  <path d="M820 70v104" stroke="#1E2228" stroke-width="5"/>
+  <rect x="806" y="170" width="28" height="22" rx="3" fill="#2B3038"/>
+  <circle cx="820" cy="214" r="90" fill="url(#bulb-halo)"/>
+  <circle cx="820" cy="212" r="22" fill="#FFF3C4"/>
+
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+</svg>

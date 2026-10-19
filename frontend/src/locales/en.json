@@ -169,6 +169,17 @@
     "Hf1": "1st year hf",
     "Hf2": "2nd year hf"
   },
+  "assets": {
+    "padlock": "Padlock",
+    "codeLock": "Code lock",
+    "letter": "Letter",
+    "door": "Door",
+    "exitDoor": "Exit door",
+    "classroom": "Classroom",
+    "laboratory": "Laboratory",
+    "library": "Library",
+    "basement": "Basement"
+  },
   "errors": {
     "UNKNOWN": "Something went wrong. Please try again.",
     "BAD_REQUEST": "The request couldn't be processed. Please try again.",

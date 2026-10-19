@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <rect id="case" x="26" y="18" width="108" height="128" rx="14"/>
+    <rect id="bolt" x="122" y="72" width="26" height="20" rx="4"/>
+    <rect id="key" width="20" height="14" rx="4"/>
+    <g id="keys">
+      <use href="#key" x="43" y="68"/><use href="#key" x="70" y="68"/><use href="#key" x="97" y="68"/>
+      <use href="#key" x="43" y="87"/><use href="#key" x="70" y="87"/><use href="#key" x="97" y="87"/>
+      <use href="#key" x="43" y="106"/><use href="#key" x="70" y="106"/><use href="#key" x="97" y="106"/>
+      <use href="#key" x="43" y="125"/><use href="#key" x="70" y="125"/><use href="#key" x="97" y="125"/>
+    </g>
+  </defs>
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-linejoin="round">
+    <use href="#bolt" stroke-width="21"/>
+    <use href="#case" stroke-width="23"/>
+  </g>
+  <use href="#bolt" fill="#A9BCCB" stroke="#1D2B3A" stroke-width="5" stroke-linejoin="round"/>
+  <use href="#case" fill="#6B8196"/>
+  <rect x="33" y="62" width="6" height="74" rx="3" fill="#A9BCCB"/>
+  <use href="#case" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="40" y="30" width="80" height="26" rx="5" fill="#1D2B3A"/>
+  <g fill="#4A6178">
+    <circle cx="54" cy="43" r="4"/>
+    <circle cx="68" cy="43" r="4"/>
+    <circle cx="82" cy="43" r="4"/>
+    <circle cx="96" cy="43" r="4"/>
+  </g>
+  <circle cx="110" cy="43" r="5" fill="#C8342B"/>
+  <use href="#keys" fill="#4A6178" transform="translate(0 3)"/>
+  <use href="#keys" fill="#C9D6E0" stroke="#1D2B3A" stroke-width="3.5" stroke-linejoin="round"/>
+</svg>

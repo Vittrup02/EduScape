@@ -47,12 +47,15 @@ eduscape er designet til dataminimering:
   /src/editor               Lærerens rum-editor
   /src/play                 Elevernes spilvisning
   /src/api                  API-klient + SignalR-forbindelse
+  /src/assets               Indbygget asset-bibliotek (låse, breve, døre, baggrunde)
 /backend
   /Eduscape.Api             Endpoints, SignalR-hubs
   /Eduscape.Domain          Entiteter og domænelogik
   /Eduscape.Infrastructure  EF Core, migrations, R2-klient
   /Eduscape.Tests           xUnit-tests
 ```
+
+Kilde og licens for alle indbyggede grafikker står i [frontend/src/assets/ASSETS.md](frontend/src/assets/ASSETS.md).
 
 ## Kom i gang
 

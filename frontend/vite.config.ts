@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), securityHeaders(apiUrl)],
+    build: {
+      // Vite otherwise inlines small files (e.g. the asset library's SVGs) as data: URLs, which CSP img-src 'self' blocks.
+      assetsInlineLimit: 0,
+    },
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
