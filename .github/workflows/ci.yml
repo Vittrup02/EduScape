@@ -140,6 +140,11 @@ jobs:
         working-directory: backend
         run: dotnet tool restore
 
+      # `dotnet ef` builds the projects without restoring them, so a fresh checkout needs this first
+      - name: Restore NuGet packages
+        working-directory: backend
+        run: dotnet restore
+
       # Development environment so the demo escape room is seeded
       - name: Migrate and seed database
         working-directory: backend
