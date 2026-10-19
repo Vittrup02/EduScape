@@ -28,7 +28,8 @@ internal sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
     public void Configure(EntityTypeBuilder<Session> builder)
     {
-        builder.ToTable("Sessions");
+        builder.ToTable("Sessions", table => table.HasCheckConstraint(
+            "CK_Sessions_ClassUnlessPreview", "\"IsPreview\" OR \"ClassId\" IS NOT NULL"));
         builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.Pin).HasMaxLength(Session.PinLength).IsFixedLength();
 
@@ -42,6 +43,7 @@ internal sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasIndex(s => new { s.Status, s.ExpiresAt });
 
         // Sessions are the teacher's history, so rooms and classes cannot be deleted from under them.
+        // A preview has no class.
         builder.HasOne<EscapeRoom>()
             .WithMany()
             .HasForeignKey(s => s.EscapeRoomId)

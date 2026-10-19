@@ -17,6 +17,9 @@ internal sealed class EscapeRoomConfiguration : IEntityTypeConfiguration<EscapeR
         builder.Ignore(r => r.StartScene);
         builder.Ignore(r => r.Objects);
 
+        // Each editor save increases the revision, so a save based on an older revision fails instead of overwriting.
+        builder.Property(r => r.Revision).IsConcurrencyToken();
+
         builder.HasMany(r => r.Scenes)
             .WithOne()
             .HasForeignKey(s => s.EscapeRoomId)

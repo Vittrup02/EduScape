@@ -59,6 +59,10 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("OwnerTeacherId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -198,7 +202,7 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ClassId")
+                    b.Property<Guid?>("ClassId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("ClosedAt")
@@ -209,6 +213,9 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPreview")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Mode")
                         .IsRequired()
@@ -242,7 +249,10 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Status", "ExpiresAt");
 
-                    b.ToTable("Sessions", (string)null);
+                    b.ToTable("Sessions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Sessions_ClassUnlessPreview", "\"IsPreview\" OR \"ClassId\" IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("Eduscape.Domain.Sessions.Team", b =>
@@ -574,8 +584,7 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.HasOne("Eduscape.Domain.Classes.Class", null)
                         .WithMany()
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Eduscape.Domain.Rooms.EscapeRoom", null)
                         .WithMany()
