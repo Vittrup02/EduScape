@@ -55,6 +55,31 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
 
+  docker:
+    name: Backend Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same Dockerfile and build context as Render, so a broken image fails here first
+      - name: Build image
+        run: docker build --tag eduscape-api:ci backend
+
+      # Like Render: PORT is injected and the app must answer on 0.0.0.0:$PORT (no database needed for /health)
+      - name: Smoke test /health
+        run: |
+          docker run --detach --name api --publish 10000:10000 --env PORT=10000 eduscape-api:ci
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://localhost:10000/health; then
+              echo " - container is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Container did not answer on /health within 30 seconds"
+          docker logs api
+          exit 1
+
   frontend:
     name: Frontend (lint, unit tests, build)
     runs-on: ubuntu-latest

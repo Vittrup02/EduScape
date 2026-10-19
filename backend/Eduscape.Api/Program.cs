@@ -1,11 +1,18 @@
 using Eduscape.Api.Errors;
+using Eduscape.Api.Hosting;
 using Eduscape.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Render (and the Docker image) provide the port in PORT; locally launchSettings.json applies.
+if (ListenUrl.FromPort(builder.Configuration["PORT"]) is { } listenUrl)
+{
+    builder.WebHost.UseUrls(listenUrl);
+}
+
 // Allowed frontend origins come from configuration (appsettings / environment variables),
 // so local development and production can use different values without code changes.
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+var allowedOrigins = CorsOrigins.FromConfiguration(builder.Configuration);
 
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy => policy
