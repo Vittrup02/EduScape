@@ -32,6 +32,7 @@ builder.Services.AddExceptionHandler<ErrorCodeExceptionHandler>();
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddTeacherAuth();
 builder.Services.AddSessions(builder.Configuration);
+builder.Services.AddPlay();
 builder.Services.AddEduscapeRateLimiting(builder.Configuration);
 
 // Fixed lists (subject, grade level, ...) are sent as keys that the frontend translates.
