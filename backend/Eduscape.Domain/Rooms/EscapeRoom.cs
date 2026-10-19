@@ -72,6 +72,87 @@ public sealed class EscapeRoom
         }
     }
 
+    /// <summary>
+    /// Finds problems that make the room unplayable: no start scene, broken or circular unlockedBy references,
+    /// and doors without a target scene in this room.
+    /// </summary>
+    public IReadOnlyList<RoomValidationError> Validate()
+    {
+        var errors = new List<RoomValidationError>();
+        if (StartScene is null)
+        {
+            errors.Add(new RoomValidationError(DomainErrors.StartSceneMissing, null));
+        }
+
+        var objects = Objects.ToDictionary(o => o.Id);
+        var sceneIds = _scenes.Select(s => s.Id).ToHashSet();
+
+        foreach (var roomObject in objects.Values)
+        {
+            var unlockedByError = ValidateUnlockedBy(roomObject, objects);
+            if (unlockedByError is not null)
+            {
+                errors.Add(new RoomValidationError(unlockedByError, roomObject.Id));
+            }
+
+            if (roomObject is Door door && (door.TargetSceneId is not { } target || !sceneIds.Contains(target)))
+            {
+                errors.Add(new RoomValidationError(DomainErrors.DoorTargetMissing, door.Id));
+            }
+        }
+
+        return errors;
+    }
+
+    private static string? ValidateUnlockedBy(RoomObject roomObject, Dictionary<Guid, RoomObject> objects)
+    {
+        if (roomObject.UnlockedById is not { } sourceId)
+        {
+            return null;
+        }
+
+        if (sourceId == roomObject.Id)
+        {
+            return DomainErrors.UnlockedBySelf;
+        }
+
+        if (!objects.TryGetValue(sourceId, out var source))
+        {
+            return DomainErrors.UnlockedByNotFound;
+        }
+
+        if (source is not (Lock or Door))
+        {
+            return DomainErrors.UnlockedByInvalidTarget;
+        }
+
+        return IsInCycle(roomObject, objects) ? DomainErrors.UnlockedByCycle : null;
+    }
+
+    /// <summary>Follows the unlockedBy chain; each object has at most one, so the chain is a simple path.</summary>
+    private static bool IsInCycle(RoomObject start, Dictionary<Guid, RoomObject> objects)
+    {
+        var visited = new HashSet<Guid>();
+        var current = start;
+        while (current.UnlockedById is { } nextId && objects.TryGetValue(nextId, out var next))
+        {
+            if (next.Id == start.Id)
+            {
+                return true;
+            }
+
+            if (!visited.Add(next.Id))
+            {
+                // A cycle further down the chain that does not include start.
+                return false;
+            }
+
+            current = next;
+        }
+
+        return false;
+    }
+
     public void Rename(string title) => Title = Guard.Required(title, TextLimits.Title);
 
     public void Categorize(Subject subject, GradeLevel gradeLevel)
