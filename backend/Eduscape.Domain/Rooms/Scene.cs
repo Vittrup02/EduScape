@@ -28,7 +28,7 @@ public sealed class Scene
 
     public string Name { get; private set; }
 
-    /// <summary>R2 object key of the background image.</summary>
+    /// <summary>A built-in background key ("builtin:classroom") or the R2 object key of an uploaded image.</summary>
     public string BackgroundImageKey { get; private set; }
 
     public int SortOrder { get; private set; }
