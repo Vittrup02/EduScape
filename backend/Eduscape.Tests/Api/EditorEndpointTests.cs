@@ -37,11 +37,15 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         var library = NewScene("Bibliotek", NewExitDoor());
         var mathLock = NewLock() with
         {
-            AnswerType = AnswerType.Text, CorrectAnswer = "3,14", Tolerance = 0.01m, Hint = "Tænk på cirkler",
+            AnswerType = AnswerType.Text,
+            CorrectAnswer = "3,14",
+            Tolerance = 0.01m,
+            Hint = "Tænk på cirkler",
         };
         var choice = NewLock(question: "By?", answer: "Paris") with
         {
-            AnswerType = AnswerType.MultipleChoice, Options = ["Paris", "Rom"],
+            AnswerType = AnswerType.MultipleChoice,
+            Options = ["Paris", "Rom"],
         };
         var door = NewDoor(library.Id, unlockedById: mathLock.Id);
         var letter = NewLetter();
