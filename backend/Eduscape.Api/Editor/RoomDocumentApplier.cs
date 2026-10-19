@@ -50,6 +50,7 @@ public static class RoomDocumentApplier
             var scene = room.Scenes.Single(s => s.Id == sceneDocument.Id);
             scene.Rename(sceneDocument.Name);
             scene.SetBackgroundImage(sceneDocument.BackgroundImageKey);
+            scene.SetNarration(sceneDocument.Narration);
 
             var keptObjects = sceneDocument.Objects.Select(o => o.Id).ToHashSet();
             foreach (var removed in scene.Objects.Where(o => !keptObjects.Contains(o.Id)).Select(o => o.Id).ToList())

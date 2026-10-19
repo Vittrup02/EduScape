@@ -154,6 +154,10 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Narration")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 

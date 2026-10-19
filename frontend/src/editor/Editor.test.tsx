@@ -137,6 +137,21 @@ describe('the room editor', () => {
     expect(within(screen.getByRole('region', { name: 'Scenen Gangen' })).getByRole('button', { name: 'Lås 2' })).toBeInTheDocument()
   })
 
+  it('saves the story text of a scene, and none when it is left empty', async () => {
+    const saved = mockEditor()
+    renderEditor()
+
+    fireEvent.change(await screen.findByLabelText('Fortællertekst'), { target: { value: 'Det er 1943.' } })
+
+    await waitFor(() => {
+      expect(saved).toHaveLength(1)
+    }, saveWait)
+    const [hall, library] = saved[0].scenes as unknown as { narration: string | null }[]
+    expect(hall.narration).toBe('Det er 1943.')
+    expect(library.narration).toBeNull()
+    expect(within(screen.getByRole('navigation', { name: 'Scener' })).getByText('Fortælling')).toBeInTheDocument()
+  })
+
   it('waits with saving while the title is empty', async () => {
     const saved = mockEditor()
     renderEditor()

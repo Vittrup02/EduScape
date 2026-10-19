@@ -78,6 +78,8 @@ export interface PlayScene {
   backgroundImageKey: string
   /** A short-lived link to an uploaded background; null for built-in ones. */
   backgroundImageUrl: string | null
+  /** The teacher's story text, shown when the student enters the scene; null when there is none. */
+  narration: string | null
   objects: PlayObject[]
 }
 

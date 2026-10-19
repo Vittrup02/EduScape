@@ -206,6 +206,10 @@
       "makeStart": "Let students start here",
       "remove": "Delete the scene",
       "removeNamed": "Delete {{name}}",
+      "narration": "Story text",
+      "narrationPlaceholder": "E.g.: It is 1943. You are hiding in the attic, and the soldiers will be here soon …",
+      "narrationHint": "Shown large to students when they enter the scene. Use it to tell the story and set the mood.",
+      "storyBadge": "Story",
       "removed": "{{name}} was deleted.",
       "defaultName": "Scene {{n}}",
       "unnamed": "Untitled",
@@ -252,6 +256,11 @@
     "nickname": "You are in as {{nickname}}.",
     "leave": "Leave the session",
     "preview": "Preview – only you can see it, and it isn't added to your history.",
+    "narration": {
+      "label": "Story",
+      "continue": "Continue",
+      "reread": "Read the story again"
+    },
     "joinAgain": "Join a new session",
     "noRoom": "This room cannot be played yet. Ask your teacher.",
     "scenes": "Scenes",

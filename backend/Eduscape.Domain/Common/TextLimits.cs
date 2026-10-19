@@ -10,6 +10,7 @@ public static class TextLimits
     public const int Answer = 200;
     public const int Hint = 1000;
     public const int LetterText = 4000;
+    public const int Narration = 4000;
     public const int Nickname = 20;
     public const int DeviceToken = 64;
     public const int EnumKey = 32;

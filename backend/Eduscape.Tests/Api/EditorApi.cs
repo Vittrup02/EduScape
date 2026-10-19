@@ -50,7 +50,7 @@ internal static class EditorApi
         room.Subject,
         room.GradeLevel,
         room.StartSceneId!.Value,
-        [.. room.Scenes.Select(s => new SaveSceneRequest(s.Id, s.Name, s.BackgroundImageKey, s.Objects))]);
+        [.. room.Scenes.Select(s => new SaveSceneRequest(s.Id, s.Name, s.BackgroundImageKey, s.Objects, s.Narration))]);
 
     public static EditorObjectDto NewLock(double x = 30, double y = 40, string question = "2 + 2?", string answer = "4") =>
         new(Guid.CreateVersion7(), RoomObjectType.Lock, x, y, "builtin:padlock", null,

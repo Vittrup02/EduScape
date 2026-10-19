@@ -275,6 +275,9 @@ export function Editor({ room }: { room: EditorRoom }) {
               onRename={(name) => {
                 apply((d) => updateScene(d, scene.id, { name }), `${scene.id}:name`)
               }}
+              onNarration={(narration) => {
+                apply((d) => updateScene(d, scene.id, { narration }), `${scene.id}:narration`)
+              }}
               onBackground={(backgroundImageKey, backgroundImageUrl) => {
                 apply((d) => updateScene(d, scene.id, { backgroundImageKey, backgroundImageUrl }))
               }}

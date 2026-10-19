@@ -22,9 +22,17 @@ public sealed record EditorObjectDto(
     string? Text = null,
     Guid? TargetSceneId = null);
 
-/// <summary><c>BackgroundImageUrl</c> is a short-lived link to an uploaded background; null for built-in ones.</summary>
+/// <summary>
+/// <c>BackgroundImageUrl</c> is a short-lived link to an uploaded background; null for built-in ones.
+/// <c>Narration</c> is the story text students see when they enter the scene; null when there is none.
+/// </summary>
 public sealed record EditorSceneDto(
-    Guid Id, string Name, string BackgroundImageKey, string? BackgroundImageUrl, EditorObjectDto[] Objects);
+    Guid Id,
+    string Name,
+    string BackgroundImageKey,
+    string? BackgroundImageUrl,
+    EditorObjectDto[] Objects,
+    string? Narration = null);
 
 public sealed record RoomValidationErrorDto(string Code, Guid? ObjectId);
 
@@ -39,7 +47,8 @@ public sealed record EditorRoomDto(
     RoomValidationErrorDto[] ValidationErrors,
     bool UploadsEnabled);
 
-public sealed record SaveSceneRequest(Guid Id, string Name, string BackgroundImageKey, EditorObjectDto[] Objects);
+public sealed record SaveSceneRequest(
+    Guid Id, string Name, string BackgroundImageKey, EditorObjectDto[] Objects, string? Narration = null);
 
 /// <summary>
 /// The whole room as the editor has it. Scenes and objects missing from it are removed; new ones keep the ids the

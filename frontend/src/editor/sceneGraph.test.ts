@@ -7,7 +7,7 @@ function door(id: string, targetSceneId: string | null): EditorDoor {
 }
 
 function scene(id: string, ...objects: EditorScene['objects']): EditorScene {
-  return { id, name: id, backgroundImageKey: 'builtin:classroom', backgroundImageUrl: null, objects }
+  return { id, name: id, backgroundImageKey: 'builtin:classroom', backgroundImageUrl: null, narration: '', objects }
 }
 
 function room(startSceneId: string, ...scenes: EditorScene[]): RoomDocument {
