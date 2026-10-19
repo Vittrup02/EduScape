@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadDeviceToken, saveDeviceToken } from '../api/deviceStorage'
 import type { PlayState } from '../api/play'
 import { json, mockFetch, urlOf } from '../test/fetchMock'
+import { playState } from '../test/playRoom'
 import { JoinPage } from './JoinPage'
 import { PlayPage } from './PlayPage'
 
@@ -13,15 +14,7 @@ const teams = [
 ]
 
 function stateFor(team: { id: string; color: string }, overrides: Partial<PlayState> = {}): PlayState {
-  return {
-    sessionId: 's1',
-    mode: 'Team',
-    status: 'Open',
-    participantId: 'p1',
-    nickname: 'Ida',
-    team: { id: team.id, color: team.color as PlayState['team']['color'], solvedLockIds: [], openedDoorIds: [], escapedAt: null },
-    ...overrides,
-  }
+  return playState({ id: team.id, color: team.color as PlayState['team']['color'] }, overrides)
 }
 
 function renderAt(path: string) {
