@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Eduscape.Api/Eduscape.Api.csproj" />
+  <Project Path="Eduscape.Domain/Eduscape.Domain.csproj" />
+  <Project Path="Eduscape.Infrastructure/Eduscape.Infrastructure.csproj" />
+  <Project Path="Eduscape.Tests/Eduscape.Tests.csproj" />
+</Solution>

@@ -1,0 +1,45 @@
+/* System fonts only – no external font CDNs (EU hosting / data minimisation). */
+:root {
+  --text: #1f2933;
+  --muted: #52606d;
+  --bg: #ffffff;
+  --ok: #1e7b34;
+  --error: #b42318;
+
+  font: 18px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f3f4f6;
+    --muted: #9ca3af;
+    --bg: #16171d;
+    --ok: #4ade80;
+    --error: #f87171;
+  }
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1rem;
+}
+
+.status {
+  color: var(--muted);
+}
+
+.status[data-state='online'] {
+  color: var(--ok);
+}
+
+.status[data-state='offline'] {
+  color: var(--error);
+}
