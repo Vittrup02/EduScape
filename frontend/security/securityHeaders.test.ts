@@ -39,6 +39,26 @@ describe('security headers', () => {
     expect(directive(policy, 'img-src')).toEqual(["'self'", 'https://images.example'])
   })
 
+  it('lets the browser upload to and show images from the image storage, and nothing more of it', () => {
+    const policy = contentSecurityPolicy({
+      apiUrl: 'https://api.example',
+      imageStorageUrl: 'https://abc123.eu.r2.cloudflarestorage.com/some/path',
+    })
+
+    expect(directive(policy, 'img-src')).toEqual(["'self'", 'https://abc123.eu.r2.cloudflarestorage.com'])
+    expect(directive(policy, 'connect-src')).toContain('https://abc123.eu.r2.cloudflarestorage.com')
+    expect(directive(policy, 'script-src')).toEqual(["'self'"])
+  })
+
+  it('leaves the image storage out when none is configured, and rejects plain http', () => {
+    expect(directive(contentSecurityPolicy({ apiUrl: 'https://api.example', imageStorageUrl: '' }), 'img-src')).toEqual([
+      "'self'",
+    ])
+    expect(() => contentSecurityPolicy({ apiUrl: 'https://api.example', imageStorageUrl: 'http://bucket.example' })).toThrow(
+      'VITE_IMAGE_STORAGE_URL',
+    )
+  })
+
   it('forbids framing the app', () => {
     const policy = contentSecurityPolicy({ apiUrl: 'https://api.example' })
 

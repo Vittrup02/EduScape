@@ -1,11 +1,23 @@
 import type { Plugin } from 'vite'
 
-/**
- * Extra origins the app may load images from. The one place to change img-src, e.g. add the public
- * R2 bucket URL once image uploads exist. Uploads via presigned URLs also need the R2 S3 endpoint
- * in connect-src.
- */
+/** Extra origins the app may load images from, besides the image storage below. */
 export const imageSources: readonly string[] = []
+
+/**
+ * The origin of the private R2 bucket (VITE_IMAGE_STORAGE_URL, e.g. https://<account>.eu.r2.cloudflarestorage.com).
+ * Teachers upload to it with presigned PUT URLs (connect-src) and images are shown from presigned GET URLs (img-src).
+ * Without it, uploads are blocked by the browser, which matches a backend without R2.
+ */
+export function imageStorageSources(imageStorageUrl: string | undefined): string[] {
+  if (imageStorageUrl === undefined || imageStorageUrl === '') {
+    return []
+  }
+  const url = new URL(imageStorageUrl)
+  if (url.protocol !== 'https:') {
+    throw new Error(`VITE_IMAGE_STORAGE_URL must be an https URL, got "${imageStorageUrl}"`)
+  }
+  return [url.origin]
+}
 
 /** The API origin plus the WebSocket origin SignalR connects to (https -> wss, http -> ws locally). */
 export function apiConnectSources(apiUrl: string): string[] {
@@ -20,17 +32,19 @@ export function apiConnectSources(apiUrl: string): string[] {
 interface PolicyOptions {
   apiUrl: string
   imageSources?: readonly string[]
+  imageStorageUrl?: string
 }
 
 /** Only our own files, no inline or external scripts, styles or fonts, and the page can't be framed. */
 export function contentSecurityPolicy(options: PolicyOptions): string {
+  const storage = imageStorageSources(options.imageStorageUrl)
   const directives: Record<string, readonly string[]> = {
     'default-src': ["'self'"],
     'script-src': ["'self'"],
     'style-src': ["'self'"],
     'font-src': ["'self'"],
-    'img-src': ["'self'", ...(options.imageSources ?? imageSources)],
-    'connect-src': ["'self'", ...apiConnectSources(options.apiUrl)],
+    'img-src': ["'self'", ...(options.imageSources ?? imageSources), ...storage],
+    'connect-src': ["'self'", ...apiConnectSources(options.apiUrl), ...storage],
     'object-src': ["'none'"],
     'base-uri': ["'self'"],
     'form-action': ["'self'"],
@@ -60,13 +74,13 @@ export function headersFile(options: PolicyOptions): string {
   ].join('\n')
 }
 
-/** Writes `_headers` into the build output. A static file can't do it: the API URL is only known at build time. */
-export function securityHeaders(apiUrl: string): Plugin {
+/** Writes `_headers` into the build output. A static file can't do it: the URLs are only known at build time. */
+export function securityHeaders(apiUrl: string, imageStorageUrl?: string): Plugin {
   return {
     name: 'eduscape-security-headers',
     apply: 'build',
     generateBundle() {
-      this.emitFile({ type: 'asset', fileName: '_headers', source: headersFile({ apiUrl }) })
+      this.emitFile({ type: 'asset', fileName: '_headers', source: headersFile({ apiUrl, imageStorageUrl }) })
     },
   }
 }
