@@ -12,7 +12,7 @@ if (ListenUrl.FromPort(builder.Configuration["PORT"]) is { } listenUrl)
 
 // Allowed frontend origins come from configuration (appsettings / environment variables),
 // so local development and production can use different values without code changes.
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+var allowedOrigins = CorsOrigins.FromConfiguration(builder.Configuration);
 
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy => policy
