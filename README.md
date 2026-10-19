@@ -35,7 +35,7 @@ eduscape er designet til dataminimering:
 
 | Del | Teknologi | Hosting |
 |---|---|---|
-| Frontend | React + TypeScript (Vite) | Cloudflare Pages |
+| Frontend | React + TypeScript (Vite) | Cloudflare Workers (Static Assets) |
 | Backend | C# .NET 10 Web API + SignalR | Render (Frankfurt) |
 | Database | PostgreSQL via EF Core | Neon (eu-central-1) |
 | Billeder | Cloudflare R2 | R2 (EU jurisdiction) |
@@ -88,7 +88,7 @@ Backendens database-tests opretter og sletter deres egen midlertidige database p
 
 GitHub Actions bygger projektet og kører alle tests på hver pull request. CI bygger også backendens Docker-image og tjekker, at containeren svarer på `/health`, så en ødelagt Dockerfile fanges før deploy.
 
-## Deploy (Render + Neon)
+## Deploy (Render + Neon + Cloudflare)
 
 Backenden kører som Docker-container på Render. Imaget bygges fra [backend/Dockerfile](backend/Dockerfile).
 
@@ -101,10 +101,29 @@ Backenden kører som Docker-container på Render. Imaget bygges fra [backend/Doc
 | Variabel | Værdi |
 |---|---|
 | `ConnectionStrings__Default` | Neons **pooled** endpoint (værtsnavn med `-pooler`) i Npgsql-format: `Host=<host>;Database=<db>;Username=<bruger>;Password=<kode>;SSL Mode=Require`. Neons `postgresql://`-URL virker ikke direkte i Npgsql. |
-| `Cors__AllowedOrigins` | Frontendens origin(s), kommasepareret, fx `https://eduscape.pages.dev`. Uden afsluttende `/`. |
+| `Cors__AllowedOrigins` | Frontendens origin(s), kommasepareret, fx `https://eduscape.<konto>.workers.dev`. Uden afsluttende `/`. |
 | `PORT` | Sættes af Render selv. Appen lytter på `0.0.0.0:$PORT` (standard i imaget: 8080). |
 
 `ASPNETCORE_ENVIRONMENT` skal ikke sættes. Containeren kører som Production, så demo-rummet ikke seedes og user-secrets ikke læses.
+
+### Frontend (Cloudflare Workers)
+
+Frontenden serveres som statiske filer fra en Cloudflare Worker (Workers Static Assets) med SPA-fallback. Konfigurationen ligger i [frontend/wrangler.jsonc](frontend/wrangler.jsonc).
+
+Opret i Cloudflare-dashboardet: **Workers & Pages → Create → Import a repository** → `EduScape`.
+
+| Felt | Værdi |
+|---|---|
+| Project name | `eduscape` (skal matche `name` i `wrangler.jsonc`, ellers fejler buildet) |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` (standard) |
+| Path / Root directory | `frontend` |
+| Git branch | `development` (indtil videre) |
+| Build variable | `VITE_API_URL` = backendens URL, fx `https://eduscape-api-dev.onrender.com` (uden afsluttende `/`) |
+
+`VITE_API_URL` skal være en **build-variabel** (Settings → Build → Variables and secrets), fordi Vite bager den ind i bundlen under build. Runtime-variabler (Settings → Variables & Secrets) når aldrig frem til frontenden. Ændres den, skal der bygges igen.
+
+Sæt derefter Workerens URL i `Cors__AllowedOrigins` på Render.
 
 ### Migrationer mod Neon
 
