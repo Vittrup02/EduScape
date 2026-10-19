@@ -150,6 +150,7 @@ public static class RoomDocumentApplier
             RoomObjectType.Letter => new Letter(position, document.GraphicKey, document.Text ?? string.Empty, document.Id),
             RoomObjectType.Door => new Door(position, document.GraphicKey, null, document.TargetSceneId, document.Id),
             RoomObjectType.ExitDoor => new ExitDoor(position, document.GraphicKey, null, document.Id),
+            RoomObjectType.TextBox => new TextBox(position, document.Text ?? string.Empty, document.Id),
             _ => throw Invalid(),
         };
     }
@@ -157,9 +158,17 @@ public static class RoomDocumentApplier
     private static void Update(RoomObject roomObject, EditorObjectDto document)
     {
         roomObject.MoveTo(new Position(document.X, document.Y));
-        roomObject.SetGraphic(document.GraphicKey, unlockedGraphicKey: null);
+        // A text box always has the same look; for the others the teacher picks a graphic.
+        if (roomObject is not TextBox)
+        {
+            roomObject.SetGraphic(document.GraphicKey, unlockedGraphicKey: null);
+        }
+
         switch (roomObject)
         {
+            case TextBox textBox:
+                textBox.SetText(document.Text ?? string.Empty);
+                break;
             case Lock @lock:
                 @lock.SetQuestion(document.Question ?? string.Empty, document.Hint);
                 @lock.SetAnswer(

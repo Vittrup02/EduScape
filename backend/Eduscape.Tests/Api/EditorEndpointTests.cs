@@ -86,6 +86,36 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
     }
 
     [PostgresFact]
+    public async Task TextBox_IsSavedWithItsText_AndStudentsSeeItOnTheScene()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = await GetRoomAsync(teacher.Client, (await CreateRoomAsync(teacher.Client)).Id);
+        var textBox = new EditorObjectDto(
+            Guid.CreateVersion7(), RoomObjectType.TextBox, 25, 15, "builtin:text-box", null, Text: "Vagten er gået til frokost.");
+        var request = ToRequest(room) with { Scenes = [ToRequest(room).Scenes[0] with { Objects = [textBox] }] };
+
+        var saved = await SavedAsync(teacher.Client, room.Id, request);
+        var loaded = Assert.Single((await GetRoomAsync(teacher.Client, room.Id)).Scenes[0].Objects);
+        Assert.Empty(saved.ValidationErrors);
+        Assert.Equal(
+            (RoomObjectType.TextBox, 25d, 15d, "Vagten er gået til frokost."),
+            (loaded.Type, loaded.X, loaded.Y, loaded.Text));
+
+        // Moving it and changing the text keeps it a text box.
+        await SavedAsync(teacher.Client, room.Id, request with
+        {
+            Revision = saved.Revision,
+            Scenes = [request.Scenes[0] with { Objects = [textBox with { X = 60, Text = "Vagten er tilbage!" }] }],
+        });
+
+        var preview = await ReadAsync<PreviewResponse>(await PreviewAsync(teacher.Client, room.Id));
+        var state = await SessionApi.ReadAsync<Eduscape.Api.Play.PlayStateDto>(
+            await SessionApi.ReconnectAsync(factory.CreateClient(), preview.DeviceToken));
+        var played = Assert.Single(Assert.Single(state.Room.Scenes).Objects);
+        Assert.Equal((RoomObjectType.TextBox, 60d, "Vagten er tilbage!"), (played.Type, played.X, played.Text));
+    }
+
+    [PostgresFact]
     public async Task Save_MovesUpdatesAndRemovesObjectsAndScenes()
     {
         var teacher = await factory.RegisterTeacherAsync();

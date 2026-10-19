@@ -212,6 +212,7 @@ public static class EditorEndpoints
                 Options = @lock.Options,
             },
             Letter letter => dto with { Text = letter.Text },
+            TextBox textBox => dto with { Text = textBox.Text },
             Door door => dto with { TargetSceneId = door.TargetSceneId },
             _ => dto,
         };

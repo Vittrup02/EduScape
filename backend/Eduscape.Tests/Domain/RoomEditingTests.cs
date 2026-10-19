@@ -91,6 +91,16 @@ public class RoomEditingTests
     }
 
     [Fact]
+    public void CopyFor_CopiesTextBoxes()
+    {
+        var template = new EscapeRoom("Skabelon", Subject.History, GradeLevel.Grade8, isTemplate: true);
+        template.AddScene("Gang", "builtin:classroom").AddObject(new TextBox(new Position(20, 30), "Vagten sover."));
+
+        var copied = Assert.IsType<TextBox>(Assert.Single(template.CopyFor(Guid.NewGuid()).Objects));
+        Assert.Equal(("Vagten sover.", new Position(20, 30)), (copied.Text, copied.Position));
+    }
+
+    [Fact]
     public void MarkEdited_IncreasesTheRevision()
     {
         var room = new EscapeRoom("Rum", Subject.History, GradeLevel.Grade8);

@@ -6,4 +6,5 @@ public enum RoomObjectType
     Letter,
     Door,
     ExitDoor,
+    TextBox,
 }

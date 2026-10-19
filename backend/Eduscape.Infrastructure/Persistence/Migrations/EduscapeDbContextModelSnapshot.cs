@@ -494,8 +494,10 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Text")
                         .IsRequired()
+                        .ValueGeneratedOnUpdateSometimes()
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("Text");
 
                     b.HasDiscriminator().HasValue("Letter");
                 });
@@ -532,6 +534,20 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,6)");
 
                     b.HasDiscriminator().HasValue("Lock");
+                });
+
+            modelBuilder.Entity("Eduscape.Domain.Rooms.TextBox", b =>
+                {
+                    b.HasBaseType("Eduscape.Domain.Rooms.RoomObject");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("Text");
+
+                    b.HasDiscriminator().HasValue("TextBox");
                 });
 
             modelBuilder.Entity("Eduscape.Domain.Classes.Class", b =>

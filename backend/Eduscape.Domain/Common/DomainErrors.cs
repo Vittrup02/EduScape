@@ -42,4 +42,5 @@ public static class DomainErrors
     public const string LockQuestionMissing = "LOCK_QUESTION_MISSING";
     public const string LockAnswerMissing = "LOCK_ANSWER_MISSING";
     public const string LetterTextMissing = "LETTER_TEXT_MISSING";
+    public const string TextBoxTextMissing = "TEXT_BOX_TEXT_MISSING";
 }
