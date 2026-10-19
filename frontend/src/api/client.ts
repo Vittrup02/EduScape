@@ -1,4 +1,6 @@
-export const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:5115'
+import { defaultApiUrl } from './defaultApiUrl'
+
+export const apiBaseUrl = import.meta.env.VITE_API_URL ?? defaultApiUrl
 
 /**
  * An error response from the backend. The backend only sends a code (e.g. SESSION_CLOSED);
