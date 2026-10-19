@@ -363,3 +363,9 @@ main {
   justify-content: flex-start;
   font-size: 1.25rem;
 }
+
+.room-list .nicknames li {
+  display: list-item;
+  padding: 0;
+  border: 0;
+}

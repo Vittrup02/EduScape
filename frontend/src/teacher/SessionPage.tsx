@@ -5,7 +5,7 @@ import { ApiError } from '../api/client'
 import { changeSession, getSession, type SessionAction, type SessionDetails } from '../api/sessions'
 import { useLoad } from '../api/useLoad'
 import { errorKey } from '../i18n/errors'
-import { formatTime, teamName } from '../i18n/format'
+import { formatDateTime, teamName } from '../i18n/format'
 
 const statusKeys = {
   Open: 'session.statusOpen',
@@ -75,7 +75,7 @@ export function SessionPage() {
             {session.pin}
           </p>
           <p>{t('session.joinHint', { url: `${window.location.origin}/join` })}</p>
-          <p className="hint">{t('session.expiresAt', { time: formatTime(session.expiresAt, i18n.language) })}</p>
+          <p className="hint">{t('session.expiresAt', { time: formatDateTime(session.expiresAt, i18n.language) })}</p>
         </div>
       )}
 

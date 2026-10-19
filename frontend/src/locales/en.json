@@ -101,7 +101,7 @@
     "onTeam": "You are on {{team}}",
     "individual": "You are playing on your own",
     "nickname": "You are in as {{nickname}}.",
-    "waiting": "You're in! The escape room will be shown here.",
+    "waiting": "The escape room will be shown here.",
     "leave": "Leave the session",
     "joinAgain": "Join a new session"
   },

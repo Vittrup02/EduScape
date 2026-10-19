@@ -65,7 +65,7 @@
     "loading": "Henter sessionen...",
     "pinLabel": "PIN-kode",
     "joinHint": "Eleverne går ind på {{url}} og skriver PIN-koden.",
-    "expiresAt": "PIN-koden virker indtil kl. {{time}}.",
+    "expiresAt": "PIN-koden virker indtil {{time}}.",
     "statusOpen": "Åben – eleverne kan deltage.",
     "statusLocked": "Låst – nye elever kan ikke deltage. Elever, der allerede er med, kan spille videre.",
     "statusClosed": "Sessionen er lukket. PIN-koden virker ikke længere.",
@@ -101,7 +101,7 @@
     "onTeam": "Du er på {{team}}",
     "individual": "Du spiller for dig selv",
     "nickname": "Du er med som {{nickname}}.",
-    "waiting": "Du er med! Escape roomet bliver vist her.",
+    "waiting": "Escape roomet bliver vist her.",
     "leave": "Forlad sessionen",
     "joinAgain": "Deltag i en ny session"
   },
