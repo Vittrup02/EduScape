@@ -1,3 +1,5 @@
+using Eduscape.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Allowed frontend origins come from configuration (appsettings / environment variables),
@@ -11,6 +13,8 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod()));
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

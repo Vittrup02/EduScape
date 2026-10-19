@@ -61,7 +61,8 @@ eduscape er designet til dataminimering:
 ```bash
 # Backend
 cd backend
-dotnet user-secrets set "ConnectionStrings:Default" "<din-connection-string>" --project Eduscape.Api
+dotnet tool restore   # installerer dotnet-ef fra dotnet-tools.json
+dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Database=eduscape;Username=postgres;Password=<kode>" --project Eduscape.Api
 dotnet ef database update --project Eduscape.Infrastructure --startup-project Eduscape.Api
 dotnet run --project Eduscape.Api
 
@@ -71,6 +72,10 @@ npm install
 npm run dev
 ```
 
+Connection strings hører hjemme i user-secrets (lokalt) eller environment variables (`ConnectionStrings__Default`) – aldrig i repoet.
+
+I Development seeder `dotnet ef database update` et demo-escape room ("Demo: Flugten fra matematiklokalet") med to scener, tre låse, et brev, en dør og en slutdør, så spillet kan testes uden editor.
+
 ## Tests
 
 ```bash
@@ -78,5 +83,7 @@ cd backend && dotnet test     # Backend (xUnit)
 cd frontend && npm run test   # Frontend (Vitest)
 cd frontend && npm run test:e2e   # End-to-end (Playwright)
 ```
+
+Backendens database-tests opretter og sletter deres egen midlertidige database på den server, `ConnectionStrings:Default` peger på. Uden connection string springes de over lokalt; i CI kører de altid mod en PostgreSQL-service.
 
 GitHub Actions bygger projektet og kører alle tests på hver pull request.
