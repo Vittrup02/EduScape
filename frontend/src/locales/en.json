@@ -98,12 +98,40 @@
   },
   "play": {
     "connecting": "Connecting... If the server has been asleep, this can take up to a minute.",
+    "reconnecting": "The connection was lost. Reconnecting...",
     "onTeam": "You are on {{team}}",
     "individual": "You are playing on your own",
     "nickname": "You are in as {{nickname}}.",
-    "waiting": "The escape room will be shown here.",
     "leave": "Leave the session",
-    "joinAgain": "Join a new session"
+    "joinAgain": "Join a new session",
+    "noRoom": "This room cannot be played yet. Ask your teacher.",
+    "scenes": "Scenes",
+    "close": "Close",
+    "object": {
+      "lock": "Lock: {{question}}",
+      "lockOpen": "Open lock: {{question}}",
+      "letter": "Letter",
+      "door": "Door to {{scene}}",
+      "doorOpen": "Open door to {{scene}}",
+      "exitDoor": "Exit door"
+    },
+    "lock": {
+      "title": "Lock",
+      "answer": "Your answer",
+      "submit": "Try",
+      "options": "Choose an answer",
+      "wrong": "Wrong answer. Try again.",
+      "solved": "The lock is open.",
+      "hint": "Hint:"
+    },
+    "letter": {
+      "title": "Letter"
+    },
+    "escaped": {
+      "team": "You broke out!",
+      "individual": "You broke out!",
+      "text": "Well done! Tell your teacher."
+    }
   },
   "teams": {
     "name": "Team {{color}}"

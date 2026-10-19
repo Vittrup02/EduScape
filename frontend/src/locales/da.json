@@ -98,12 +98,40 @@
   },
   "play": {
     "connecting": "Forbinder... Har serveren sovet, kan det tage op til et minut.",
+    "reconnecting": "Forbindelsen blev afbrudt. Forbinder igen...",
     "onTeam": "Du er på {{team}}",
     "individual": "Du spiller for dig selv",
     "nickname": "Du er med som {{nickname}}.",
-    "waiting": "Escape roomet bliver vist her.",
     "leave": "Forlad sessionen",
-    "joinAgain": "Deltag i en ny session"
+    "joinAgain": "Deltag i en ny session",
+    "noRoom": "Rummet kan ikke spilles endnu. Spørg din lærer.",
+    "scenes": "Scener",
+    "close": "Luk",
+    "object": {
+      "lock": "Lås: {{question}}",
+      "lockOpen": "Åben lås: {{question}}",
+      "letter": "Brev",
+      "door": "Dør til {{scene}}",
+      "doorOpen": "Åben dør til {{scene}}",
+      "exitDoor": "Slutdør"
+    },
+    "lock": {
+      "title": "Lås",
+      "answer": "Dit svar",
+      "submit": "Prøv",
+      "options": "Vælg et svar",
+      "wrong": "Forkert svar. Prøv igen.",
+      "solved": "Låsen er åbnet.",
+      "hint": "Hint:"
+    },
+    "letter": {
+      "title": "Brev"
+    },
+    "escaped": {
+      "team": "I er brudt ud!",
+      "individual": "Du er brudt ud!",
+      "text": "Godt klaret! Sig det til din lærer."
+    }
   },
   "teams": {
     "name": "Hold {{color}}"
