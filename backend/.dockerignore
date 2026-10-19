@@ -1,0 +1,16 @@
+# Build output (restored and built inside the image)
+**/bin/
+**/obj/
+
+# Not part of the runtime image
+Eduscape.Tests/
+dotnet-tools.json
+
+# Local editor files and secrets
+**/.vs/
+**/*.user
+**/.env
+**/.env.*
+
+Dockerfile
+.dockerignore
