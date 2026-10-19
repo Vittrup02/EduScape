@@ -21,7 +21,7 @@
     "registerTitle": "Create a teacher account",
     "email": "E-mail",
     "password": "Password",
-    "passwordHint": "At least 10 characters. A sentence you can remember works well.",
+    "passwordHint": "At least 10 characters",
     "loginButton": "Log in",
     "loggingIn": "Logging in...",
     "registerButton": "Create account",

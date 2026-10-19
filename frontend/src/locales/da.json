@@ -21,7 +21,7 @@
     "registerTitle": "Opret lærerkonto",
     "email": "E-mail",
     "password": "Adgangskode",
-    "passwordHint": "Mindst 10 tegn. En sætning, du kan huske, er fin.",
+    "passwordHint": "Mindst 10 tegn",
     "loginButton": "Log ind",
     "loggingIn": "Logger ind...",
     "registerButton": "Opret konto",
