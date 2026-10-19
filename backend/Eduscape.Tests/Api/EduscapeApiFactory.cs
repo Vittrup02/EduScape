@@ -1,13 +1,15 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Eduscape.Api.Auth;
+using Eduscape.Api.Hosting;
 using Eduscape.Domain.Rooms;
 using Eduscape.Infrastructure;
 using Eduscape.Tests.Infrastructure;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Eduscape.Tests.Api;
 
@@ -30,8 +32,9 @@ public sealed class EduscapeApiFactory : WebApplicationFactory<Program>, IAsyncL
             builder.UseSetting($"ConnectionStrings:{DependencyInjection.ConnectionStringName}", connectionString);
         }
 
-        // Every test logs in from the same (test server) address; the rate limit itself is tested separately.
-        builder.UseSetting(AuthServiceCollectionExtensions.PermitLimitSetting, "100000");
+        // Every test calls from the same (test server) address; the rate limits themselves are tested separately.
+        builder.UseSetting(RateLimiting.AuthPermitLimitSetting, "100000");
+        builder.UseSetting(RateLimiting.JoinPermitLimitSetting, "100000");
     }
 
     public Task InitializeAsync() => Database.InitializeAsync();
@@ -42,11 +45,17 @@ public sealed class EduscapeApiFactory : WebApplicationFactory<Program>, IAsyncL
         await Database.DisposeAsync();
     }
 
+    /// <summary>The same API (and database) with some services replaced, e.g. the clock or the PIN generator.</summary>
+    public WebApplicationFactory<Program> WithServices(Action<IServiceCollection> configureServices) =>
+        WithWebHostBuilder(builder => builder.ConfigureTestServices(configureServices));
+
     /// <summary>Registers a new teacher and returns a client that sends their access token.</summary>
-    public async Task<SignedInTeacher> RegisterTeacherAsync()
+    /// <param name="app">The API to call; this factory by default.</param>
+    public async Task<SignedInTeacher> RegisterTeacherAsync(WebApplicationFactory<Program>? app = null)
     {
+        app ??= this;
         var email = NewEmail();
-        var response = await CreateClient().PostAsJsonAsync("/api/auth/register", new { email, password = Password });
+        var response = await app.CreateClient().PostAsJsonAsync("/api/auth/register", new { email, password = Password });
         response.EnsureSuccessStatusCode();
         var tokens = await response.Content.ReadFromJsonAsync<AccessTokenResponse>()
             ?? throw new InvalidOperationException("Register returned no tokens.");
@@ -54,12 +63,22 @@ public sealed class EduscapeApiFactory : WebApplicationFactory<Program>, IAsyncL
         await using var db = Database.CreateContext();
         var teacherId = await db.Users.Where(u => u.Email == email).Select(u => u.Id).SingleAsync();
 
-        return new SignedInTeacher(teacherId, email, tokens, ClientWithToken(tokens.AccessToken));
+        return new SignedInTeacher(teacherId, email, tokens, ClientWithToken(tokens.AccessToken, app));
     }
 
-    public HttpClient ClientWithToken(string accessToken)
+    /// <summary>Logs an existing teacher in and returns a client that sends the new access token.</summary>
+    public async Task<HttpClient> LoginAsync(string email, WebApplicationFactory<Program>? app = null)
     {
-        var client = CreateClient();
+        var response = await (app ?? this).CreateClient().PostAsJsonAsync("/api/auth/login", new { email, password = Password });
+        response.EnsureSuccessStatusCode();
+        var tokens = await response.Content.ReadFromJsonAsync<AccessTokenResponse>()
+            ?? throw new InvalidOperationException("Login returned no tokens.");
+        return ClientWithToken(tokens.AccessToken, app);
+    }
+
+    public HttpClient ClientWithToken(string accessToken, WebApplicationFactory<Program>? app = null)
+    {
+        var client = (app ?? this).CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         return client;
     }

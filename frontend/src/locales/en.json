@@ -39,6 +39,16 @@
     "noRooms": "You don't have any rooms yet.",
     "roomDetails": "{{subject}} · {{gradeLevel}}"
   },
+  "teamColors": {
+    "Red": "Red",
+    "Blue": "Blue",
+    "Green": "Green",
+    "Yellow": "Yellow",
+    "Purple": "Purple",
+    "Orange": "Orange",
+    "Pink": "Pink",
+    "Teal": "Teal"
+  },
   "subjects": {
     "Danish": "Danish",
     "Mathematics": "Mathematics",
@@ -104,6 +114,8 @@
     "EMAIL_INVALID": "Enter a valid e-mail address.",
     "PASSWORD_TOO_SHORT": "The password must be at least 10 characters.",
     "PASSWORD_TOO_LONG": "The password can be at most 128 characters.",
+    "PIN_NOT_FOUND": "There is no active session with that PIN. Check the code and try again.",
+    "DEVICE_NOT_RECOGNIZED": "We could not find you in the session. Join again with the PIN.",
     "VALUE_REQUIRED": "This field is required.",
     "VALUE_TOO_LONG": "The text is too long.",
     "POSITION_OUT_OF_RANGE": "The object must be placed inside the image.",

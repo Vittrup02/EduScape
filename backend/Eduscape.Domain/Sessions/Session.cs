@@ -22,7 +22,7 @@ public sealed class Session
         DateTimeOffset startedAt,
         TimeSpan lifetime)
     {
-        if (pin.Length != PinLength || !pin.All(char.IsAsciiDigit))
+        if (!IsValidPin(pin))
         {
             throw new DomainException(DomainErrors.SessionPinInvalid);
         }
@@ -91,6 +91,9 @@ public sealed class Session
 
         return session;
     }
+
+    /// <summary>Six ASCII digits; leading zeros are allowed.</summary>
+    public static bool IsValidPin(string? pin) => pin is { Length: PinLength } && pin.All(char.IsAsciiDigit);
 
     public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
 

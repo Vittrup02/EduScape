@@ -3,6 +3,7 @@ using System.Text.Json;
 using Eduscape.Api.Errors;
 using Eduscape.Domain.Common;
 using Eduscape.Domain.Rooms;
+using Eduscape.Domain.Sessions;
 
 namespace Eduscape.Tests.Api;
 
@@ -39,12 +40,17 @@ public class ErrorCodeTranslationTests
 
     [Theory]
     [MemberData(nameof(LocaleFiles))]
-    public void EverySubjectAndGradeLevel_IsTranslated(string localeFile)
+    public void EveryFixedList_IsTranslated(string localeFile)
     {
         // The API sends these enums as keys (e.g. "Mathematics") for the frontend to translate.
         using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(LocalesDirectory(), localeFile)));
 
-        foreach (var (section, keys) in new[] { ("subjects", Enum.GetNames<Subject>()), ("gradeLevels", Enum.GetNames<GradeLevel>()) })
+        foreach (var (section, keys) in new[]
+        {
+            ("subjects", Enum.GetNames<Subject>()),
+            ("gradeLevels", Enum.GetNames<GradeLevel>()),
+            ("teamColors", Enum.GetNames<TeamColor>()),
+        })
         {
             var translated = json.RootElement.GetProperty(section).EnumerateObject().Select(p => p.Name).ToHashSet();
             var missing = keys.Where(key => !translated.Contains(key)).ToList();

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Eduscape.Api.Errors;
+using Eduscape.Api.Hosting;
 using Eduscape.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
@@ -23,8 +24,8 @@ public static class AuthEndpoints
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var auth = app.MapGroup("/api/auth");
-        auth.MapPost("/register", RegisterAsync).RequireRateLimiting(AuthServiceCollectionExtensions.RateLimitPolicy);
-        auth.MapPost("/login", LoginAsync).RequireRateLimiting(AuthServiceCollectionExtensions.RateLimitPolicy);
+        auth.MapPost("/register", RegisterAsync).RequireRateLimiting(RateLimiting.AuthPolicy);
+        auth.MapPost("/login", LoginAsync).RequireRateLimiting(RateLimiting.AuthPolicy);
         auth.MapPost("/refresh", RefreshAsync);
         auth.MapPost("/logout", LogoutAsync).RequireAuthorization();
         return app;

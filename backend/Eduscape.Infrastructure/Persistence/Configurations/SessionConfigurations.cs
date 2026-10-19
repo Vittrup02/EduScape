@@ -36,7 +36,7 @@ internal sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasIndex(s => s.Pin)
             .IsUnique()
             .HasFilter("\"Status\" <> 'Closed'")
-            .HasDatabaseName("IX_Sessions_Pin_Active");
+            .HasDatabaseName(DatabaseErrors.ActiveSessionPinIndex);
 
         // Finding expired sessions to close, which releases their PINs.
         builder.HasIndex(s => new { s.Status, s.ExpiresAt });

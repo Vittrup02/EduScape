@@ -1,4 +1,3 @@
-using System.Threading.RateLimiting;
 using Eduscape.Infrastructure.Identity;
 using Eduscape.Infrastructure.Persistence;
 using Microsoft.AspNetCore.DataProtection;
@@ -19,16 +18,7 @@ public static class AuthServiceCollectionExtensions
     /// <summary>Identity's limit on e-mail and user name columns.</summary>
     public const int MaxEmailLength = 256;
 
-    public const string RateLimitPolicy = "auth";
-    public const string PermitLimitSetting = "RateLimiting:Auth:PermitLimit";
-
-    /// <summary>
-    /// Login and registration attempts per IP address and minute. Generous because a whole school shares one public IP;
-    /// brute force against a single account is stopped by Identity's lockout.
-    /// </summary>
-    public const int DefaultPermitLimit = 20;
-
-    public static IServiceCollection AddTeacherAuth(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddTeacherAuth(this IServiceCollection services)
     {
         services.AddIdentityCore<Teacher>(options =>
             {
@@ -66,21 +56,6 @@ public static class AuthServiceCollectionExtensions
         services.AddDataProtection()
             .SetApplicationName("eduscape")
             .PersistKeysToDbContext<EduscapeDbContext>();
-
-        var permitLimit = configuration.GetValue(PermitLimitSetting, DefaultPermitLimit);
-        services.AddRateLimiter(options =>
-        {
-            // The status code pages middleware adds the { "code": "TOO_MANY_REQUESTS" } body.
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddPolicy(RateLimitPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
-                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = permitLimit,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
-                }));
-        });
 
         return services;
     }

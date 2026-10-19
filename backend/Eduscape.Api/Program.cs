@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 using Eduscape.Api.Auth;
 using Eduscape.Api.Errors;
 using Eduscape.Api.Hosting;
+using Eduscape.Api.Play;
+using Eduscape.Api.Sessions;
 using Eduscape.Api.Teachers;
 using Eduscape.Infrastructure;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -28,7 +30,9 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<ErrorCodeExceptionHandler>();
 
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
-builder.Services.AddTeacherAuth(builder.Configuration);
+builder.Services.AddTeacherAuth();
+builder.Services.AddSessions(builder.Configuration);
+builder.Services.AddEduscapeRateLimiting(builder.Configuration);
 
 // Fixed lists (subject, grade level, ...) are sent as keys that the frontend translates.
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -69,5 +73,7 @@ app.MapHealthChecks("/health");
 
 app.MapAuthEndpoints();
 app.MapTeacherEndpoints();
+app.MapTeacherSessionEndpoints();
+app.MapPlayEndpoints();
 
 app.Run();
