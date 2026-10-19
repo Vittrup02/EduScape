@@ -169,6 +169,17 @@
     "Hf1": "1. hf",
     "Hf2": "2. hf"
   },
+  "assets": {
+    "padlock": "Hængelås",
+    "codeLock": "Kodelås",
+    "letter": "Brev",
+    "door": "Dør",
+    "exitDoor": "Slutdør",
+    "classroom": "Klasseværelse",
+    "laboratory": "Laboratorium",
+    "library": "Bibliotek",
+    "basement": "Kælder"
+  },
   "errors": {
     "UNKNOWN": "Noget gik galt. Prøv igen.",
     "BAD_REQUEST": "Forespørgslen kunne ikke behandles. Prøv igen.",
