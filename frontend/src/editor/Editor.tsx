@@ -63,6 +63,8 @@ export function Editor({ room }: { room: EditorRoom }) {
   const autosave = useAutosave(room.id, document, room)
   const [sceneId, setSceneId] = useState(room.startSceneId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Shown right after a scene is removed, until anything else changes the room.
+  const [removedScene, setRemovedScene] = useState<{ name: string; document: RoomDocument } | null>(null)
   const stageRef = useRef<HTMLElement | null>(null)
   const titleId = useId()
   const subjectId = useId()
@@ -130,6 +132,19 @@ export function Editor({ room }: { room: EditorRoom }) {
     },
     [apply, selectedId],
   )
+
+  const removeSceneWithUndo = (sceneId: string) => {
+    const removed = findScene(document, sceneId)
+    const next = removeScene(document, sceneId)
+    if (removed === undefined || next === document) {
+      return
+    }
+    apply(() => next)
+    setRemovedScene({ name: removed.name, document: next })
+    if (selected?.scene.id === sceneId) {
+      setSelectedId(null)
+    }
+  }
 
   const remove = (objectId: string) => {
     apply((d) => removeObject(d, objectId))
@@ -237,7 +252,16 @@ export function Editor({ room }: { room: EditorRoom }) {
             onAdd={() => {
               openScene(newScene())
             }}
+            onRemove={removeSceneWithUndo}
           />
+          {removedScene?.document === document && (
+            <p role="status" className="undo-note">
+              {t('editor.scene.removed', { name: removedScene.name })}{' '}
+              <button type="button" className="quiet" onClick={undo}>
+                {t('editor.undo')}
+              </button>
+            </p>
+          )}
         </div>
 
         <aside className="panel">
@@ -258,7 +282,7 @@ export function Editor({ room }: { room: EditorRoom }) {
                 apply((d) => setStartScene(d, scene.id))
               }}
               onRemove={() => {
-                apply((d) => removeScene(d, scene.id))
+                removeSceneWithUndo(scene.id)
               }}
               onSeal={seal}
             />

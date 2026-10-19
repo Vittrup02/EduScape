@@ -49,6 +49,8 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
     if (event.button !== 0) {
       return
     }
+    // A click swallowed after an earlier drag must not swallow this press too.
+    suppressClick.current = false
     event.currentTarget.setPointerCapture(event.pointerId)
     setDrag({
       asset,

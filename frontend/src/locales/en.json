@@ -205,6 +205,8 @@
       "isStart": "Students start in this scene.",
       "makeStart": "Let students start here",
       "remove": "Delete the scene",
+      "removeNamed": "Delete {{name}}",
+      "removed": "{{name}} was deleted.",
       "defaultName": "Scene {{n}}",
       "unnamed": "Untitled",
       "startBadge": "Start",

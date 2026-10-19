@@ -1003,7 +1003,7 @@ main.editor {
 .scene-strip ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 1rem;
   margin: 0.75rem 0 0;
   padding: 0;
   list-style: none;
@@ -1055,6 +1055,42 @@ main.editor {
 .add-scene {
   border: 2px dashed var(--muted);
   background: transparent;
+}
+
+.scene-strip-item {
+  position: relative;
+}
+
+/* A small cross in the corner, with a click target larger than it looks. */
+.scene-tab-remove {
+  position: absolute;
+  top: -0.6rem;
+  right: -0.6rem;
+  z-index: 1;
+  width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.scene-tab-remove:hover {
+  border-color: var(--error);
+  background: var(--error);
+  color: var(--paper);
+}
+
+.undo-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin: 0.75rem 0 0;
+  font-weight: 600;
 }
 
 /* The one paper sheet: settings for what is selected, the map and what is missing. */
@@ -1333,7 +1369,7 @@ button.add,
   list-style: none;
 }
 
-.validation-item {
+button.validation-item {
   width: 100%;
   flex-direction: column;
   align-items: flex-start;

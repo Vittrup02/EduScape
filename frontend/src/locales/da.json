@@ -205,6 +205,8 @@
       "isStart": "Eleverne starter i denne scene.",
       "makeStart": "Lad eleverne starte her",
       "remove": "Slet scenen",
+      "removeNamed": "Slet {{name}}",
+      "removed": "{{name}} er slettet.",
       "defaultName": "Scene {{n}}",
       "unnamed": "Uden navn",
       "startBadge": "Start",
