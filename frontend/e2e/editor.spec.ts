@@ -39,15 +39,23 @@ test('a teacher builds a room with a lock and a door, and tries it', async ({ pa
   await dragTo(page, page.getByRole('button', { name: 'Tilføj Hængelås' }), stage, 30, 50)
   const panel = page.getByRole('complementary')
   await expect(panel.getByRole('heading', { name: 'Lås 1' })).toBeVisible()
+  await expect(stage.getByRole('button')).toHaveCount(1)
   await panel.getByLabel('Spørgsmål').fill('Hvad er 3 · 4?')
   await panel.getByRole('radio', { name: /^Kode Skal passe/ }).check()
   await panel.getByLabel('Det rigtige svar').fill('12')
   await panel.getByRole('button', { name: 'Færdig' }).click()
 
-  // A second scene, then back to the first for the door.
+  // A scene removed with its cross comes back with undo.
   await page.getByRole('button', { name: 'Ny scene' }).click()
+  await page.getByRole('button', { name: 'Slet Scene 2' }).click()
+  await expect(page.getByText('Scene 2 er slettet.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Slet Scene 1' })).toHaveCount(0)
+  await page.getByRole('status').filter({ hasText: 'Scene 2 er slettet.' }).getByRole('button', { name: 'Fortryd' }).click()
+
+  // A second scene, then back to the first for the door.
+  await page.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /^Scene 2/ }).click()
   await expect(page.getByRole('region', { name: 'Scenen Scene 2' })).toBeVisible()
-  await page.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /Scene 1/ }).click()
+  await page.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /^Scene 1/ }).click()
 
   // A new door leads to the other scene; it should appear once the lock is solved.
   await dragTo(page, page.getByRole('button', { name: 'Tilføj Dør' }), stage, 80, 55)

@@ -172,6 +172,44 @@ describe('the room editor', () => {
     expect(within(screen.getByRole('complementary')).getByLabelText('Døren fører til')).toBeInTheDocument()
   })
 
+  it('lists each unfinished object once, with all its problems', async () => {
+    mockEditor(
+      editorRoomJson(
+        editorRoom({
+          validationErrors: [
+            { code: 'LOCK_QUESTION_MISSING', objectId: 'lock' },
+            { code: 'LOCK_ANSWER_MISSING', objectId: 'lock' },
+            { code: 'DOOR_TARGET_MISSING', objectId: 'door' },
+          ],
+        }),
+      ),
+    )
+    renderEditor()
+
+    const list = within(await screen.findByRole('region', { name: 'Det mangler, før rummet kan spilles' }))
+    const items = list.getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(items[0]).toHaveTextContent('Låsen mangler et spørgsmål. Låsen mangler det rigtige svar.')
+  })
+
+  it('removes a scene with the cross in its corner, and offers to undo it', async () => {
+    mockEditor()
+    renderEditor()
+
+    const strip = within(await screen.findByRole('navigation', { name: 'Scener' }))
+    fireEvent.click(strip.getByRole('button', { name: 'Slet Biblioteket' }))
+
+    expect(strip.queryByRole('button', { name: /Biblioteket/ })).not.toBeInTheDocument()
+    // The last scene can't be removed.
+    expect(strip.queryByRole('button', { name: 'Slet Gangen' })).not.toBeInTheDocument()
+    const note = screen.getByText('Biblioteket er slettet.')
+    fireEvent.click(within(note).getByRole('button', { name: 'Fortryd' }))
+
+    expect(strip.getByRole('button', { name: 'Slet Biblioteket' })).toBeInTheDocument()
+    expect(screen.queryByText('Biblioteket er slettet.')).not.toBeInTheDocument()
+    expect(screen.getByText('Gangen fører til Biblioteket')).toBeInTheDocument()
+  })
+
   it('removes an object, and undo brings it back as it was', async () => {
     mockEditor()
     renderEditor()

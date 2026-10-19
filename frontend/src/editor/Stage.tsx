@@ -60,6 +60,8 @@ export function Stage({ stageRef, scene, selectedId, label, onSelect, onMove, on
     if (event.button !== 0 || point === null) {
       return
     }
+    // A click swallowed after an earlier drag must not swallow this press too.
+    suppressClick.current = false
     event.currentTarget.setPointerCapture(event.pointerId)
     dragCount.current += 1
     setDrag({
