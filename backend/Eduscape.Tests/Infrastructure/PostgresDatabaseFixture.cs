@@ -22,6 +22,8 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
         .Build()
         .GetConnectionString(DependencyInjection.ConnectionStringName);
 
+    // Kept alive for the fixture's lifetime: the DbContext options resolve services (e.g. logging) from it.
+    private ServiceProvider? _provider;
     private DbContextOptions<EduscapeDbContext>? _options;
 
     public EduscapeDbContext CreateContext() =>
@@ -47,11 +49,10 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
             .Build();
         var environment = new HostingEnvironment { EnvironmentName = Environments.Development };
 
-        await using var provider = new ServiceCollection()
+        _provider = new ServiceCollection()
             .AddInfrastructure(configuration, environment)
             .BuildServiceProvider();
-        await using var scope = provider.CreateAsyncScope();
-        _options = scope.ServiceProvider.GetRequiredService<DbContextOptions<EduscapeDbContext>>();
+        _options = _provider.CreateScope().ServiceProvider.GetRequiredService<DbContextOptions<EduscapeDbContext>>();
 
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
@@ -65,8 +66,15 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
         }
 
         NpgsqlConnection.ClearAllPools();
-        await using var context = CreateContext();
-        await context.Database.EnsureDeletedAsync();
+        await using (var context = CreateContext())
+        {
+            await context.Database.EnsureDeletedAsync();
+        }
+
+        if (_provider is not null)
+        {
+            await _provider.DisposeAsync();
+        }
     }
 }
 
