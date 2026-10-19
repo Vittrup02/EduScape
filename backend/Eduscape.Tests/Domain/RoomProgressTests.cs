@@ -123,7 +123,7 @@ public class RoomProgressTests
     [Fact]
     public void For_UsesTeamProgress()
     {
-        var team = new Session(_room.Id, Guid.NewGuid(), "123456", SessionMode.Team, Now).AddTeam(TeamColor.Green);
+        var team = new Session(_room.Id, Guid.NewGuid(), "123456", SessionMode.Team, Now, TimeSpan.FromHours(12)).AddTeam(TeamColor.Green);
         team.TrySolveLock(_lockA.Id, Now);
 
         Assert.True(RoomProgress.For(_room, team).IsAvailable(_lockB));

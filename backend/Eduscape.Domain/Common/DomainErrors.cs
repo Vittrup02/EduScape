@@ -15,6 +15,10 @@ public static class DomainErrors
 
     public const string SessionPinInvalid = "SESSION_PIN_INVALID";
     public const string SessionClosed = "SESSION_CLOSED";
+    public const string SessionLocked = "SESSION_LOCKED";
+    public const string PinExpired = "PIN_EXPIRED";
+    public const string TeamNotFound = "TEAM_NOT_FOUND";
+    public const string TeamCountInvalid = "TEAM_COUNT_INVALID";
 
     // Room validation (reported by EscapeRoom.Validate, not thrown)
     public const string StartSceneMissing = "START_SCENE_MISSING";

@@ -168,7 +168,7 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("DeviceToken")
+                    b.Property<string>("DeviceTokenHash")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -177,7 +177,6 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Nickname")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
@@ -186,7 +185,7 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DeviceToken")
+                    b.HasIndex("DeviceTokenHash")
                         .IsUnique();
 
                     b.HasIndex("TeamId");
@@ -207,6 +206,9 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("EscapeRoomId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Mode")
                         .IsRequired()
@@ -237,6 +239,8 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Sessions_Pin_Active")
                         .HasFilter("\"Status\" <> 'Closed'");
+
+                    b.HasIndex("Status", "ExpiresAt");
 
                     b.ToTable("Sessions", (string)null);
                 });

@@ -38,6 +38,9 @@ internal sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
             .HasFilter("\"Status\" <> 'Closed'")
             .HasDatabaseName("IX_Sessions_Pin_Active");
 
+        // Finding expired sessions to close, which releases their PINs.
+        builder.HasIndex(s => new { s.Status, s.ExpiresAt });
+
         // Sessions are the teacher's history, so rooms and classes cannot be deleted from under them.
         builder.HasOne<EscapeRoom>()
             .WithMany()
@@ -117,7 +120,7 @@ internal sealed class ParticipantConfiguration : IEntityTypeConfiguration<Partic
         builder.ToTable("Participants");
         builder.Property(p => p.Id).ValueGeneratedNever();
         builder.Property(p => p.Nickname).HasMaxLength(TextLimits.Nickname);
-        builder.Property(p => p.DeviceToken).HasMaxLength(TextLimits.DeviceToken);
-        builder.HasIndex(p => p.DeviceToken).IsUnique();
+        builder.Property(p => p.DeviceTokenHash).HasMaxLength(TextLimits.DeviceToken);
+        builder.HasIndex(p => p.DeviceTokenHash).IsUnique();
     }
 }
