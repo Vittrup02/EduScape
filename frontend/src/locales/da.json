@@ -1,0 +1,39 @@
+{
+  "app": {
+    "name": "eduscape"
+  },
+  "language": {
+    "short": "DA",
+    "name": "Dansk",
+    "switcherLabel": "Sprog"
+  },
+  "health": {
+    "checking": "Forbinder til serveren...",
+    "online": "Serveren svarer",
+    "offline": "Serveren svarer ikke lige nu"
+  },
+  "errors": {
+    "UNKNOWN": "Noget gik galt. Prøv igen.",
+    "BAD_REQUEST": "Forespørgslen kunne ikke behandles. Prøv igen.",
+    "UNAUTHORIZED": "Du skal logge ind for at fortsætte.",
+    "FORBIDDEN": "Du har ikke adgang til dette.",
+    "NOT_FOUND": "Det, du leder efter, findes ikke.",
+    "TOO_MANY_REQUESTS": "For mange forsøg. Vent lidt, og prøv igen.",
+    "INTERNAL_ERROR": "Der skete en fejl på serveren. Prøv igen om lidt.",
+    "VALUE_REQUIRED": "Feltet skal udfyldes.",
+    "VALUE_TOO_LONG": "Teksten er for lang.",
+    "POSITION_OUT_OF_RANGE": "Objektet skal placeres inden for billedet.",
+    "LOCK_TOLERANCE_INVALID": "Tolerance kan kun bruges ved tekstsvar og må ikke være negativ.",
+    "LOCK_OPTIONS_INVALID": "Multiple choice skal have mindst to forskellige svarmuligheder.",
+    "LOCK_ANSWER_NOT_IN_OPTIONS": "Det rigtige svar skal være en af svarmulighederne.",
+    "SCENE_NOT_FOUND": "Scenen findes ikke i rummet.",
+    "SESSION_PIN_INVALID": "PIN-koden skal være seks cifre.",
+    "SESSION_CLOSED": "Sessionen er lukket.",
+    "START_SCENE_MISSING": "Rummet mangler en startscene.",
+    "UNLOCKED_BY_NOT_FOUND": "Objektet venter på noget, der ikke længere findes i rummet.",
+    "UNLOCKED_BY_SELF": "Et objekt kan ikke vente på sig selv.",
+    "UNLOCKED_BY_INVALID_TARGET": "Et objekt kan kun vente på en lås eller en dør.",
+    "UNLOCKED_BY_CYCLE": "Objekterne venter på hinanden i ring, så ingen af dem kan låses op.",
+    "DOOR_TARGET_MISSING": "Døren fører ikke til nogen scene."
+  }
+}

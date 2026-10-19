@@ -26,6 +26,37 @@ body {
   margin: 0;
 }
 
+header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem 0;
+}
+
+.language-switcher {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.language-switcher button {
+  /* Large click target for touch screens and less confident mouse users. */
+  min-width: 3rem;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.language-switcher button[aria-pressed='true'] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+
 main {
   max-width: 40rem;
   margin: 0 auto;

@@ -1,0 +1,39 @@
+{
+  "app": {
+    "name": "eduscape"
+  },
+  "language": {
+    "short": "EN",
+    "name": "English",
+    "switcherLabel": "Language"
+  },
+  "health": {
+    "checking": "Connecting to the server...",
+    "online": "The server is responding",
+    "offline": "The server isn't responding right now"
+  },
+  "errors": {
+    "UNKNOWN": "Something went wrong. Please try again.",
+    "BAD_REQUEST": "The request couldn't be processed. Please try again.",
+    "UNAUTHORIZED": "Please log in to continue.",
+    "FORBIDDEN": "You don't have access to this.",
+    "NOT_FOUND": "What you're looking for doesn't exist.",
+    "TOO_MANY_REQUESTS": "Too many attempts. Please wait a moment and try again.",
+    "INTERNAL_ERROR": "Something went wrong on the server. Please try again shortly.",
+    "VALUE_REQUIRED": "This field is required.",
+    "VALUE_TOO_LONG": "The text is too long.",
+    "POSITION_OUT_OF_RANGE": "The object must be placed inside the image.",
+    "LOCK_TOLERANCE_INVALID": "A tolerance can only be used with text answers and can't be negative.",
+    "LOCK_OPTIONS_INVALID": "Multiple choice needs at least two different options.",
+    "LOCK_ANSWER_NOT_IN_OPTIONS": "The correct answer must be one of the options.",
+    "SCENE_NOT_FOUND": "The scene doesn't exist in this room.",
+    "SESSION_PIN_INVALID": "The PIN must be six digits.",
+    "SESSION_CLOSED": "The session is closed.",
+    "START_SCENE_MISSING": "The room has no start scene.",
+    "UNLOCKED_BY_NOT_FOUND": "The object is waiting for something that no longer exists in the room.",
+    "UNLOCKED_BY_SELF": "An object can't wait for itself.",
+    "UNLOCKED_BY_INVALID_TARGET": "An object can only wait for a lock or a door.",
+    "UNLOCKED_BY_CYCLE": "The objects are waiting for each other in a loop, so none of them can be unlocked.",
+    "DOOR_TARGET_MISSING": "The door doesn't lead to a scene."
+  }
+}
