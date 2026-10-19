@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 240">
+  <defs>
+    <rect id="frame" x="18" y="12" width="124" height="216" rx="6"/>
+  </defs>
+  <use href="#frame" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="23" stroke-linejoin="round"/>
+  <use href="#frame" fill="#E4DCCB" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="44" y="20" width="72" height="32" rx="6" fill="#1F6E3D" stroke="#1D2B3A" stroke-width="5"/>
+  <g fill="none" stroke="#E9F5EE" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="88" y="27" width="18" height="18" rx="2"/>
+    <path d="M56 36h24M73 29l7 7-7 7"/>
+  </g>
+  <rect x="32" y="60" width="96" height="168" fill="#2E9A56"/>
+  <rect x="39" y="67" width="5" height="154" rx="2.5" fill="#5CBF82"/>
+  <rect x="56" y="74" width="48" height="50" rx="4" fill="#BFE3CF" stroke="#1D2B3A" stroke-width="4"/>
+  <path d="M66 112l22-28" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+  <rect x="48" y="172" width="64" height="44" rx="4" fill="#1F6E3D" stroke="#1D2B3A" stroke-width="4"/>
+  <g fill="#A9BCCB" stroke="#1D2B3A" stroke-width="3.5" stroke-linejoin="round">
+    <rect x="38" y="141" width="84" height="12" rx="6"/>
+    <rect x="40" y="136" width="10" height="22" rx="3"/>
+    <rect x="110" y="136" width="10" height="22" rx="3"/>
+  </g>
+  <rect x="32" y="60" width="96" height="168" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M18 228h124" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linecap="round"/>
+</svg>

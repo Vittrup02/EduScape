@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 240">
+  <defs>
+    <rect id="frame" x="18" y="12" width="124" height="216" rx="6"/>
+    <radialGradient id="light" cx="100" cy="140" r="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF8DC"/>
+      <stop offset="1" stop-color="#FFE27A"/>
+    </radialGradient>
+  </defs>
+  <use href="#frame" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="23" stroke-linejoin="round"/>
+  <use href="#frame" fill="#E4DCCB" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="32" y="26" width="96" height="202" fill="url(#light)"/>
+  <path d="M32 228l20-30h76v30z" fill="#F2C94C"/>
+  <path d="M32 26l44 16v170l-44 16z" fill="#225E64" stroke="#1D2B3A" stroke-width="5" stroke-linejoin="round"/>
+  <g fill="#1B4C51" stroke="#1D2B3A" stroke-width="3.5" stroke-linejoin="round">
+    <path d="M42 44l26 9v58l-26-2z"/>
+    <path d="M42 130l26 1v68l-26 9z"/>
+  </g>
+  <circle cx="70" cy="122" r="4" fill="#E3A21A" stroke="#1D2B3A" stroke-width="3"/>
+  <rect x="32" y="26" width="96" height="202" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M18 228h124" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linecap="round"/>
+</svg>

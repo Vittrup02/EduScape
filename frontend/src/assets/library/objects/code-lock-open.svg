@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <rect id="case" x="26" y="18" width="108" height="128" rx="14"/>
+    <rect id="key" width="20" height="14" rx="4"/>
+    <g id="keys">
+      <use href="#key" x="43" y="68"/><use href="#key" x="70" y="68"/><use href="#key" x="97" y="68"/>
+      <use href="#key" x="43" y="87"/><use href="#key" x="70" y="87"/><use href="#key" x="97" y="87"/>
+      <use href="#key" x="43" y="106"/><use href="#key" x="70" y="106"/><use href="#key" x="97" y="106"/>
+      <use href="#key" x="43" y="125"/><use href="#key" x="70" y="125"/><use href="#key" x="97" y="125"/>
+    </g>
+    <path id="spark" d="M140 6l3.5 10 10 3.5-10 3.5-3.5 10-3.5-10-10-3.5 10-3.5z"/>
+  </defs>
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-linejoin="round">
+    <use href="#case" stroke-width="23"/>
+    <use href="#spark" stroke-width="12"/>
+  </g>
+  <use href="#case" fill="#6B8196"/>
+  <rect x="33" y="62" width="6" height="74" rx="3" fill="#A9BCCB"/>
+  <use href="#case" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="40" y="30" width="80" height="26" rx="5" fill="#1D2B3A"/>
+  <path d="M58 43l8 7 16-14" fill="none" stroke="#FFE27A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="110" cy="43" r="5" fill="#FFE27A"/>
+  <use href="#keys" fill="#4A6178" transform="translate(0 3)"/>
+  <use href="#keys" fill="#C9D6E0" stroke="#1D2B3A" stroke-width="3.5" stroke-linejoin="round"/>
+  <use href="#spark" fill="#FFE27A" stroke="#1D2B3A" stroke-width="4" stroke-linejoin="round"/>
+</svg>

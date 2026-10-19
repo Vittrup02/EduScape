@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <rect id="back" x="16" y="60" width="128" height="82" rx="8"/>
+    <path id="flap" d="M18 64L80 18l62 46z"/>
+    <rect id="paper" x="34" y="28" width="92" height="80" rx="4"/>
+    <path id="pocket" d="M16 86l64 34 64-34v48q0 8-8 8H24q-8 0-8-8z"/>
+    <path id="spark" d="M138 14l3.5 10 10 3.5-10 3.5-3.5 10-3.5-10-10-3.5 10-3.5z"/>
+  </defs>
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-linejoin="round">
+    <use href="#back" stroke-width="23"/>
+    <use href="#flap" stroke-width="19"/>
+    <use href="#paper" stroke-width="19"/>
+    <use href="#spark" stroke-width="12"/>
+  </g>
+  <use href="#back" fill="#C9A15A" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <use href="#flap" fill="#D9B26C" stroke="#1D2B3A" stroke-width="5" stroke-linejoin="round"/>
+  <use href="#paper" fill="#FBF1D9" stroke="#1D2B3A" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M48 46h64M48 60h64M48 74h40" fill="none" stroke="#1D2B3A" stroke-width="4" stroke-linecap="round"/>
+  <use href="#pocket" fill="#EBC98A" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M28 104l16 8" fill="none" stroke="#F6DFAE" stroke-width="5" stroke-linecap="round"/>
+  <use href="#spark" fill="#FFE27A" stroke="#1D2B3A" stroke-width="4" stroke-linejoin="round"/>
+</svg>
