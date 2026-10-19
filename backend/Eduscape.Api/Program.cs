@@ -76,5 +76,6 @@ app.MapAuthEndpoints();
 app.MapTeacherEndpoints();
 app.MapTeacherSessionEndpoints();
 app.MapPlayEndpoints();
+app.MapHub<PlayHub>(PlayHub.Path);
 
 app.Run();

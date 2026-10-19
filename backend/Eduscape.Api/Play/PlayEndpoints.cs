@@ -154,8 +154,11 @@ public static class PlayEndpoints
         return TypedResults.Ok(await LoadStateAsync(session, participant, db, cancellationToken));
     }
 
+    // The team is notified only of changes, and only after they are saved. A lock solved by two students at once is
+    // one LockSolved event. Notifications ignore the request's cancellation: once saved, the team must hear of it.
+
     private static async Task<IResult> AnswerAsync(
-        AnswerRequest request, TeamActions actions, CancellationToken cancellationToken)
+        AnswerRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
     {
         var done = await actions.RunAsync(
             request.DeviceToken,
@@ -169,27 +172,57 @@ public static class PlayEndpoints
         var hint = done.Team.IsHintVisible(request.LockId)
             ? done.Room.Objects.OfType<Lock>().Single(l => l.Id == request.LockId).Hint
             : null;
+
+        if (done.Result.Outcome == AnswerOutcome.Correct)
+        {
+            await notifier.LockSolvedAsync(done.Team.Id, request.LockId);
+        }
+        else if (done.Result.HintRevealedNow && hint is not null)
+        {
+            await notifier.HintRevealedAsync(done.Team.Id, request.LockId, hint);
+        }
+
         return TypedResults.Ok(new AnswerResponse(done.Result.Outcome, hint));
     }
 
     private static async Task<IResult> OpenDoorAsync(
-        OpenDoorRequest request, TeamActions actions, CancellationToken cancellationToken)
+        OpenDoorRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
     {
         var done = await actions.RunAsync(
             request.DeviceToken,
             (room, team, now) => Gameplay.OpenDoor(room, team, request.DoorId, now),
             cancellationToken);
-        return done is null ? DeviceNotRecognized() : TypedResults.NoContent();
+        if (done is null)
+        {
+            return DeviceNotRecognized();
+        }
+
+        if (done.Result)
+        {
+            await notifier.DoorOpenedAsync(done.Team.Id, request.DoorId);
+        }
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<IResult> OpenExitDoorAsync(
-        OpenExitDoorRequest request, TeamActions actions, CancellationToken cancellationToken)
+        OpenExitDoorRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
     {
         var done = await actions.RunAsync(
             request.DeviceToken,
             (room, team, now) => Gameplay.OpenExitDoor(room, team, request.ExitDoorId, now),
             cancellationToken);
-        return done is null ? DeviceNotRecognized() : TypedResults.NoContent();
+        if (done is null)
+        {
+            return DeviceNotRecognized();
+        }
+
+        if (done.Result)
+        {
+            await notifier.TeamEscapedAsync(done.Team.Id);
+        }
+
+        return TypedResults.NoContent();
     }
 
     /// <summary>
