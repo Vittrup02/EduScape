@@ -118,6 +118,7 @@ public sealed class EscapeRoom
         {
             var sceneCopy = copy.AddScene(scene.Name, scene.BackgroundImageKey);
             sceneCopy.IsStartScene = scene.IsStartScene;
+            sceneCopy.SetNarration(scene.Narration);
             sceneIds[scene.Id] = sceneCopy.Id;
         }
 

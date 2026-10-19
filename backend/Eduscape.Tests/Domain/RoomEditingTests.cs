@@ -65,6 +65,32 @@ public class RoomEditingTests
     }
 
     [Fact]
+    public void Narration_IsOptional_TrimmedAndLimited()
+    {
+        var scene = new EscapeRoom("Rum", Subject.History, GradeLevel.Grade8).AddScene("Prolog", "builtin:basement");
+        Assert.Null(scene.Narration);
+
+        scene.SetNarration("  Det er 1943, og I har gemt jer på loftet.  ");
+        Assert.Equal("Det er 1943, og I har gemt jer på loftet.", scene.Narration);
+
+        scene.SetNarration(" ");
+        Assert.Null(scene.Narration);
+
+        Assert.Equal(
+            DomainErrors.ValueTooLong,
+            Assert.Throws<DomainException>(() => scene.SetNarration(new string('a', TextLimits.Narration + 1))).Code);
+    }
+
+    [Fact]
+    public void CopyFor_KeepsTheNarration()
+    {
+        var template = new EscapeRoom("Skabelon", Subject.History, GradeLevel.Grade8, isTemplate: true);
+        template.AddScene("Prolog", "builtin:basement").SetNarration("Det er 1943.");
+
+        Assert.Equal("Det er 1943.", template.CopyFor(Guid.NewGuid()).Scenes[0].Narration);
+    }
+
+    [Fact]
     public void MarkEdited_IncreasesTheRevision()
     {
         var room = new EscapeRoom("Rum", Subject.History, GradeLevel.Grade8);

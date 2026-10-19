@@ -55,7 +55,11 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
             Title = "Cirkler",
             Subject = Subject.PhysicsChemistry,
             GradeLevel = GradeLevel.Grade9,
-            Scenes = [new SaveSceneRequest(start.Id, start.Name, "builtin:basement", [mathLock, choice, door, letter]), library],
+            Scenes =
+            [
+                new SaveSceneRequest(start.Id, start.Name, "builtin:basement", [mathLock, choice, door, letter], " Det er 1943. "),
+                library,
+            ],
         };
 
         var saved = await SavedAsync(teacher.Client, room.Id, request);
@@ -66,6 +70,8 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         Assert.Equal(("Cirkler", Subject.PhysicsChemistry, GradeLevel.Grade9, 1), (loaded.Title, loaded.Subject, loaded.GradeLevel, loaded.Revision));
         Assert.Equal(["Gangen", "Bibliotek"], loaded.Scenes.Select(s => s.Name));
         Assert.Equal("builtin:basement", loaded.Scenes[0].BackgroundImageKey);
+        Assert.Equal("Det er 1943.", loaded.Scenes[0].Narration);
+        Assert.Null(loaded.Scenes[1].Narration);
         var objects = loaded.Scenes[0].Objects.ToDictionary(o => o.Id);
         Assert.Equal(4, objects.Count);
         var loadedLock = objects[mathLock.Id];

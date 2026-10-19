@@ -21,9 +21,17 @@ public sealed record PlayObjectDto(
     string? Text,
     Guid? TargetSceneId);
 
-/// <summary><c>BackgroundImageUrl</c> is a short-lived link to an uploaded background; null for built-in ones.</summary>
+/// <summary>
+/// <c>BackgroundImageUrl</c> is a short-lived link to an uploaded background; null for built-in ones.
+/// <c>Narration</c> is the teacher's story text, shown when the student enters the scene; null when there is none.
+/// </summary>
 public sealed record PlaySceneDto(
-    Guid Id, string Name, string BackgroundImageKey, string? BackgroundImageUrl, PlayObjectDto[] Objects);
+    Guid Id,
+    string Name,
+    string BackgroundImageKey,
+    string? BackgroundImageUrl,
+    PlayObjectDto[] Objects,
+    string? Narration);
 
 /// <summary>The room's content for the play view, the same for every team.</summary>
 public sealed record PlayRoomDto(Guid Id, string Title, Guid? StartSceneId, PlaySceneDto[] Scenes)
@@ -37,7 +45,8 @@ public sealed record PlayRoomDto(Guid Id, string Title, Guid? StartSceneId, Play
             scene.Name,
             scene.BackgroundImageKey,
             imageUrls.For(scene.BackgroundImageKey),
-            [.. scene.Objects.OrderBy(o => o.Id).Select(ToDto)]))]);
+            [.. scene.Objects.OrderBy(o => o.Id).Select(ToDto)],
+            scene.Narration))]);
 
     private static PlayObjectDto ToDto(RoomObject roomObject)
     {

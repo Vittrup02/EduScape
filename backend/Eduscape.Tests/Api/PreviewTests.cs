@@ -97,7 +97,7 @@ public class PreviewTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
         var exit = NewExitDoor();
         await SavedAsync(teacher.Client, room.Id, ToRequest(room) with
         {
-            Scenes = [ToRequest(room).Scenes[0] with { Objects = [exit] }],
+            Scenes = [ToRequest(room).Scenes[0] with { Objects = [exit], Narration = "Det er 1943." }],
         });
 
         var preview = await ReadAsync<PreviewResponse>(await PreviewAsync(teacher.Client, room.Id));
@@ -105,6 +105,8 @@ public class PreviewTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
             await SessionApi.ReconnectAsync(factory.CreateClient(), preview.DeviceToken));
 
         Assert.Equal("Prøv mig", state.Room.Title);
-        Assert.Equal(RoomObjectType.ExitDoor, Assert.Single(Assert.Single(state.Room.Scenes).Objects).Type);
+        var scene = Assert.Single(state.Room.Scenes);
+        Assert.Equal(RoomObjectType.ExitDoor, Assert.Single(scene.Objects).Type);
+        Assert.Equal("Det er 1943.", scene.Narration);
     }
 }

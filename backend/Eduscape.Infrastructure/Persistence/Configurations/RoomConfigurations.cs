@@ -44,6 +44,7 @@ internal sealed class SceneConfiguration : IEntityTypeConfiguration<Scene>
         builder.ToTable("Scenes");
         builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.Name).HasMaxLength(TextLimits.Name);
+        builder.Property(s => s.Narration).HasMaxLength(TextLimits.Narration);
         builder.Property(s => s.BackgroundImageKey).HasMaxLength(TextLimits.StorageKey);
 
         builder.HasMany(s => s.Objects)

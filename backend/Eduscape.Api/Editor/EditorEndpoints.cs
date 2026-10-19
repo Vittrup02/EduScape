@@ -185,7 +185,8 @@ public static class EditorEndpoints
             scene.Name,
             scene.BackgroundImageKey,
             imageUrls.For(scene.BackgroundImageKey),
-            [.. scene.Objects.OrderBy(o => o.Id).Select(ToDto)]))],
+            [.. scene.Objects.OrderBy(o => o.Id).Select(ToDto)],
+            scene.Narration))],
         ValidationErrors(room),
         storage.IsConfigured);
 

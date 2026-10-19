@@ -48,7 +48,15 @@ public sealed class Scene
 
     public void RemoveObject(Guid objectId) => _objects.RemoveAll(o => o.Id == objectId);
 
+    /// <summary>
+    /// The teacher's story text for the scene, e.g. an introduction that sets the mood. Students see it when they
+    /// enter the scene. Null when the scene has none.
+    /// </summary>
+    public string? Narration { get; private set; }
+
     public void Rename(string name) => Name = Guard.Required(name, TextLimits.Name);
+
+    public void SetNarration(string? narration) => Narration = Guard.Optional(narration, TextLimits.Narration);
 
     public void SetBackgroundImage(string backgroundImageKey) =>
         BackgroundImageKey = Guard.Required(backgroundImageKey, TextLimits.StorageKey);
