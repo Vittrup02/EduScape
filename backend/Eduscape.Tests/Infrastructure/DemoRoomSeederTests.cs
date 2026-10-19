@@ -20,6 +20,18 @@ public class DemoRoomSeederTests
     }
 
     [Fact]
+    public void DemoRoom_UsesOnlyBuiltInAssets()
+    {
+        var room = DemoRoomSeeder.BuildDemoRoom();
+
+        Assert.All(room.Scenes, s => Assert.StartsWith("builtin:", s.BackgroundImageKey));
+        Assert.All(room.Objects, o => Assert.StartsWith("builtin:", o.GraphicKey));
+
+        // Built-in assets bring their own open state.
+        Assert.All(room.Objects, o => Assert.Null(o.UnlockedGraphicKey));
+    }
+
+    [Fact]
     public void DemoRoom_CanBeCompletedInOrder()
     {
         var room = DemoRoomSeeder.BuildDemoRoom();
