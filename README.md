@@ -137,6 +137,18 @@ Opret i Cloudflare-dashboardet: **Workers & Pages → Create → Import a reposi
 
 Sæt derefter Workerens URL i `Cors__AllowedOrigins` på Render.
 
+#### Sikkerhedsheadere
+
+Buildet skriver en `dist/_headers`-fil med Content-Security-Policy, `X-Content-Type-Options`, `Referrer-Policy` m.fl., som Cloudflare sender med på alle svar. Filen genereres af [frontend/security/securityHeaders.ts](frontend/security/securityHeaders.ts), fordi `connect-src` skal indeholde API-adressen fra `VITE_API_URL` (både `https://` og `wss://` til SignalR). Ret headerne dér, ikke i `dist`. Ekstra billedkilder (fx R2-bucketten) tilføjes i `imageSources` samme sted.
+
+Tjek lokalt med headerne slået til (backend skal køre; `http://localhost:8787` er tilladt i CORS i Development):
+
+```bash
+cd frontend
+npm run build
+npx wrangler dev   # http://localhost:8787
+```
+
 ### Migrationer mod Neon
 
 Migrationer køres **aldrig automatisk** ved opstart. Kør dem manuelt fra din egen maskine, når en release indeholder nye migrationer. Kør dem **før** deploy, hvis migrationen er bagudkompatibel med den kørende version.
