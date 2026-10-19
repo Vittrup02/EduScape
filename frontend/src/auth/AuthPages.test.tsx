@@ -52,6 +52,8 @@ describe('teacher login and protected routes', () => {
       '/health': () => new Response(null, { status: 200 }),
       '/api/auth/login': () => tokens('access-1'),
       '/api/teacher/rooms': () => json([]),
+      '/api/teacher/templates': () => json([]),
+      '/api/teacher/sessions': () => json([]),
     })
     renderAt('/teacher')
 
@@ -81,6 +83,8 @@ describe('teacher login and protected routes', () => {
     saveAuth({ email: 'ida@skole.dk', accessToken: 'access-1', refreshToken: 'refresh-1' })
     mockFetch({
       '/api/teacher/rooms': () => json([]),
+      '/api/teacher/templates': () => json([]),
+      '/api/teacher/sessions': () => json([]),
       '/api/auth/logout': () => new Response(null, { status: 204 }),
       '/health': () => new Response(null, { status: 200 }),
     })

@@ -14,7 +14,8 @@
   },
   "home": {
     "teacherLogin": "Log ind som lærer",
-    "teacherHome": "Gå til mine rum"
+    "teacherHome": "Gå til mine rum",
+    "joinAsStudent": "Deltag med PIN-kode"
   },
   "auth": {
     "loginTitle": "Log ind",
@@ -37,7 +38,75 @@
     "roomsTitle": "Mine rum",
     "loadingRooms": "Henter dine rum... Har serveren sovet, kan det tage op til et minut.",
     "noRooms": "Du har ingen rum endnu.",
-    "roomDetails": "{{subject}} · {{gradeLevel}}"
+    "roomDetails": "{{subject}} · {{gradeLevel}}",
+    "activeSessionsTitle": "Igangværende sessioner",
+    "activeSessionDetails": "{{className}} · PIN {{pin}}",
+    "templatesTitle": "Skabeloner",
+    "noTemplates": "Der er ingen skabeloner endnu.",
+    "startSession": "Start session"
+  },
+  "startSession": {
+    "title": "Start en session",
+    "loading": "Henter rummet...",
+    "className": "Klasse",
+    "classNameHint": "Fx 9.A. Klassen bruges til at finde sessionen igen senere.",
+    "modeLegend": "Hvordan spiller eleverne?",
+    "modeTeam": "På hold",
+    "modeTeamDescription": "Eleverne vælger et hold og løser gåderne sammen.",
+    "modeIndividual": "Hver for sig",
+    "modeIndividualDescription": "Hver elev spiller sit eget spil.",
+    "teamCount": "Antal hold",
+    "fewerTeams": "Færre hold",
+    "moreTeams": "Flere hold",
+    "start": "Start session",
+    "starting": "Starter..."
+  },
+  "session": {
+    "loading": "Henter sessionen...",
+    "pinLabel": "PIN-kode",
+    "joinHint": "Eleverne går ind på {{url}} og skriver PIN-koden.",
+    "expiresAt": "PIN-koden virker indtil kl. {{time}}.",
+    "statusOpen": "Åben – eleverne kan deltage.",
+    "statusLocked": "Låst – nye elever kan ikke deltage. Elever, der allerede er med, kan spille videre.",
+    "statusClosed": "Sessionen er lukket. PIN-koden virker ikke længere.",
+    "lock": "Lås for nye elever",
+    "unlock": "Åbn for nye elever",
+    "close": "Luk session",
+    "closeConfirm": "Vil du lukke sessionen? Eleverne kan ikke spille videre, og det kan ikke fortrydes.",
+    "closeConfirmYes": "Ja, luk sessionen",
+    "closeConfirmNo": "Fortryd",
+    "refresh": "Opdater",
+    "teamsTitle": "Hold",
+    "studentsTitle": "Elever",
+    "noStudents": "Ingen elever endnu.",
+    "noNickname": "Uden navn",
+    "backToRooms": "Tilbage til mine rum"
+  },
+  "join": {
+    "title": "Deltag i et escape room",
+    "pin": "PIN-kode",
+    "pinHint": "Seks cifre, som din lærer viser dig.",
+    "next": "Videre",
+    "checking": "Tjekker...",
+    "chooseTeam": "Vælg dit hold",
+    "nicknameTitle": "Hvad vil du kaldes?",
+    "nickname": "Kaldenavn (frivilligt)",
+    "nicknameHint": "Dit fornavn eller dine initialer. Du kan også lade feltet stå tomt.",
+    "join": "Deltag",
+    "joining": "Deltager...",
+    "back": "Tilbage"
+  },
+  "play": {
+    "connecting": "Forbinder... Har serveren sovet, kan det tage op til et minut.",
+    "onTeam": "Du er på {{team}}",
+    "individual": "Du spiller for dig selv",
+    "nickname": "Du er med som {{nickname}}.",
+    "waiting": "Du er med! Escape roomet bliver vist her.",
+    "leave": "Forlad sessionen",
+    "joinAgain": "Deltag i en ny session"
+  },
+  "teams": {
+    "name": "Hold {{color}}"
   },
   "teamColors": {
     "Red": "Rød",

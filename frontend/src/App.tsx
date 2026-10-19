@@ -6,6 +6,10 @@ import { RequireTeacher } from './auth/RequireTeacher'
 import { useTeacher } from './auth/useTeacher'
 import { HomePage } from './HomePage'
 import { LanguageSwitcher } from './i18n/LanguageSwitcher'
+import { JoinPage } from './play/JoinPage'
+import { PlayPage } from './play/PlayPage'
+import { SessionPage } from './teacher/SessionPage'
+import { StartSessionPage } from './teacher/StartSessionPage'
 import { TeacherHomePage } from './teacher/TeacherHomePage'
 
 /** Header on every page: the language switcher for everyone, and logout for a signed-in teacher. */
@@ -48,10 +52,18 @@ export function AppRoutes() {
           path="teacher"
           element={
             <RequireTeacher>
-              <TeacherHomePage />
+              <Outlet />
             </RequireTeacher>
           }
-        />
+        >
+          <Route index element={<TeacherHomePage />} />
+          <Route path="rooms/:roomId/start" element={<StartSessionPage kind="room" />} />
+          <Route path="templates/:roomId/start" element={<StartSessionPage kind="template" />} />
+          <Route path="sessions/:sessionId" element={<SessionPage />} />
+        </Route>
+        {/* Students never log in. */}
+        <Route path="join" element={<JoinPage />} />
+        <Route path="play" element={<PlayPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
