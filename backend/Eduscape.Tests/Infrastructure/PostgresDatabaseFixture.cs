@@ -26,6 +26,9 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
     private ServiceProvider? _provider;
     private DbContextOptions<EduscapeDbContext>? _options;
 
+    /// <summary>Connection string of the throw-away database; null when no PostgreSQL is configured.</summary>
+    public string? ConnectionString { get; private set; }
+
     public EduscapeDbContext CreateContext() =>
         new(_options ?? throw new InvalidOperationException("The test database is not initialised."));
 
@@ -40,6 +43,7 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
         {
             Database = $"eduscape_test_{Guid.NewGuid():N}",
         }.ConnectionString;
+        ConnectionString = connectionString;
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>

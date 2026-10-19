@@ -76,6 +76,18 @@ Connection strings hører hjemme i user-secrets (lokalt) eller environment varia
 
 I Development seeder `dotnet ef database update` et demo-escape room ("Demo: Flugten fra matematiklokalet") med to scener, tre låse, et brev, en dør og en slutdør, så spillet kan testes uden editor.
 
+Kør `dotnet ef database update` igen, når du har hentet ændringer med nye migrationer.
+
+## Lærerkonti
+
+Lærere opretter en konto med e-mail og adgangskode (mindst 10 tegn) på `/register` og logger ind på `/login`. Lærer-forsiden `/teacher` viser kun lærerens egne rum. Elever har aldrig konti.
+
+- **Bearer tokens, ikke cookies.** Frontend (`*.workers.dev`) og API (`*.onrender.com`) ligger på forskellige sites. En auth-cookie ville derfor være en tredjeparts-cookie, som bl.a. Safari blokerer. Backenden bruger ASP.NET Core Identitys bearer tokens: access tokens gælder 30 minutter, refresh tokens 7 dage. Frontenden gemmer dem i `localStorage` og fornyer dem automatisk.
+- **Log ud** tilbagekalder alle lærerens refresh tokens på alle enheder (godt på delte skole-PC'er).
+- **Beskyttelse:** login og registrering er rate-limited pr. IP (20 pr. minut, `RateLimiting__Auth__PermitLimit`), og en konto låses i 5 minutter efter 5 forkerte adgangskoder. Alt under `/api/teacher` kræver login. En test fejler, hvis et nyt lærer-endpoint mangler beskyttelsen.
+- **Data Protection-nøgler** (som beskytter tokens) gemmes i databasen (`DataProtectionKeys`), så lærere ikke logges ud, når Render genstarter efter dvale. Der skal ikke sættes nye environment variables.
+- Endnu ikke: e-mailbekræftelse og nulstilling af adgangskode, da det kræver en mailtjeneste.
+
 ## Tests
 
 ```bash

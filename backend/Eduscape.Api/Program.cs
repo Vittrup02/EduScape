@@ -1,6 +1,10 @@
+using System.Text.Json.Serialization;
+using Eduscape.Api.Auth;
 using Eduscape.Api.Errors;
 using Eduscape.Api.Hosting;
+using Eduscape.Api.Teachers;
 using Eduscape.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,8 +28,25 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<ErrorCodeExceptionHandler>();
 
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
+builder.Services.AddTeacherAuth(builder.Configuration);
+
+// Fixed lists (subject, grade level, ...) are sent as keys that the frontend translates.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Render's proxy appends the client address to X-Forwarded-For. Only the last entry (ForwardLimit = 1) is trusted,
+// so a client cannot spoof its IP for rate limiting by sending the header itself. IPs are never logged.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // CORS first, so error responses also carry CORS headers and the frontend can read their code.
 app.UseCors();
@@ -39,7 +60,14 @@ app.UseStatusCodePages(context =>
     return response.WriteAsJsonAsync(new ApiError(ApiErrors.FromStatusCode(response.StatusCode)));
 });
 
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Used by the frontend as a wake-up call (Render free tier sleeps when idle).
 app.MapHealthChecks("/health");
+
+app.MapAuthEndpoints();
+app.MapTeacherEndpoints();
 
 app.Run();

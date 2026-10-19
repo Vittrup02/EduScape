@@ -2,6 +2,7 @@ using Eduscape.Domain.Classes;
 using Eduscape.Domain.Common;
 using Eduscape.Domain.Rooms;
 using Eduscape.Domain.Sessions;
+using Eduscape.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -15,6 +16,11 @@ internal sealed class ClassConfiguration : IEntityTypeConfiguration<Class>
         builder.Property(c => c.Id).ValueGeneratedNever();
         builder.Property(c => c.Name).HasMaxLength(TextLimits.Name);
         builder.HasIndex(c => c.OwnerTeacherId);
+
+        builder.HasOne<Teacher>()
+            .WithMany()
+            .HasForeignKey(c => c.OwnerTeacherId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
