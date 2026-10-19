@@ -2,11 +2,19 @@ using Eduscape.Domain.Classes;
 using Eduscape.Domain.Common;
 using Eduscape.Domain.Rooms;
 using Eduscape.Domain.Sessions;
+using Eduscape.Infrastructure.Identity;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Eduscape.Infrastructure.Persistence;
 
-public sealed class EduscapeDbContext(DbContextOptions<EduscapeDbContext> options) : DbContext(options)
+/// <summary>
+/// The application database, including teacher accounts (Identity, without roles) and the
+/// Data Protection key ring that protects their tokens, so tokens survive restarts on Render.
+/// </summary>
+public sealed class EduscapeDbContext(DbContextOptions<EduscapeDbContext> options)
+    : IdentityUserContext<Teacher, Guid>(options), IDataProtectionKeyContext
 {
     public DbSet<EscapeRoom> EscapeRooms => Set<EscapeRoom>();
 
@@ -22,6 +30,8 @@ public sealed class EduscapeDbContext(DbContextOptions<EduscapeDbContext> option
 
     public DbSet<Participant> Participants => Set<Participant>();
 
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Fixed lists are stored as keys (enum names) that the frontend translates.
@@ -34,8 +44,11 @@ public sealed class EduscapeDbContext(DbContextOptions<EduscapeDbContext> option
         StoreAsKey<TeamColor>(configurationBuilder);
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EduscapeDbContext).Assembly);
+    }
 
     private static void StoreAsKey<TEnum>(ModelConfigurationBuilder configurationBuilder)
         where TEnum : struct, Enum =>

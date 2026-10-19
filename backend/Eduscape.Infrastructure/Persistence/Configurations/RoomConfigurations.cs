@@ -1,5 +1,6 @@
 using Eduscape.Domain.Common;
 using Eduscape.Domain.Rooms;
+using Eduscape.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -24,6 +25,12 @@ internal sealed class EscapeRoomConfiguration : IEntityTypeConfiguration<EscapeR
         // The room library is filtered by subject and grade level.
         builder.HasIndex(r => new { r.Subject, r.GradeLevel });
         builder.HasIndex(r => r.OwnerTeacherId);
+
+        // Templates have no owner. Accounts cannot be deleted yet, so an owner is never removed from under its rooms.
+        builder.HasOne<Teacher>()
+            .WithMany()
+            .HasForeignKey(r => r.OwnerTeacherId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

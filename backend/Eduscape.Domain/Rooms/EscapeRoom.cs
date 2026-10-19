@@ -39,7 +39,7 @@ public sealed class EscapeRoom
 
     public bool IsTemplate { get; private set; }
 
-    /// <summary>The teacher who owns the room; null for shared templates. Linked to accounts once auth exists.</summary>
+    /// <summary>The id of the teacher account that owns the room; null for shared templates.</summary>
     public Guid? OwnerTeacherId { get; private set; }
 
     public IReadOnlyList<Scene> Scenes => _scenes;

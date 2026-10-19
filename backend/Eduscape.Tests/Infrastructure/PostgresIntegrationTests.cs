@@ -1,6 +1,7 @@
 using Eduscape.Domain.Classes;
 using Eduscape.Domain.Rooms;
 using Eduscape.Domain.Sessions;
+using Eduscape.Infrastructure.Identity;
 using Eduscape.Infrastructure.Persistence;
 using Eduscape.Infrastructure.Persistence.Seeding;
 using Microsoft.EntityFrameworkCore;
@@ -132,12 +133,13 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture database) : IClass
     private async Task<Guid> CreateSessionAsync(string pin, Action<Team, DateTimeOffset>? arrange = null)
     {
         await using var db = database.CreateContext();
-        var schoolClass = new Class(Guid.NewGuid(), "9.A");
+        var teacher = new Teacher($"teacher-{Guid.NewGuid():N}@example.com");
+        var schoolClass = new Class(teacher.Id, "9.A");
         var session = new Session(DemoRoomSeeder.DemoRoomId, schoolClass.Id, pin, SessionMode.Team, Now);
         var team = session.AddTeam(TeamColor.Red);
         arrange?.Invoke(team, Now);
 
-        db.AddRange(schoolClass, session);
+        db.AddRange(teacher, schoolClass, session);
         await db.SaveChangesAsync();
         return session.Id;
     }
