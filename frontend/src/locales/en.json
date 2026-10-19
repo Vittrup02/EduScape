@@ -121,7 +121,8 @@
     "toolbox": {
       "title": "For the room",
       "hint": "Drag onto the picture – or click to place it in the middle.",
-      "add": "Add {{name}}"
+      "add": "Add {{name}}",
+      "textBox": "Text box"
     },
     "stage": {
       "label": "Scene {{scene}}",
@@ -135,14 +136,17 @@
       "letterNumbered": "Letter {{n}}",
       "door": "The door to {{scene}}",
       "doorNumbered": "Door {{n}}",
-      "exitDoor": "The exit door"
+      "exitDoor": "The exit door",
+      "textBox": "The text box “{{text}}”",
+      "textBoxNumbered": "Text box {{n}}"
     },
     "inspector": {
       "done": "Done",
       "removeLock": "Delete the lock",
       "removeLetter": "Delete the letter",
       "removeDoor": "Delete the door",
-      "removeExitDoor": "Delete the exit door"
+      "removeExitDoor": "Delete the exit door",
+      "removeTextBox": "Delete the text box"
     },
     "lock": {
       "look": "Look",
@@ -185,6 +189,11 @@
     },
     "exitDoor": {
       "explanation": "The exit door opens when every lock in the room is solved. Then the students have escaped."
+    },
+    "textBox": {
+      "text": "Text",
+      "textHint": "Shown right on the picture, so students can read it without clicking. Good for short pieces of the story, e.g. “The guard has gone to lunch”.",
+      "placeholder": "Write a text …"
     },
     "unlockedBy": {
       "label": "When can students see it?",
@@ -407,6 +416,7 @@
     "LOCK_QUESTION_MISSING": "The lock needs a question.",
     "LOCK_ANSWER_MISSING": "The lock needs the correct answer.",
     "LETTER_TEXT_MISSING": "The letter is empty.",
+    "TEXT_BOX_TEXT_MISSING": "The text box is empty.",
     "LAST_SCENE": "The room needs at least one scene.",
     "IMAGE_KEY_INVALID": "The image doesn't exist. Choose another one.",
     "ROOM_INVALID": "The room isn't finished yet. Fix the items in the editor first.",

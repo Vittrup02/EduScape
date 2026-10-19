@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { EditorObject, EditorRoom, RoomDocument } from '../api/editor'
 import { subjects, type Subject } from '../api/teacher'
-import type { ObjectAsset } from '../assets/registry'
+
 import {
   addObject,
   addScene,
   createObject,
+  createTextBox,
   createScene,
   findObject,
   findScene,
@@ -29,7 +30,7 @@ import { ScenePanel } from './ScenePanel'
 import { SceneStrip } from './SceneStrip'
 import { Stage } from './Stage'
 import type { StagePoint } from './stagePoint'
-import { Toolbox } from './Toolbox'
+import { Toolbox, type ToolboxItem } from './Toolbox'
 import { useAutosave, type SaveStatus } from './useAutosave'
 import { ValidationList } from './ValidationList'
 
@@ -110,10 +111,12 @@ export function Editor({ room }: { room: EditorRoom }) {
     }
   }
 
-  const add = (asset: ObjectAsset, at: StagePoint | null) => {
+  const add = (item: ToolboxItem, at: StagePoint | null) => {
     // Several clicks in a row fan out a little instead of stacking exactly on top of each other.
     const offset = (scene.objects.length % 5) * 4
-    const object = createObject(asset, at?.x ?? 40 + offset, at?.y ?? 45 + offset, document, scene.id)
+    const x = at?.x ?? 40 + offset
+    const y = at?.y ?? 45 + offset
+    const object = item.kind === 'asset' ? createObject(item.asset, x, y, document, scene.id) : createTextBox(x, y)
     apply((d) => addObject(d, scene.id, object))
     setSelectedId(object.id)
   }

@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { EditorDoor, EditorLetter, EditorLock, EditorObject, RoomDocument } from '../api/editor'
+import type { EditorDoor, EditorLetter, EditorLock, EditorObject, EditorTextBox, RoomDocument } from '../api/editor'
 import type { AnswerType } from '../api/play'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
 import { assetsOfType } from '../assets/registry'
@@ -65,6 +65,7 @@ export function Inspector({ document, object, sceneId, onChange, onSeal, onRemov
         <DoorFields document={document} door={object} sceneId={sceneId} onChange={onChange} onAddScene={onAddScene} />
       )}
       {object.type === 'ExitDoor' && <p className="field-hint">{t('editor.exitDoor.explanation')}</p>}
+      {object.type === 'TextBox' && <TextBoxFields textBox={object} onChange={onChange} onSeal={onSeal} />}
 
       <UnlockedBySelect document={document} object={object} onChange={onChange} />
 
@@ -313,6 +314,27 @@ function LetterFields({ letter, onChange, onSeal }: { letter: EditorLetter; onCh
           value={letter.text}
           onChange={(event) => {
             onChange<EditorLetter>((l) => ({ ...l, text: event.target.value }), 'text')
+          }}
+          onBlur={onSeal}
+        />
+      )}
+    </Field>
+  )
+}
+
+function TextBoxFields({ textBox, onChange, onSeal }: { textBox: EditorTextBox; onChange: ObjectChange; onSeal: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <Field label={t('editor.textBox.text')} hint={t('editor.textBox.textHint')}>
+      {(id) => (
+        <textarea
+          id={id}
+          rows={4}
+          maxLength={1000}
+          value={textBox.text}
+          placeholder={t('editor.textBox.placeholder')}
+          onChange={(event) => {
+            onChange<EditorTextBox>((b) => ({ ...b, text: event.target.value }), 'text')
           }}
           onBlur={onSeal}
         />

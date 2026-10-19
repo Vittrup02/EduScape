@@ -69,7 +69,13 @@ export interface PlayExitDoor extends PlayObjectBase {
   type: 'ExitDoor'
 }
 
-export type PlayObject = PlayLock | PlayLetter | PlayDoor | PlayExitDoor
+/** A piece of the story written straight onto the scene; it is read, not clicked. */
+export interface PlayTextBox extends PlayObjectBase {
+  type: 'TextBox'
+  text: string
+}
+
+export type PlayObject = PlayLock | PlayLetter | PlayDoor | PlayExitDoor | PlayTextBox
 
 export interface PlayScene {
   id: string

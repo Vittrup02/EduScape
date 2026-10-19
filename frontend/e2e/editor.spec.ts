@@ -65,6 +65,11 @@ test('a teacher builds a room with a lock and a door, and tries it', async ({ pa
   await panel.getByLabel('Hvornår kan eleverne se den?').selectOption({ label: 'Vises når Låsen „Hvad er 3 · 4?“ er løst' })
   await expect(page.getByText('Scene 1 fører til Scene 2')).toBeVisible()
 
+  // A text box with a piece of the story, written straight onto the picture.
+  await dragTo(page, page.getByRole('button', { name: 'Tilføj Tekstfelt' }), stage, 50, 15)
+  await panel.getByLabel('Tekst', { exact: true }).fill('Klokken er kvart over otte. Læreren er sent på den.')
+  await expect(stage.getByRole('button', { name: /^Tekstfeltet „Klokken er kvart over otte/ })).toBeVisible()
+
   // Moving the door can be undone and redone.
   const door = stage.getByRole('button', { name: 'Døren til Scene 2 (vises senere)' })
   const before = await leftOf(door)
@@ -91,6 +96,7 @@ test('a teacher builds a room with a lock and a door, and tries it', async ({ pa
   ])
   await expect(play.getByText(/^Prøveversion/)).toBeVisible()
   await expect(play.getByRole('button', { name: /^Dør til/ })).toHaveCount(0)
+  await expect(play.getByText('Klokken er kvart over otte. Læreren er sent på den.')).toBeVisible()
   await play.getByRole('button', { name: 'Lås: Hvad er 3 · 4?' }).click()
   const dialog = play.getByRole('dialog', { name: 'Lås' })
   await dialog.getByLabel('Dit svar').fill('12')

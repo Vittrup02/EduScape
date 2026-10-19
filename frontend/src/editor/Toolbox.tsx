@@ -1,18 +1,28 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react'
+import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
 import { assets, type ObjectAsset } from '../assets/registry'
-import { objectHeight, sceneAspectRatio } from '../assets/sceneLayout'
+import { objectHeight, sceneAspectRatio, textBoxWidth } from '../assets/sceneLayout'
 import { pointOnStage, type StagePoint } from './stagePoint'
 
-/** The object stickers the teacher can put on a scene, in the order of the asset library. */
-const objectAssets = assets.filter((a): a is ObjectAsset => a.type !== 'Background')
+/** A sticker from the asset library, or a text box for a piece of the story. */
+export type ToolboxItem = { kind: 'asset'; asset: ObjectAsset } | { kind: 'textBox' }
+
+/** The stickers the teacher can put on a scene: the asset library's objects, then the text box. */
+const items: ToolboxItem[] = [
+  ...assets.filter((a): a is ObjectAsset => a.type !== 'Background').map((asset) => ({ kind: 'asset' as const, asset })),
+  { kind: 'textBox' },
+]
+
+function itemKey(item: ToolboxItem): string {
+  return item.kind === 'asset' ? item.asset.key : 'text-box'
+}
 
 /** Pointer movement (px) before a press on a sticker counts as dragging rather than clicking. */
 const dragThreshold = 6
 
 interface Drag {
-  asset: ObjectAsset
+  item: ToolboxItem
   pointerId: number
   startX: number
   startY: number
@@ -21,19 +31,22 @@ interface Drag {
   dragging: boolean
   /** Over the stage, where the sticker would land. */
   overStage: boolean
-  /** The sticker's width on the stage in px, so the ghost shows the size it will have. */
+  /** The item's width on the stage in px, so the ghost shows the size it will have. */
   width: number
 }
 
-function stickerWidth(stage: HTMLElement | null, asset: ObjectAsset): number {
+function itemWidth(stage: HTMLElement | null, item: ToolboxItem): number {
   const stageWidth = stage?.getBoundingClientRect().width ?? 0
-  return (stageWidth * objectHeight[asset.type] * asset.aspectRatio) / sceneAspectRatio / 100
+  if (item.kind === 'textBox') {
+    return (stageWidth * textBoxWidth) / 100
+  }
+  return (stageWidth * objectHeight[item.asset.type] * item.asset.aspectRatio) / sceneAspectRatio / 100
 }
 
 interface ToolboxProps {
   stageRef: RefObject<HTMLElement | null>
   /** `at` is null for a click or keyboard press: the object goes in the middle of the scene. */
-  onAdd: (asset: ObjectAsset, at: StagePoint | null) => void
+  onAdd: (item: ToolboxItem, at: StagePoint | null) => void
 }
 
 /**
@@ -45,7 +58,18 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
   const [drag, setDrag] = useState<Drag | null>(null)
   const suppressClick = useRef(false)
 
-  const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, asset: ObjectAsset) => {
+  const name = (item: ToolboxItem) => (item.kind === 'asset' ? t(item.asset.nameKey) : t('editor.toolbox.textBox'))
+
+  const picture = (item: ToolboxItem): ReactNode =>
+    item.kind === 'asset' ? (
+      <ObjectGraphic asset={item.asset} open={false} />
+    ) : (
+      <span className="text-box-icon" aria-hidden="true">
+        Aa
+      </span>
+    )
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, item: ToolboxItem) => {
     if (event.button !== 0) {
       return
     }
@@ -53,7 +77,7 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
     suppressClick.current = false
     event.currentTarget.setPointerCapture(event.pointerId)
     setDrag({
-      asset,
+      item,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -61,7 +85,7 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
       clientY: event.clientY,
       dragging: false,
       overStage: false,
-      width: stickerWidth(stageRef.current, asset),
+      width: itemWidth(stageRef.current, item),
     })
   }
 
@@ -88,7 +112,7 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
       suppressClick.current = true
       const at = pointOnStage(stageRef.current, event.clientX, event.clientY)
       if (at !== null) {
-        onAdd(drag.asset, at)
+        onAdd(drag.item, at)
       }
     }
     setDrag(null)
@@ -101,15 +125,15 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
       </h2>
       <p className="toolbox-hint">{t('editor.toolbox.hint')}</p>
       <ul className="stickers">
-        {objectAssets.map((asset) => (
-          <li key={asset.key}>
+        {items.map((item) => (
+          <li key={itemKey(item)}>
             <button
               type="button"
               className="sticker"
-              data-lifted={(drag?.dragging && drag.asset.key === asset.key) || undefined}
-              aria-label={t('editor.toolbox.add', { name: t(asset.nameKey) })}
+              data-lifted={(drag?.dragging && itemKey(drag.item) === itemKey(item)) || undefined}
+              aria-label={t('editor.toolbox.add', { name: name(item) })}
               onPointerDown={(event) => {
-                onPointerDown(event, asset)
+                onPointerDown(event, item)
               }}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -121,11 +145,11 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
                   suppressClick.current = false
                   return
                 }
-                onAdd(asset, null)
+                onAdd(item, null)
               }}
             >
-              <ObjectGraphic asset={asset} open={false} />
-              <span className="sticker-name">{t(asset.nameKey)}</span>
+              {picture(item)}
+              <span className="sticker-name">{name(item)}</span>
             </button>
           </li>
         ))}
@@ -137,7 +161,11 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
           aria-hidden="true"
           style={{ left: drag.clientX, top: drag.clientY, width: drag.width > 0 ? drag.width : undefined }}
         >
-          <ObjectGraphic asset={drag.asset} open={false} />
+          {drag.item.kind === 'asset' ? (
+            <ObjectGraphic asset={drag.item.asset} open={false} />
+          ) : (
+            <span className="text-box">{t('editor.textBox.placeholder')}</span>
+          )}
         </div>
       )}
     </section>

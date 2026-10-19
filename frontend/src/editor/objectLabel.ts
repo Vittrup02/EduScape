@@ -36,5 +36,9 @@ export function objectLabel(t: TFunction, document: RoomDocument, object: Editor
     }
     case 'ExitDoor':
       return t('editor.object.exitDoor')
+    case 'TextBox':
+      return object.text.trim() === ''
+        ? t('editor.object.textBoxNumbered', { n: numberOf(document, object) })
+        : t('editor.object.textBox', { text: shorten(object.text) })
   }
 }

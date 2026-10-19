@@ -8,7 +8,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import type { EditorObject, EditorScene } from '../api/editor'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
-import { backgroundImage, objectAsset, objectStyle } from '../assets/sceneLayout'
+import { backgroundImage, objectAsset, objectStyle, textBoxStyle } from '../assets/sceneLayout'
 
 /** Pointer movement (px) before pressing an object counts as dragging it rather than selecting it. */
 const dragThreshold = 3
@@ -143,19 +143,20 @@ export function Stage({ stageRef, scene, selectedId, label, onSelect, onMove, on
       {background !== undefined && <img className="scene-background" src={background} alt="" draggable={false} />}
       {scene.objects.length === 0 && <p className="stage-empty">{t('editor.stage.empty')}</p>}
       {scene.objects.map((object) => {
-        const asset = objectAsset(object.type, object.graphicKey)
+        const textBox = object.type === 'TextBox' ? object : null
+        const asset = object.type === 'TextBox' ? null : objectAsset(object.type, object.graphicKey)
         const waits = object.unlockedById !== null
         return (
           <button
             key={object.id}
             type="button"
-            className="room-object stage-object"
+            className={textBox === null ? 'room-object stage-object' : 'room-object stage-object stage-text-box'}
             aria-label={waits ? t('editor.stage.objectLater', { name: label(object) }) : label(object)}
             aria-pressed={object.id === selectedId}
             data-waits={waits || undefined}
             data-dragging={(drag?.dragging && drag.objectId === object.id) || undefined}
             data-pressed={pressedId === object.id || undefined}
-            style={objectStyle(object.x, object.y, asset)}
+            style={asset === null ? textBoxStyle(object.x, object.y) : objectStyle(object.x, object.y, asset)}
             onPointerDown={(event) => {
               onPointerDown(event, object)
             }}
@@ -179,7 +180,13 @@ export function Stage({ stageRef, scene, selectedId, label, onSelect, onMove, on
               onSelect(object.id)
             }}
           >
-            <ObjectGraphic asset={asset} open={false} />
+            {asset === null ? (
+              <span className="text-box" data-empty={textBox?.text.trim() === '' || undefined}>
+                {textBox?.text.trim() === '' ? t('editor.textBox.placeholder') : textBox?.text}
+              </span>
+            ) : (
+              <ObjectGraphic asset={asset} open={false} />
+            )}
           </button>
         )
       })}

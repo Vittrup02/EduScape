@@ -152,6 +152,26 @@ describe('the room editor', () => {
     expect(within(screen.getByRole('navigation', { name: 'Scener' })).getByText('Fortælling')).toBeInTheDocument()
   })
 
+  it('adds a text box whose text is written straight onto the scene', async () => {
+    const saved = mockEditor()
+    renderEditor()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Tilføj Tekstfelt' }))
+    const panel = within(screen.getByRole('complementary'))
+    expect(panel.getByRole('heading', { name: 'Tekstfelt 1' })).toBeInTheDocument()
+    fireEvent.change(panel.getByLabelText('Tekst'), { target: { value: 'Vagten er gået til frokost.' } })
+
+    const stage = within(screen.getByRole('region', { name: 'Scenen Gangen' }))
+    expect(stage.getByRole('button', { name: 'Tekstfeltet „Vagten er gået til frokost.“' })).toHaveTextContent(
+      'Vagten er gået til frokost.',
+    )
+    await waitFor(() => {
+      expect(saved).toHaveLength(1)
+    }, saveWait)
+    const sentObjects = saved[0].scenes[0].objects as unknown as { type: string; text?: string; graphicKey: string }[]
+    expect(sentObjects.at(-1)).toMatchObject({ type: 'TextBox', text: 'Vagten er gået til frokost.', graphicKey: 'builtin:text-box' })
+  })
+
   it('waits with saving while the title is empty', async () => {
     const saved = mockEditor()
     renderEditor()
