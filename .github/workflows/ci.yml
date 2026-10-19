@@ -18,6 +18,24 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        # Throw-away credentials for the CI-only database container
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eduscape
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Integration tests create their own databases on this server
+      ConnectionStrings__Default: Host=localhost;Port=5432;Database=eduscape;Username=postgres;Password=postgres
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +45,9 @@ jobs:
 
       - name: Restore
         run: dotnet restore
+
+      - name: Lint
+        run: dotnet format --no-restore --verify-no-changes
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
@@ -65,12 +86,41 @@ jobs:
     name: End-to-end (Playwright)
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:17
+        # Throw-away credentials for the CI-only database container
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eduscape
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Also inherited by the backend that Playwright starts
+      ConnectionStrings__Default: Host=localhost;Port=5432;Database=eduscape;Username=postgres;Password=postgres
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+
+      - name: Restore .NET tools
+        working-directory: backend
+        run: dotnet tool restore
+
+      # Development environment so the demo escape room is seeded
+      - name: Migrate and seed database
+        working-directory: backend
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: dotnet ef database update --project Eduscape.Infrastructure --startup-project Eduscape.Api
 
       - uses: actions/setup-node@v4
         with:
