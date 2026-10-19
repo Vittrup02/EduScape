@@ -1,0 +1,12 @@
+// Cloudflare Workers Static Assets: serves the Vite build as a single-page app.
+// `name` must match the Worker name in the Cloudflare dashboard, or Workers Builds fails.
+// VITE_API_URL is a *build* variable in Workers Builds (Settings > Build), not a runtime variable.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "eduscape",
+  "compatibility_date": "2026-10-19",
+  "assets": {
+    "directory": "./dist/",
+    "not_found_handling": "single-page-application"
+  }
+}
