@@ -5,11 +5,12 @@ namespace Eduscape.Domain.Rooms;
 /// <summary>An object placed on a scene image: a lock, letter, door or exit door.</summary>
 public abstract class RoomObject
 {
-    protected RoomObject(Position position, string graphicKey, string? unlockedGraphicKey)
+    /// <param name="id">Set by the editor, which creates ids itself so that undo can restore an object as it was.</param>
+    protected RoomObject(Position position, string graphicKey, string? unlockedGraphicKey, Guid? id)
     {
+        Id = id ?? Guid.CreateVersion7();
         Position = position;
-        GraphicKey = Guard.Required(graphicKey, TextLimits.StorageKey);
-        UnlockedGraphicKey = Guard.Optional(unlockedGraphicKey, TextLimits.StorageKey);
+        SetGraphic(graphicKey, unlockedGraphicKey);
     }
 
     // For EF Core
@@ -19,7 +20,7 @@ public abstract class RoomObject
         GraphicKey = null!;
     }
 
-    public Guid Id { get; private set; } = Guid.CreateVersion7();
+    public Guid Id { get; private set; }
 
     public Guid SceneId { get; internal set; }
 
@@ -45,4 +46,17 @@ public abstract class RoomObject
     public void MoveTo(Position position) => Position = position;
 
     public void SetUnlockedBy(RoomObject? source) => UnlockedById = source?.Id;
+
+    /// <summary>Sets the reference by id; whether it points to a valid object is reported by <see cref="EscapeRoom.Validate"/>.</summary>
+    public void SetUnlockedBy(Guid? sourceId) => UnlockedById = sourceId;
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(GraphicKey))]
+    public void SetGraphic(string graphicKey, string? unlockedGraphicKey)
+    {
+        GraphicKey = Guard.Required(graphicKey, TextLimits.StorageKey);
+        UnlockedGraphicKey = Guard.Optional(unlockedGraphicKey, TextLimits.StorageKey);
+    }
+
+    /// <summary>Problems with the object's own content, such as a lock without a question.</summary>
+    internal virtual IEnumerable<string> ContentErrors() => [];
 }

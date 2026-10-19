@@ -245,6 +245,21 @@
     "UNLOCKED_BY_SELF": "An object can't wait for itself.",
     "UNLOCKED_BY_INVALID_TARGET": "An object can only wait for a lock or a door.",
     "UNLOCKED_BY_CYCLE": "The objects are waiting for each other in a loop, so none of them can be unlocked.",
-    "DOOR_TARGET_MISSING": "The door doesn't lead to a scene."
+    "DOOR_TARGET_MISSING": "The door doesn't lead to a scene.",
+    "LOCK_QUESTION_MISSING": "The lock needs a question.",
+    "LOCK_ANSWER_MISSING": "The lock needs the correct answer.",
+    "LETTER_TEXT_MISSING": "The letter is empty.",
+    "LAST_SCENE": "The room needs at least one scene.",
+    "IMAGE_KEY_INVALID": "The image doesn't exist. Choose another one.",
+    "ROOM_INVALID": "The room isn't finished yet. Fix the items in the editor first.",
+    "ROOM_CHANGED": "The room was changed somewhere else. Reload the page to see the latest version.",
+    "ID_TAKEN": "The change couldn't be saved. Reload the page and try again.",
+    "DOCUMENT_INVALID": "The change couldn't be saved. Reload the page and try again.",
+    "ROOM_TOO_LARGE": "The room has become too big. It can have at most 20 scenes and 60 objects per scene.",
+    "UPLOADS_UNAVAILABLE": "Image uploads aren't switched on yet. Choose one of the built-in backgrounds.",
+    "UPLOAD_NOT_FOUND": "The image wasn't received. Try uploading it again.",
+    "IMAGE_TYPE_NOT_ALLOWED": "The image must be a JPEG, PNG or WebP file.",
+    "IMAGE_TOO_LARGE": "The image is too big. It can be at most 10 MB and 40 megapixels.",
+    "IMAGE_INVALID": "The file couldn't be read as an image. Try another file."
   }
 }

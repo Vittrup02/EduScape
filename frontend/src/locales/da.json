@@ -245,6 +245,21 @@
     "UNLOCKED_BY_SELF": "Et objekt kan ikke vente på sig selv.",
     "UNLOCKED_BY_INVALID_TARGET": "Et objekt kan kun vente på en lås eller en dør.",
     "UNLOCKED_BY_CYCLE": "Objekterne venter på hinanden i ring, så ingen af dem kan låses op.",
-    "DOOR_TARGET_MISSING": "Døren fører ikke til nogen scene."
+    "DOOR_TARGET_MISSING": "Døren fører ikke til nogen scene.",
+    "LOCK_QUESTION_MISSING": "Låsen mangler et spørgsmål.",
+    "LOCK_ANSWER_MISSING": "Låsen mangler det rigtige svar.",
+    "LETTER_TEXT_MISSING": "Brevet er tomt.",
+    "LAST_SCENE": "Rummet skal have mindst én scene.",
+    "IMAGE_KEY_INVALID": "Billedet findes ikke. Vælg et andet.",
+    "ROOM_INVALID": "Rummet er ikke færdigt endnu. Ret punkterne i editoren først.",
+    "ROOM_CHANGED": "Rummet er blevet ændret et andet sted. Genindlæs siden for at se den nyeste udgave.",
+    "ID_TAKEN": "Ændringen kunne ikke gemmes. Genindlæs siden, og prøv igen.",
+    "DOCUMENT_INVALID": "Ændringen kunne ikke gemmes. Genindlæs siden, og prøv igen.",
+    "ROOM_TOO_LARGE": "Rummet er blevet for stort. Der kan højst være 20 scener og 60 objekter pr. scene.",
+    "UPLOADS_UNAVAILABLE": "Upload af billeder er ikke slået til endnu. Vælg en af de indbyggede baggrunde.",
+    "UPLOAD_NOT_FOUND": "Billedet blev ikke modtaget. Prøv at uploade det igen.",
+    "IMAGE_TYPE_NOT_ALLOWED": "Billedet skal være en JPEG-, PNG- eller WebP-fil.",
+    "IMAGE_TOO_LARGE": "Billedet er for stort. Det må højst fylde 10 MB og være 40 megapixel.",
+    "IMAGE_INVALID": "Filen kunne ikke læses som et billede. Prøv en anden fil."
   }
 }

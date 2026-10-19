@@ -74,33 +74,62 @@ public class RoomModelTests
     }
 
     [Fact]
-    public void Lock_MultipleChoiceAnswerMustBeAnOption()
+    public void Lock_OptionsOnlyAllowedForMultipleChoice()
     {
         var ex = Assert.Throws<DomainException>(() =>
-            new Lock(Center, "lock.png", null, "?", AnswerType.MultipleChoice, "5", options: ["1", "2"]));
-
-        Assert.Equal(DomainErrors.LockAnswerNotInOptions, ex.Code);
-    }
-
-    [Theory]
-    [InlineData("1")]
-    [InlineData("1", " 1 ")]
-    public void Lock_MultipleChoiceNeedsTwoDistinctOptions(params string[] options)
-    {
-        var ex = Assert.Throws<DomainException>(() =>
-            new Lock(Center, "lock.png", null, "?", AnswerType.MultipleChoice, "1", options: options));
+            new Lock(Center, "lock.png", null, "?", AnswerType.Code, "1", options: ["1", "2"]));
 
         Assert.Equal(DomainErrors.LockOptionsInvalid, ex.Code);
     }
 
     [Fact]
-    public void Lock_RequiresQuestionAndAnswer()
+    public void Lock_MayBeUnfinishedWhileEditing_AndIsTrimmed()
     {
-        Assert.Equal(
-            DomainErrors.ValueRequired,
-            Assert.Throws<DomainException>(() => new Lock(Center, "lock.png", null, " ", AnswerType.Code, "1")).Code);
-        Assert.Equal(
-            DomainErrors.ValueRequired,
-            Assert.Throws<DomainException>(() => new Lock(Center, "lock.png", null, "?", AnswerType.Code, "")).Code);
+        var draft = new Lock(Center, "lock.png", null, "  ", AnswerType.Code, "", options: null);
+
+        Assert.Equal(string.Empty, draft.Question);
+        Assert.Equal(string.Empty, draft.CorrectAnswer);
+
+        draft.SetQuestion(" Hvad er 2 + 2? ", "  ");
+        Assert.Equal("Hvad er 2 + 2?", draft.Question);
+        Assert.Null(draft.Hint);
+    }
+
+    [Fact]
+    public void Lock_TextIsStillLimitedInLength()
+    {
+        var ex = Assert.Throws<DomainException>(() =>
+            new Lock(Center, "lock.png", null, new string('a', TextLimits.Question + 1), AnswerType.Code, "1"));
+
+        Assert.Equal(DomainErrors.ValueTooLong, ex.Code);
+    }
+
+    [Fact]
+    public void Letter_MayBeEmptyWhileEditing()
+    {
+        var letter = new Letter(Center, "letter.png", " ");
+
+        Assert.Equal(string.Empty, letter.Text);
+    }
+
+    [Fact]
+    public void SetGraphic_ChangesBothKeys()
+    {
+        var door = new Door(Center, "builtin:door", null, targetSceneId: null);
+
+        door.SetGraphic("builtin:exit-door", " ");
+
+        Assert.Equal("builtin:exit-door", door.GraphicKey);
+        Assert.Null(door.UnlockedGraphicKey);
+        Assert.Equal(DomainErrors.ValueRequired, Assert.Throws<DomainException>(() => door.SetGraphic(" ", null)).Code);
+    }
+
+    [Fact]
+    public void Objects_KeepAnIdGivenByTheEditor()
+    {
+        var id = Guid.NewGuid();
+
+        Assert.Equal(id, new ExitDoor(Center, "exit.png", null, id).Id);
+        Assert.NotEqual(Guid.Empty, new ExitDoor(Center, "exit.png", null).Id);
     }
 }
