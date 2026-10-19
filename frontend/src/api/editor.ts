@@ -47,7 +47,15 @@ export interface EditorExitDoor extends EditorObjectBase {
   type: 'ExitDoor'
 }
 
-export type EditorObject = EditorLock | EditorLetter | EditorDoor | EditorExitDoor
+/** Text written straight onto the scene. It has no graphic to choose; its key is always `textBoxKey`. */
+export interface EditorTextBox extends EditorObjectBase {
+  type: 'TextBox'
+  text: string
+}
+
+export type EditorObject = EditorLock | EditorLetter | EditorDoor | EditorExitDoor | EditorTextBox
+
+export const textBoxKey = 'builtin:text-box'
 
 export interface EditorScene {
   id: string
@@ -130,7 +138,7 @@ function fromJson(object: ObjectJson): EditorObject {
     x: object.x,
     y: object.y,
     // Like the play view, an unknown graphic shows (and is now saved as) the type's default.
-    graphicKey: objectAsset(object.type, object.graphicKey).key,
+    graphicKey: object.type === 'TextBox' ? textBoxKey : objectAsset(object.type, object.graphicKey).key,
     unlockedById: object.unlockedById,
   }
   switch (object.type) {
@@ -151,6 +159,8 @@ function fromJson(object: ObjectJson): EditorObject {
       return { ...base, type: 'Door', targetSceneId: object.targetSceneId }
     case 'ExitDoor':
       return { ...base, type: 'ExitDoor' }
+    case 'TextBox':
+      return { ...base, type: 'TextBox', text: object.text ?? '' }
   }
 }
 
@@ -180,6 +190,8 @@ function toJson(object: EditorObject): Partial<ObjectJson> {
       return { ...base, targetSceneId: object.targetSceneId }
     case 'ExitDoor':
       return base
+    case 'TextBox':
+      return { ...base, text: object.text }
   }
 }
 

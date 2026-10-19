@@ -154,6 +154,7 @@ public sealed class EscapeRoom
             door.UnlockedGraphicKey,
             door.TargetSceneId is { } target && sceneIds.TryGetValue(target, out var copiedTarget) ? copiedTarget : null),
         ExitDoor exit => new ExitDoor(exit.Position, exit.GraphicKey, exit.UnlockedGraphicKey),
+        TextBox textBox => new TextBox(textBox.Position, textBox.Text),
         _ => throw new InvalidOperationException($"Unknown object type {original.Type}."),
     };
 

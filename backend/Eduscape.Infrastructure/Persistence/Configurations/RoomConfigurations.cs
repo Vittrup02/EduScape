@@ -72,7 +72,8 @@ internal sealed class RoomObjectConfiguration : IEntityTypeConfiguration<RoomObj
             .HasValue<Lock>(RoomObjectType.Lock)
             .HasValue<Letter>(RoomObjectType.Letter)
             .HasValue<Door>(RoomObjectType.Door)
-            .HasValue<ExitDoor>(RoomObjectType.ExitDoor);
+            .HasValue<ExitDoor>(RoomObjectType.ExitDoor)
+            .HasValue<TextBox>(RoomObjectType.TextBox);
 
         builder.ComplexProperty(o => o.Position, position =>
         {
@@ -102,10 +103,17 @@ internal sealed class LockConfiguration : IEntityTypeConfiguration<Lock>
     }
 }
 
+// Letters and text boxes share the Text column (one table for all objects); the longer limit sizes it.
 internal sealed class LetterConfiguration : IEntityTypeConfiguration<Letter>
 {
     public void Configure(EntityTypeBuilder<Letter> builder) =>
-        builder.Property(l => l.Text).HasMaxLength(TextLimits.LetterText);
+        builder.Property(l => l.Text).HasColumnName("Text").HasMaxLength(TextLimits.LetterText);
+}
+
+internal sealed class TextBoxConfiguration : IEntityTypeConfiguration<TextBox>
+{
+    public void Configure(EntityTypeBuilder<TextBox> builder) =>
+        builder.Property(t => t.Text).HasColumnName("Text").HasMaxLength(TextLimits.LetterText);
 }
 
 internal sealed class DoorConfiguration : IEntityTypeConfiguration<Door>

@@ -73,6 +73,7 @@ public sealed record PlayRoomDto(Guid Id, string Title, Guid? StartSceneId, Play
                 Options = @lock.AnswerType == Domain.Rooms.AnswerType.MultipleChoice ? @lock.Options : null,
             },
             Letter letter => dto with { Text = letter.Text },
+            TextBox textBox => dto with { Text = textBox.Text },
             Door door => dto with { TargetSceneId = door.TargetSceneId },
             _ => dto,
         };

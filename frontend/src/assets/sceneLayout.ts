@@ -31,6 +31,14 @@ export function objectStyle(x: number, y: number, asset: ObjectAsset): CSSProper
   }
 }
 
+/** Text boxes are this wide (percent of the scene's width) and as tall as their text. */
+export const textBoxWidth = 28
+
+/** Left, top and width of a text box; like objects, it is centred on its position. */
+export function textBoxStyle(x: number, y: number): CSSProperties {
+  return { left: percent(x), top: percent(y), width: percent(textBoxWidth) }
+}
+
 /** A built-in background's file, or the short-lived link the server sent for an uploaded one. */
 export function backgroundImage(key: string, url: string | null = null): string | undefined {
   const asset = findAsset(key)

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
-import { backgroundImage, objectAsset, objectStyle } from '../assets/sceneLayout'
+import { backgroundImage, objectAsset, objectStyle, textBoxStyle } from '../assets/sceneLayout'
 import { ApiError } from '../api/client'
-import { openDoor, openExitDoor, type PlayObject, type PlayState } from '../api/play'
+import { openDoor, openExitDoor, type PlayObject, type PlayState, type PlayTextBox } from '../api/play'
 import { errorKey } from '../i18n/errors'
 import { LockDialog } from './LockDialog'
 import { Modal } from './Modal'
@@ -16,6 +16,9 @@ import {
   unlockedScenes,
   type TeamEvent,
 } from './progress'
+
+/** Everything on a scene that students click; text boxes are only read. */
+type ClickableObject = Exclude<PlayObject, PlayTextBox>
 
 interface RoomViewProps {
   state: PlayState
@@ -65,7 +68,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
     }
   }
 
-  const isOpen = (object: PlayObject): boolean => {
+  const isOpen = (object: ClickableObject): boolean => {
     switch (object.type) {
       case 'Letter':
         return readLetterIds.has(object.id)
@@ -76,7 +79,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
     }
   }
 
-  const label = (object: PlayObject): string => {
+  const label = (object: ClickableObject): string => {
     switch (object.type) {
       case 'Lock':
         return t(isOpen(object) ? 'play.object.lockOpen' : 'play.object.lock', { question: object.question })
@@ -91,7 +94,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
     }
   }
 
-  const activate = (object: PlayObject) => {
+  const activate = (object: ClickableObject) => {
     setErrorCode(null)
     switch (object.type) {
       case 'Lock':
@@ -166,6 +169,13 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
       <section className="scene" aria-label={scene.name}>
         {background !== undefined && <img className="scene-background" src={background} alt="" draggable={false} />}
         {visibleObjects.map((object) => {
+          if (object.type === 'TextBox') {
+            return (
+              <p key={object.id} className="room-text-box text-box" style={textBoxStyle(object.x, object.y)}>
+                {object.text}
+              </p>
+            )
+          }
           const asset = objectAsset(object.type, object.graphicKey)
           return (
             <button

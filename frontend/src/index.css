@@ -639,6 +639,66 @@ main.play {
   font-size: 2rem;
 }
 
+/* Text boxes: the teacher's words written onto the scene. The text scales with the scene (container units), so a
+   box covers about the same part of the picture for the teacher and for students. On small scenes a minimum size
+   keeps it readable, and the box then grows a little taller. */
+.scene {
+  container-type: inline-size;
+}
+
+.text-box {
+  display: block;
+  padding: 0.55em 0.75em;
+  border: 2px solid #1d2b3a;
+  border-radius: 0.4em;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 0.2em 0 rgb(29 43 58 / 25%);
+  color: #1d2b3a;
+  font-size: max(0.65rem, 1.5cqw);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  text-wrap: pretty;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.text-box[data-empty] {
+  color: #52606d;
+  font-style: italic;
+}
+
+.room-text-box {
+  position: absolute;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
+.stage-text-box .text-box {
+  width: 100%;
+}
+
+.sticker-ghost .text-box {
+  font-size: 0.85rem;
+  transform: rotate(-2deg);
+  filter: var(--lift-shadow);
+}
+
+.text-box-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.25rem;
+  border: 2px solid #1d2b3a;
+  border-radius: 0.35rem;
+  background: #ffffff;
+  box-shadow: 0 0.15rem 0 rgb(29 43 58 / 25%);
+  color: #1d2b3a;
+  font-weight: 700;
+}
+
 /* The teacher's story for a scene: the picture stays visible, dimmed, behind a sheet of paper. */
 .narration {
   position: absolute;

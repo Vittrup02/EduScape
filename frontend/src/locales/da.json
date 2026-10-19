@@ -121,7 +121,8 @@
     "toolbox": {
       "title": "Til rummet",
       "hint": "Træk ind på billedet – eller klik for at sætte midt på.",
-      "add": "Tilføj {{name}}"
+      "add": "Tilføj {{name}}",
+      "textBox": "Tekstfelt"
     },
     "stage": {
       "label": "Scenen {{scene}}",
@@ -135,14 +136,17 @@
       "letterNumbered": "Brev {{n}}",
       "door": "Døren til {{scene}}",
       "doorNumbered": "Dør {{n}}",
-      "exitDoor": "Slutdøren"
+      "exitDoor": "Slutdøren",
+      "textBox": "Tekstfeltet „{{text}}“",
+      "textBoxNumbered": "Tekstfelt {{n}}"
     },
     "inspector": {
       "done": "Færdig",
       "removeLock": "Slet låsen",
       "removeLetter": "Slet brevet",
       "removeDoor": "Slet døren",
-      "removeExitDoor": "Slet slutdøren"
+      "removeExitDoor": "Slet slutdøren",
+      "removeTextBox": "Slet tekstfeltet"
     },
     "lock": {
       "look": "Udseende",
@@ -185,6 +189,11 @@
     },
     "exitDoor": {
       "explanation": "Slutdøren åbner, når alle låse i rummet er løst. Så er eleverne brudt ud."
+    },
+    "textBox": {
+      "text": "Tekst",
+      "textHint": "Står direkte på billedet, så eleverne kan læse den uden at klikke. Godt til korte stykker fortælling, fx „Vagten er gået til frokost“.",
+      "placeholder": "Skriv en tekst …"
     },
     "unlockedBy": {
       "label": "Hvornår kan eleverne se den?",
@@ -407,6 +416,7 @@
     "LOCK_QUESTION_MISSING": "Låsen mangler et spørgsmål.",
     "LOCK_ANSWER_MISSING": "Låsen mangler det rigtige svar.",
     "LETTER_TEXT_MISSING": "Brevet er tomt.",
+    "TEXT_BOX_TEXT_MISSING": "Tekstfeltet er tomt.",
     "LAST_SCENE": "Rummet skal have mindst én scene.",
     "IMAGE_KEY_INVALID": "Billedet findes ikke. Vælg et andet.",
     "ROOM_INVALID": "Rummet er ikke færdigt endnu. Ret punkterne i editoren først.",

@@ -193,6 +193,34 @@ public class EscapeRoomValidationTests
     }
 
     [Fact]
+    public void EmptyTextBox_IsReported_AndATextBoxCannotUnlockAnything()
+    {
+        var (room, scene) = NewRoom();
+        var empty = scene.AddObject(new TextBox(Center, " "));
+        var story = scene.AddObject(new TextBox(Center, "Vagten er gået til frokost."));
+        var afterStory = scene.AddObject(NewLock());
+        afterStory.SetUnlockedBy(story);
+
+        Assert.Equal(
+            [
+                new RoomValidationError(DomainErrors.TextBoxTextMissing, empty.Id),
+                new RoomValidationError(DomainErrors.UnlockedByInvalidTarget, afterStory.Id),
+            ],
+            room.Validate());
+        Assert.Equal(TextBox.GraphicKeyValue, story.GraphicKey);
+    }
+
+    [Fact]
+    public void TextBox_MayWaitForALock()
+    {
+        var (room, scene) = NewRoom();
+        var lockA = scene.AddObject(NewLock());
+        scene.AddObject(new TextBox(Center, "Nu kan I se kortet.")).SetUnlockedBy(lockA);
+
+        Assert.Empty(room.Validate());
+    }
+
+    [Fact]
     public void EnsurePlayable_ThrowsRoomInvalid_OnlyWhenThereAreProblems()
     {
         var (room, scene) = NewRoom();

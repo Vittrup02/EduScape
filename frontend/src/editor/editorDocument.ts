@@ -1,4 +1,4 @@
-import type { EditorDoor, EditorObject, EditorScene, RoomDocument } from '../api/editor'
+import { textBoxKey, type EditorDoor, type EditorObject, type EditorScene, type EditorTextBox, type RoomDocument } from '../api/editor'
 import { assetsOfType, type ObjectAsset } from '../assets/registry'
 import { newId } from './ids'
 
@@ -79,6 +79,11 @@ export function createObject(
     case 'ExitDoor':
       return { ...base, type: 'ExitDoor' }
   }
+}
+
+/** A new, empty text box at the given position. */
+export function createTextBox(x: number, y: number): EditorTextBox {
+  return { id: newId(), type: 'TextBox', x: clampPosition(x), y: clampPosition(y), graphicKey: textBoxKey, unlockedById: null, text: '' }
 }
 
 export function addObject(document: RoomDocument, sceneId: string, object: EditorObject): RoomDocument {

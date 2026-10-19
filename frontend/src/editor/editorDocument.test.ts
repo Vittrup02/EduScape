@@ -8,6 +8,7 @@ import {
   clampPosition,
   createObject,
   createScene,
+  createTextBox,
   findObject,
   missingRequiredText,
   moveObject,
@@ -96,6 +97,15 @@ describe('editor document', () => {
     expect(unlockedByChoices(withLetter, 'lock').map((o) => o.id)).toEqual([])
     expect(unlockedByChoices(withLetter, 'door').map((o) => o.id)).toEqual(['lock'])
     expect(unlockedByChoices(withLetter, letter.id).map((o) => o.id)).toEqual(['lock', 'door'])
+  })
+
+  it('creates empty text boxes that can wait for a lock, but that nothing can wait for', () => {
+    const textBox = createTextBox(120, 30)
+    expect(textBox).toMatchObject({ type: 'TextBox', text: '', x: 100, y: 30, graphicKey: 'builtin:text-box' })
+
+    const document = addObject(editorDocument(), 'hall', textBox)
+    expect(unlockedByChoices(document, textBox.id).map((o) => o.id)).toEqual(['lock', 'door'])
+    expect(unlockedByChoices(document, 'door').map((o) => o.id)).not.toContain(textBox.id)
   })
 
   it('waits with saving while the title or a scene name is empty', () => {
