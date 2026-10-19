@@ -21,6 +21,10 @@ public static class ApiErrors
     public const string PasswordTooShort = "PASSWORD_TOO_SHORT";
     public const string PasswordTooLong = "PASSWORD_TOO_LONG";
 
+    // Students. A closed session's PIN is reported as not found: it may already belong to a new session.
+    public const string PinNotFound = "PIN_NOT_FOUND";
+    public const string DeviceNotRecognized = "DEVICE_NOT_RECOGNIZED";
+
     /// <summary>Generic code for an error response that has no more specific code.</summary>
     public static string FromStatusCode(int statusCode) => statusCode switch
     {

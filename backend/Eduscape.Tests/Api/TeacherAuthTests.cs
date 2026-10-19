@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Eduscape.Api.Auth;
 using Eduscape.Api.Errors;
+using Eduscape.Api.Hosting;
 using Eduscape.Tests.Infrastructure;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Hosting;
@@ -159,7 +160,7 @@ public class TeacherAuthTests(EduscapeApiFactory factory) : IClassFixture<Edusca
     public async Task Login_IsRateLimitedPerIpAddress()
     {
         var client = factory
-            .WithWebHostBuilder(builder => builder.UseSetting(AuthServiceCollectionExtensions.PermitLimitSetting, "2"))
+            .WithWebHostBuilder(builder => builder.UseSetting(RateLimiting.AuthPermitLimitSetting, "2"))
             .CreateClient();
         var email = EduscapeApiFactory.NewEmail();
 

@@ -43,9 +43,9 @@ public sealed class Team
 
     public IReadOnlySet<Guid> OpenedDoorIds => _openedDoors.Select(d => d.DoorId).ToHashSet();
 
-    public Participant AddParticipant(string nickname, string deviceToken, DateTimeOffset joinedAt)
+    public Participant AddParticipant(string? nickname, string deviceTokenHash, DateTimeOffset joinedAt)
     {
-        var participant = new Participant(Id, nickname, deviceToken, joinedAt);
+        var participant = new Participant(Id, nickname, deviceTokenHash, joinedAt);
         _participants.Add(participant);
         return participant;
     }

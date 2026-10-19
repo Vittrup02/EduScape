@@ -14,7 +14,8 @@
   },
   "home": {
     "teacherLogin": "Log ind som lærer",
-    "teacherHome": "Gå til mine rum"
+    "teacherHome": "Gå til mine rum",
+    "joinAsStudent": "Deltag med PIN-kode"
   },
   "auth": {
     "loginTitle": "Log ind",
@@ -37,7 +38,85 @@
     "roomsTitle": "Mine rum",
     "loadingRooms": "Henter dine rum... Har serveren sovet, kan det tage op til et minut.",
     "noRooms": "Du har ingen rum endnu.",
-    "roomDetails": "{{subject}} · {{gradeLevel}}"
+    "roomDetails": "{{subject}} · {{gradeLevel}}",
+    "activeSessionsTitle": "Igangværende sessioner",
+    "activeSessionDetails": "{{className}} · PIN {{pin}}",
+    "templatesTitle": "Skabeloner",
+    "noTemplates": "Der er ingen skabeloner endnu.",
+    "startSession": "Start session"
+  },
+  "startSession": {
+    "title": "Start en session",
+    "loading": "Henter rummet...",
+    "className": "Klasse",
+    "classNameHint": "Fx 9.A. Klassen bruges til at finde sessionen igen senere.",
+    "modeLegend": "Hvordan spiller eleverne?",
+    "modeTeam": "På hold",
+    "modeTeamDescription": "Eleverne vælger et hold og løser gåderne sammen.",
+    "modeIndividual": "Hver for sig",
+    "modeIndividualDescription": "Hver elev spiller sit eget spil.",
+    "teamCount": "Antal hold",
+    "fewerTeams": "Færre hold",
+    "moreTeams": "Flere hold",
+    "start": "Start session",
+    "starting": "Starter..."
+  },
+  "session": {
+    "loading": "Henter sessionen...",
+    "pinLabel": "PIN-kode",
+    "joinHint": "Eleverne går ind på {{url}} og skriver PIN-koden.",
+    "expiresAt": "PIN-koden virker indtil {{time}}.",
+    "statusOpen": "Åben – eleverne kan deltage.",
+    "statusLocked": "Låst – nye elever kan ikke deltage. Elever, der allerede er med, kan spille videre.",
+    "statusClosed": "Sessionen er lukket. PIN-koden virker ikke længere.",
+    "lock": "Lås for nye elever",
+    "unlock": "Åbn for nye elever",
+    "close": "Luk session",
+    "closeConfirm": "Vil du lukke sessionen? Eleverne kan ikke spille videre, og det kan ikke fortrydes.",
+    "closeConfirmYes": "Ja, luk sessionen",
+    "closeConfirmNo": "Fortryd",
+    "refresh": "Opdater",
+    "teamsTitle": "Hold",
+    "studentsTitle": "Elever",
+    "noStudents": "Ingen elever endnu.",
+    "noNickname": "Uden navn",
+    "backToRooms": "Tilbage til mine rum"
+  },
+  "join": {
+    "title": "Deltag i et escape room",
+    "pin": "PIN-kode",
+    "pinHint": "Seks cifre, som din lærer viser dig.",
+    "next": "Videre",
+    "checking": "Tjekker...",
+    "chooseTeam": "Vælg dit hold",
+    "nicknameTitle": "Hvad vil du kaldes?",
+    "nickname": "Kaldenavn (frivilligt)",
+    "nicknameHint": "Dit fornavn eller dine initialer. Du kan også lade feltet stå tomt.",
+    "join": "Deltag",
+    "joining": "Deltager...",
+    "back": "Tilbage"
+  },
+  "play": {
+    "connecting": "Forbinder... Har serveren sovet, kan det tage op til et minut.",
+    "onTeam": "Du er på {{team}}",
+    "individual": "Du spiller for dig selv",
+    "nickname": "Du er med som {{nickname}}.",
+    "waiting": "Escape roomet bliver vist her.",
+    "leave": "Forlad sessionen",
+    "joinAgain": "Deltag i en ny session"
+  },
+  "teams": {
+    "name": "Hold {{color}}"
+  },
+  "teamColors": {
+    "Red": "Rød",
+    "Blue": "Blå",
+    "Green": "Grøn",
+    "Yellow": "Gul",
+    "Purple": "Lilla",
+    "Orange": "Orange",
+    "Pink": "Lyserød",
+    "Teal": "Turkis"
   },
   "subjects": {
     "Danish": "Dansk",
@@ -104,6 +183,8 @@
     "EMAIL_INVALID": "Skriv en gyldig e-mailadresse.",
     "PASSWORD_TOO_SHORT": "Adgangskoden skal være på mindst 10 tegn.",
     "PASSWORD_TOO_LONG": "Adgangskoden må højst være på 128 tegn.",
+    "PIN_NOT_FOUND": "Der er ingen aktiv session med den PIN-kode. Tjek koden, og prøv igen.",
+    "DEVICE_NOT_RECOGNIZED": "Vi kunne ikke finde dig i sessionen. Deltag igen med PIN-koden.",
     "VALUE_REQUIRED": "Feltet skal udfyldes.",
     "VALUE_TOO_LONG": "Teksten er for lang.",
     "POSITION_OUT_OF_RANGE": "Objektet skal placeres inden for billedet.",
@@ -113,6 +194,10 @@
     "SCENE_NOT_FOUND": "Scenen findes ikke i rummet.",
     "SESSION_PIN_INVALID": "PIN-koden skal være seks cifre.",
     "SESSION_CLOSED": "Sessionen er lukket.",
+    "SESSION_LOCKED": "Læreren har lukket for nye deltagere. Spørg din lærer.",
+    "PIN_EXPIRED": "PIN-koden er udløbet. Spørg din lærer om en ny.",
+    "TEAM_NOT_FOUND": "Holdet findes ikke. Vælg et af holdene på listen.",
+    "TEAM_COUNT_INVALID": "Vælg mellem 2 og 8 hold.",
     "START_SCENE_MISSING": "Rummet mangler en startscene.",
     "UNLOCKED_BY_NOT_FOUND": "Objektet venter på noget, der ikke længere findes i rummet.",
     "UNLOCKED_BY_SELF": "Et objekt kan ikke vente på sig selv.",

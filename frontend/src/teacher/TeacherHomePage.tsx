@@ -1,35 +1,48 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiError } from '../api/client'
-import { getMyRooms, type RoomSummary } from '../api/teacher'
+import { Link } from 'react-router'
+import { getActiveSessions, type SessionSummary } from '../api/sessions'
+import { getMyRooms, getTemplates, type RoomSummary } from '../api/teacher'
+import { useLoad } from '../api/useLoad'
 import { errorKey } from '../i18n/errors'
 
-type RoomsState =
-  | { status: 'loading' }
-  | { status: 'loaded'; rooms: RoomSummary[] }
-  | { status: 'failed'; code: string }
+interface HomeData {
+  rooms: RoomSummary[]
+  templates: RoomSummary[]
+  sessions: SessionSummary[]
+}
 
-/** The teacher's start page: their own rooms. Loading it also wakes the backend. */
+async function loadHome(signal: AbortSignal): Promise<HomeData> {
+  const [rooms, templates, sessions] = await Promise.all([
+    getMyRooms(signal),
+    getTemplates(signal),
+    getActiveSessions(signal),
+  ])
+  return { rooms, templates, sessions }
+}
+
+/** One room with a button to start a session; `startPath` is the start page for this room. */
+function RoomItem({ room, startPath }: { room: RoomSummary; startPath: string }) {
+  const { t } = useTranslation()
+  return (
+    <li>
+      <span className="room-title">{room.title}</span>
+      <span className="room-details">
+        {t('teacher.roomDetails', {
+          subject: t(`subjects.${room.subject}`),
+          gradeLevel: t(`gradeLevels.${room.gradeLevel}`),
+        })}
+      </span>
+      <Link className="button room-action" to={startPath} aria-label={`${t('teacher.startSession')}: ${room.title}`}>
+        {t('teacher.startSession')}
+      </Link>
+    </li>
+  )
+}
+
+/** The teacher's start page: running sessions, their own rooms and the templates. Loading it also wakes the backend. */
 export function TeacherHomePage() {
   const { t } = useTranslation()
-  const [state, setState] = useState<RoomsState>({ status: 'loading' })
-
-  useEffect(() => {
-    const controller = new AbortController()
-    getMyRooms(controller.signal).then(
-      (rooms) => {
-        setState({ status: 'loaded', rooms })
-      },
-      (error: unknown) => {
-        if (!controller.signal.aborted) {
-          setState({ status: 'failed', code: error instanceof ApiError ? error.code : 'UNKNOWN' })
-        }
-      },
-    )
-    return () => {
-      controller.abort()
-    }
-  }, [])
+  const [state] = useLoad(loadHome)
 
   return (
     <main>
@@ -44,21 +57,47 @@ export function TeacherHomePage() {
           {t(errorKey(state.code))}
         </p>
       )}
-      {state.status === 'loaded' && state.rooms.length === 0 && <p>{t('teacher.noRooms')}</p>}
-      {state.status === 'loaded' && state.rooms.length > 0 && (
-        <ul className="room-list">
-          {state.rooms.map((room) => (
-            <li key={room.id}>
-              <span className="room-title">{room.title}</span>
-              <span className="room-details">
-                {t('teacher.roomDetails', {
-                  subject: t(`subjects.${room.subject}`),
-                  gradeLevel: t(`gradeLevels.${room.gradeLevel}`),
-                })}
-              </span>
-            </li>
-          ))}
-        </ul>
+      {state.status === 'loaded' && (
+        <>
+          {state.data.rooms.length === 0 ? (
+            <p>{t('teacher.noRooms')}</p>
+          ) : (
+            <ul className="room-list" aria-label={t('teacher.roomsTitle')}>
+              {state.data.rooms.map((room) => (
+                <RoomItem key={room.id} room={room} startPath={`/teacher/rooms/${room.id}/start`} />
+              ))}
+            </ul>
+          )}
+
+          {state.data.sessions.length > 0 && (
+            <section aria-labelledby="active-sessions">
+              <h2 id="active-sessions">{t('teacher.activeSessionsTitle')}</h2>
+              <ul className="room-list">
+                {state.data.sessions.map((session) => (
+                  <li key={session.id}>
+                    <Link className="room-title" to={`/teacher/sessions/${session.id}`}>
+                      {session.roomTitle}
+                    </Link>
+                    <span className="room-details">
+                      {t('teacher.activeSessionDetails', { className: session.className, pin: session.pin })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <h2>{t('teacher.templatesTitle')}</h2>
+          {state.data.templates.length === 0 ? (
+            <p>{t('teacher.noTemplates')}</p>
+          ) : (
+            <ul className="room-list" aria-label={t('teacher.templatesTitle')}>
+              {state.data.templates.map((room) => (
+                <RoomItem key={room.id} room={room} startPath={`/teacher/templates/${room.id}/start`} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </main>
   )

@@ -197,3 +197,175 @@ main {
 .status[data-state='offline'] {
   color: var(--error);
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.room-list li > .room-action {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}
+
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Choice cards (e.g. team or individual mode): the whole card is the click target. */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choices legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 600;
+}
+
+.auth-form .choice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.auth-form .choice:has(input:checked) {
+  border-color: var(--text);
+  outline: 2px solid var(--text);
+}
+
+.choice input {
+  width: 1.5rem;
+  height: 1.5rem;
+  min-height: 0;
+  margin: 0;
+  grid-row: span 2;
+}
+
+.choice-description {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stepper-label {
+  font-weight: 600;
+}
+
+.stepper button {
+  min-width: 3rem;
+  font-size: 1.5rem;
+}
+
+.stepper output {
+  min-width: 2ch;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pin-card {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border: 2px solid var(--text);
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+.pin-label {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Large enough to read from the back of a classroom on a projector. */
+.pin {
+  margin: 0.25rem 0;
+  font-size: clamp(3rem, 14vw, 6rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.15em;
+}
+
+.pin-input {
+  font-size: 1.75rem !important;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
+}
+
+.confirm {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 2px solid var(--error);
+  border-radius: 0.5rem;
+}
+
+.confirm p {
+  margin-top: 0;
+  font-weight: 600;
+}
+
+.nicknames {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+/* Team colours: shown as a thick left border, so the team name stays readable in light and dark mode. */
+[data-color='Red'] { --team: #dc2626; }
+[data-color='Blue'] { --team: #2563eb; }
+[data-color='Green'] { --team: #16a34a; }
+[data-color='Yellow'] { --team: #eab308; }
+[data-color='Purple'] { --team: #9333ea; }
+[data-color='Orange'] { --team: #ea580c; }
+[data-color='Pink'] { --team: #db2777; }
+[data-color='Teal'] { --team: #0d9488; }
+
+.room-list li.team,
+.team-choice,
+.team-heading {
+  border-left: 0.75rem solid var(--team, var(--muted));
+}
+
+.team-heading {
+  padding-left: 0.75rem;
+}
+
+.team-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.team-choice {
+  width: 100%;
+  min-height: 4.5rem;
+  justify-content: flex-start;
+  font-size: 1.25rem;
+}
+
+.room-list .nicknames li {
+  display: list-item;
+  padding: 0;
+  border: 0;
+}

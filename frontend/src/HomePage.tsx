@@ -29,8 +29,11 @@ export function HomePage() {
       <p className="status" data-state={status} role="status">
         {t(`health.${status}`)}
       </p>
-      <p>
-        <Link className="button primary" to={teacher ? '/teacher' : '/login'}>
+      <p className="actions">
+        <Link className="button primary" to="/join">
+          {t('home.joinAsStudent')}
+        </Link>
+        <Link className="button" to={teacher ? '/teacher' : '/login'}>
           {t(teacher ? 'home.teacherHome' : 'home.teacherLogin')}
         </Link>
       </p>

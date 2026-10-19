@@ -14,7 +14,8 @@
   },
   "home": {
     "teacherLogin": "Log in as a teacher",
-    "teacherHome": "Go to my rooms"
+    "teacherHome": "Go to my rooms",
+    "joinAsStudent": "Join with a PIN"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -37,7 +38,85 @@
     "roomsTitle": "My rooms",
     "loadingRooms": "Loading your rooms... If the server has been asleep, this can take up to a minute.",
     "noRooms": "You don't have any rooms yet.",
-    "roomDetails": "{{subject}} · {{gradeLevel}}"
+    "roomDetails": "{{subject}} · {{gradeLevel}}",
+    "activeSessionsTitle": "Running sessions",
+    "activeSessionDetails": "{{className}} · PIN {{pin}}",
+    "templatesTitle": "Templates",
+    "noTemplates": "There are no templates yet.",
+    "startSession": "Start session"
+  },
+  "startSession": {
+    "title": "Start a session",
+    "loading": "Loading the room...",
+    "className": "Class",
+    "classNameHint": "E.g. 9.A. The class is used to find the session again later.",
+    "modeLegend": "How do the students play?",
+    "modeTeam": "In teams",
+    "modeTeamDescription": "Students choose a team and solve the puzzles together.",
+    "modeIndividual": "On their own",
+    "modeIndividualDescription": "Each student plays their own game.",
+    "teamCount": "Number of teams",
+    "fewerTeams": "Fewer teams",
+    "moreTeams": "More teams",
+    "start": "Start session",
+    "starting": "Starting..."
+  },
+  "session": {
+    "loading": "Loading the session...",
+    "pinLabel": "PIN",
+    "joinHint": "Students go to {{url}} and enter the PIN.",
+    "expiresAt": "The PIN works until {{time}}.",
+    "statusOpen": "Open – students can join.",
+    "statusLocked": "Locked – new students cannot join. Students who are already in can keep playing.",
+    "statusClosed": "The session is closed. The PIN no longer works.",
+    "lock": "Lock for new students",
+    "unlock": "Open for new students",
+    "close": "Close session",
+    "closeConfirm": "Close the session? Students cannot keep playing, and this cannot be undone.",
+    "closeConfirmYes": "Yes, close the session",
+    "closeConfirmNo": "Cancel",
+    "refresh": "Refresh",
+    "teamsTitle": "Teams",
+    "studentsTitle": "Students",
+    "noStudents": "No students yet.",
+    "noNickname": "No name",
+    "backToRooms": "Back to my rooms"
+  },
+  "join": {
+    "title": "Join an escape room",
+    "pin": "PIN",
+    "pinHint": "Six digits that your teacher shows you.",
+    "next": "Next",
+    "checking": "Checking...",
+    "chooseTeam": "Choose your team",
+    "nicknameTitle": "What should we call you?",
+    "nickname": "Nickname (optional)",
+    "nicknameHint": "Your first name or initials. You can also leave it empty.",
+    "join": "Join",
+    "joining": "Joining...",
+    "back": "Back"
+  },
+  "play": {
+    "connecting": "Connecting... If the server has been asleep, this can take up to a minute.",
+    "onTeam": "You are on {{team}}",
+    "individual": "You are playing on your own",
+    "nickname": "You are in as {{nickname}}.",
+    "waiting": "The escape room will be shown here.",
+    "leave": "Leave the session",
+    "joinAgain": "Join a new session"
+  },
+  "teams": {
+    "name": "Team {{color}}"
+  },
+  "teamColors": {
+    "Red": "Red",
+    "Blue": "Blue",
+    "Green": "Green",
+    "Yellow": "Yellow",
+    "Purple": "Purple",
+    "Orange": "Orange",
+    "Pink": "Pink",
+    "Teal": "Teal"
   },
   "subjects": {
     "Danish": "Danish",
@@ -104,6 +183,8 @@
     "EMAIL_INVALID": "Enter a valid e-mail address.",
     "PASSWORD_TOO_SHORT": "The password must be at least 10 characters.",
     "PASSWORD_TOO_LONG": "The password can be at most 128 characters.",
+    "PIN_NOT_FOUND": "There is no active session with that PIN. Check the code and try again.",
+    "DEVICE_NOT_RECOGNIZED": "We could not find you in the session. Join again with the PIN.",
     "VALUE_REQUIRED": "This field is required.",
     "VALUE_TOO_LONG": "The text is too long.",
     "POSITION_OUT_OF_RANGE": "The object must be placed inside the image.",
@@ -113,6 +194,10 @@
     "SCENE_NOT_FOUND": "The scene doesn't exist in this room.",
     "SESSION_PIN_INVALID": "The PIN must be six digits.",
     "SESSION_CLOSED": "The session is closed.",
+    "SESSION_LOCKED": "The teacher has closed the session to new players. Ask your teacher.",
+    "PIN_EXPIRED": "The PIN has expired. Ask your teacher for a new one.",
+    "TEAM_NOT_FOUND": "The team does not exist. Choose one of the teams in the list.",
+    "TEAM_COUNT_INVALID": "Choose between 2 and 8 teams.",
     "START_SCENE_MISSING": "The room has no start scene.",
     "UNLOCKED_BY_NOT_FOUND": "The object is waiting for something that no longer exists in the room.",
     "UNLOCKED_BY_SELF": "An object can't wait for itself.",

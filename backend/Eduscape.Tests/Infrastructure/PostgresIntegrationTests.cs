@@ -135,7 +135,7 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture database) : IClass
         await using var db = database.CreateContext();
         var teacher = new Teacher($"teacher-{Guid.NewGuid():N}@example.com");
         var schoolClass = new Class(teacher.Id, "9.A");
-        var session = new Session(DemoRoomSeeder.DemoRoomId, schoolClass.Id, pin, SessionMode.Team, Now);
+        var session = new Session(DemoRoomSeeder.DemoRoomId, schoolClass.Id, pin, SessionMode.Team, Now, TimeSpan.FromHours(12));
         var team = session.AddTeam(TeamColor.Red);
         arrange?.Invoke(team, Now);
 

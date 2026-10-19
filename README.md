@@ -27,7 +27,7 @@ Læreren placerer kodelåse, breve med ledetråde og døre oven på et billede. 
 ## Privatliv
 
 eduscape er designet til dataminimering:
-- Elever har ingen konti. Der gemmes kun et kaldenavn og et tilfældigt enheds-token pr. session.
+- Elever har ingen konti. Der gemmes kun et valgfrit kaldenavn og et tilfældigt enheds-token pr. session (i databasen kun tokenets hash).
 - Elevdata slettes automatisk, når sessionen er afsluttet.
 - Al hosting og lagring ligger i EU.
 
@@ -80,13 +80,24 @@ Kør `dotnet ef database update` igen, når du har hentet ændringer med nye mig
 
 ## Lærerkonti
 
-Lærere opretter en konto med e-mail og adgangskode (mindst 10 tegn) på `/register` og logger ind på `/login`. Lærer-forsiden `/teacher` viser kun lærerens egne rum. Elever har aldrig konti.
+Lærere opretter en konto med e-mail og adgangskode (mindst 10 tegn) på `/register` og logger ind på `/login`. Lærer-forsiden `/teacher` viser lærerens egne rum, de igangværende sessioner og de fælles skabeloner. Elever har aldrig konti.
 
 - **Bearer tokens, ikke cookies.** Frontend (`*.workers.dev`) og API (`*.onrender.com`) ligger på forskellige sites. En auth-cookie ville derfor være en tredjeparts-cookie, som bl.a. Safari blokerer. Backenden bruger ASP.NET Core Identitys bearer tokens: access tokens gælder 30 minutter, refresh tokens 7 dage. Frontenden gemmer dem i `localStorage` og fornyer dem automatisk.
 - **Log ud** tilbagekalder alle lærerens refresh tokens på alle enheder (godt på delte skole-PC'er).
 - **Beskyttelse:** login og registrering er rate-limited pr. IP (20 pr. minut, `RateLimiting__Auth__PermitLimit`), og en konto låses i 5 minutter efter 5 forkerte adgangskoder. Alt under `/api/teacher` kræver login. En test fejler, hvis et nyt lærer-endpoint mangler beskyttelsen.
 - **Data Protection-nøgler** (som beskytter tokens) gemmes i databasen (`DataProtectionKeys`), så lærere ikke logges ud, når Render genstarter efter dvale. Der skal ikke sættes nye environment variables.
 - Endnu ikke: e-mailbekræftelse og nulstilling af adgangskode, da det kræver en mailtjeneste.
+
+## Sessioner og PIN-koder
+
+Læreren starter en session fra et af sine egne rum eller en skabelon, skriver klassen (fx "9.A"; findes klassen allerede, genbruges den), vælger **på hold** eller **hver for sig** og, kun på hold, antallet af hold (2–8). Sessionssiden viser PIN-koden med stor skrift og holdene med deres elever. Læreren kan låse sessionen for nye elever og lukke den.
+
+Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i individuel tilstand) og evt. et kaldenavn. Serveren udsteder et tilfældigt enheds-token, som browseren gemmer. Ved genindlæsning eller afbrudt forbindelse sender `/play` det til `POST /api/play/reconnect` og får hele holdets tilstand i ét kald.
+
+- **PIN-koder** trækkes med `RandomNumberGenerator` og er unikke blandt sessioner, der ikke er lukket (unikt indeks `IX_Sessions_Pin_Active`). En PIN-kode virker, indtil læreren lukker sessionen, og højst 12 timer (`Sessions__Lifetime`, fx `04:00:00`). Udløbne sessioner lukkes, og deres PIN-koder frigives.
+- **Rate limiting:** opslag af PIN og join er begrænset til 100 forsøg pr. IP pr. minut (`RateLimiting__Join__PermitLimit`). Grænsen er høj, fordi en hel skole deler én offentlig IP, og hver elev bruger to kald. Gætteri begrænses yderligere af, at læreren kan låse sessionen, og at PIN-koder udløber. Reconnect er ikke omfattet, da et 256-bit token ikke kan gættes.
+- **Enheds-token:** kun dets SHA-256-hash gemmes i databasen. PIN og token sendes altid i request body, aldrig i URL'en, så de ikke havner i logs.
+- **Låst session:** nye elever afvises, men elever, der allerede er med, kan spille videre. **Lukket session:** PIN-koden virker ikke længere, og elevernes enheder får besked om, at sessionen er lukket.
 
 ## Tests
 

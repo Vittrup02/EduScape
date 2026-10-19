@@ -7,7 +7,7 @@ public class TeamTests
     private static readonly DateTimeOffset Now = new(2026, 10, 19, 9, 0, 0, TimeSpan.Zero);
 
     private static Team NewTeam() =>
-        new Session(Guid.NewGuid(), Guid.NewGuid(), "123456", SessionMode.Team, Now).AddTeam(TeamColor.Red);
+        new Session(Guid.NewGuid(), Guid.NewGuid(), "123456", SessionMode.Team, Now, TimeSpan.FromHours(12)).AddTeam(TeamColor.Red);
 
     [Fact]
     public void TrySolveLock_IsIdempotent()
@@ -91,7 +91,7 @@ public class TeamTests
     [Fact]
     public void MoveParticipantTo_ChangesTeam()
     {
-        var session = new Session(Guid.NewGuid(), Guid.NewGuid(), "123456", SessionMode.Team, Now);
+        var session = new Session(Guid.NewGuid(), Guid.NewGuid(), "123456", SessionMode.Team, Now, TimeSpan.FromHours(12));
         var red = session.AddTeam(TeamColor.Red);
         var blue = session.AddTeam(TeamColor.Blue);
         var participant = red.AddParticipant("Ida", "token-1", Now);
