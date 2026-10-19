@@ -1,38 +1,68 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { checkHealth } from './api/client'
+import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
+import { logout } from './api/auth'
+import { LoginPage, RegisterPage } from './auth/AuthForm'
+import { RequireTeacher } from './auth/RequireTeacher'
+import { useTeacher } from './auth/useTeacher'
+import { HomePage } from './HomePage'
 import { LanguageSwitcher } from './i18n/LanguageSwitcher'
+import { TeacherHomePage } from './teacher/TeacherHomePage'
 
-type BackendStatus = 'checking' | 'online' | 'offline'
-
-function App() {
+/** Header on every page: the language switcher for everyone, and logout for a signed-in teacher. */
+function Layout() {
   const { t } = useTranslation()
-  const [status, setStatus] = useState<BackendStatus>('checking')
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void checkHealth(controller.signal).then((ok) => {
-      if (!controller.signal.aborted) {
-        setStatus(ok ? 'online' : 'offline')
-      }
-    })
-    return () => {
-      controller.abort()
-    }
-  }, [])
+  const teacher = useTeacher()
 
   return (
     <>
       <header>
-        <LanguageSwitcher />
+        <Link to="/" className="brand">
+          {t('app.name')}
+        </Link>
+        <div className="header-actions">
+          {teacher && (
+            <>
+              <span className="signed-in-as">{t('auth.signedInAs', { email: teacher.email })}</span>
+              <button type="button" onClick={() => void logout()}>
+                {t('auth.logout')}
+              </button>
+            </>
+          )}
+          <LanguageSwitcher />
+        </div>
       </header>
-      <main>
-        <h1>{t('app.name')}</h1>
-        <p className="status" data-state={status} role="status">
-          {t(`health.${status}`)}
-        </p>
-      </main>
+      <Outlet />
     </>
+  )
+}
+
+/** All routes; separate from the router so tests can render them in a MemoryRouter. */
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<HomePage />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route
+          path="teacher"
+          element={
+            <RequireTeacher>
+              <TeacherHomePage />
+            </RequireTeacher>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   )
 }
 
