@@ -1,5 +1,6 @@
 using Eduscape.Api.Errors;
 using Eduscape.Api.Hosting;
+using Eduscape.Api.Uploads;
 using Eduscape.Domain.Common;
 using Eduscape.Domain.Rooms;
 using Eduscape.Domain.Sessions;
@@ -42,7 +43,10 @@ public sealed record TeamStateDto(
         team.EscapedAt);
 }
 
-/// <summary>The whole state a student's device needs, sent on join and on every reconnect.</summary>
+/// <summary>
+/// The whole state a student's device needs, sent on join and on every reconnect. <c>IsPreview</c> is set when a
+/// teacher is trying their own room.
+/// </summary>
 public sealed record PlayStateDto(
     Guid SessionId,
     SessionMode Mode,
@@ -50,7 +54,8 @@ public sealed record PlayStateDto(
     Guid ParticipantId,
     string? Nickname,
     TeamStateDto Team,
-    PlayRoomDto Room);
+    PlayRoomDto Room,
+    bool IsPreview);
 
 public sealed record AnswerRequest(string? DeviceToken, Guid LockId, string? Answer);
 
@@ -103,7 +108,11 @@ public static class PlayEndpoints
     }
 
     private static async Task<IResult> JoinAsync(
-        JoinRequest request, EduscapeDbContext db, TimeProvider timeProvider, CancellationToken cancellationToken)
+        JoinRequest request,
+        EduscapeDbContext db,
+        TimeProvider timeProvider,
+        ImageUrls imageUrls,
+        CancellationToken cancellationToken)
     {
         var session = await FindJoinableSessionAsync(request.Pin, db, timeProvider, cancellationToken);
         if (session is null)
@@ -116,7 +125,7 @@ public static class PlayEndpoints
             request.TeamId, request.Nickname, DeviceToken.Hash(deviceToken), timeProvider.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
 
-        var state = await LoadStateAsync(session, participant, db, cancellationToken);
+        var state = await LoadStateAsync(session, participant, db, imageUrls, cancellationToken);
         return TypedResults.Ok(new JoinResponse(deviceToken, state));
     }
 
@@ -125,7 +134,11 @@ public static class PlayEndpoints
     /// locked (students already in keep playing), but not once it is closed or expired.
     /// </summary>
     private static async Task<IResult> ReconnectAsync(
-        ReconnectRequest request, EduscapeDbContext db, TimeProvider timeProvider, CancellationToken cancellationToken)
+        ReconnectRequest request,
+        EduscapeDbContext db,
+        TimeProvider timeProvider,
+        ImageUrls imageUrls,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(request.DeviceToken))
         {
@@ -151,7 +164,7 @@ public static class PlayEndpoints
             throw new DomainException(DomainErrors.SessionClosed);
         }
 
-        return TypedResults.Ok(await LoadStateAsync(session, participant, db, cancellationToken));
+        return TypedResults.Ok(await LoadStateAsync(session, participant, db, imageUrls, cancellationToken));
     }
 
     // The team is notified only of changes, and only after they are saved. A lock solved by two students at once is
@@ -247,7 +260,11 @@ public static class PlayEndpoints
     }
 
     private static async Task<PlayStateDto> LoadStateAsync(
-        Session session, Participant participant, EduscapeDbContext db, CancellationToken cancellationToken)
+        Session session,
+        Participant participant,
+        EduscapeDbContext db,
+        ImageUrls imageUrls,
+        CancellationToken cancellationToken)
     {
         var team = await TeamActions.LoadTeamAsync(db, participant.TeamId, cancellationToken);
         var room = await TeamActions.LoadRoomAsync(db, session.EscapeRoomId, cancellationToken);
@@ -259,7 +276,8 @@ public static class PlayEndpoints
             participant.Id,
             participant.Nickname,
             TeamStateDto.From(team, room),
-            PlayRoomDto.From(room));
+            PlayRoomDto.From(room, imageUrls),
+            session.IsPreview);
     }
 
     private static IResult PinNotFound() =>

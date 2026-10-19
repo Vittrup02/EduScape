@@ -1,9 +1,10 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { saveAuth } from '../api/tokenStorage'
 import i18n from '../i18n/i18n'
-import { json, mockFetch } from '../test/fetchMock'
+import { AppRoutes } from '../App'
+import { json, mockFetch, urlOf } from '../test/fetchMock'
 import { TeacherHomePage } from './TeacherHomePage'
 
 const rooms = [
@@ -84,6 +85,44 @@ describe('TeacherHomePage', () => {
       'href',
       '/teacher/templates/t1/start',
     )
+  })
+
+  it('offers a new room and editing the own rooms', async () => {
+    mockHome()
+
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: 'Redigér: Brøkernes hemmelighed' })).toHaveAttribute(
+      'href',
+      '/teacher/rooms/1/edit',
+    )
+    expect(screen.getByRole('link', { name: 'Nyt rum' })).toHaveAttribute('href', '/teacher/rooms/new')
+    // Templates are not edited themselves; they are copied.
+    const templateList = screen.getByRole('list', { name: 'Skabeloner' })
+    expect(within(templateList).queryByRole('link', { name: /Redigér/ })).not.toBeInTheDocument()
+  })
+
+  it('copies a template and opens the copy in the editor', async () => {
+    const fetchMock = mockHome({
+      '/api/teacher/templates/t1/copy': () => json({ ...templates[0], id: 'copy-1' }, 201),
+      '/api/teacher/rooms/copy-1/editor': () => json({ code: 'NOT_FOUND' }, 404),
+    })
+    render(
+      <MemoryRouter initialEntries={['/teacher']}>
+        <AppRoutes />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Brug skabelonen: Demo: Flugten fra matematiklokalet' }))
+
+    // The editor page asks for the copy, not the template.
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.map(([input]) => new URL(urlOf(input)).pathname)).toContain(
+        '/api/teacher/rooms/copy-1/editor',
+      )
+    })
+    const copyCall = fetchMock.mock.calls.find(([input]) => urlOf(input).endsWith('/copy'))
+    expect(copyCall?.[1]?.method).toBe('POST')
   })
 
   it('lists running sessions with class and PIN', async () => {

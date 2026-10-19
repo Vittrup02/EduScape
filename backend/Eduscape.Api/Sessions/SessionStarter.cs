@@ -1,4 +1,5 @@
 using Eduscape.Domain.Classes;
+using Eduscape.Domain.Common;
 using Eduscape.Domain.Sessions;
 using Eduscape.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -23,32 +24,79 @@ public sealed class SessionStarter(
     /// <summary>Retries when another session took the same PIN between the check and the insert.</summary>
     public const int MaxSaveAttempts = 3;
 
-    /// <summary>The new session's id, or null if the room is neither the teacher's own nor a template.</summary>
+    /// <summary>
+    /// The new session's id, or null if the room is neither the teacher's own nor a template. Throws
+    /// <see cref="DomainErrors.RoomInvalid"/> if the room is not finished.
+    /// </summary>
     public async Task<Guid?> StartAsync(Guid teacherId, StartSessionRequest request, CancellationToken cancellationToken)
     {
-        var roomIsAvailable = await db.EscapeRooms.AnyAsync(
-            r => r.Id == request.RoomId && (r.OwnerTeacherId == teacherId || r.IsTemplate),
-            cancellationToken);
-        if (!roomIsAvailable)
+        if (!await EnsurePlayableAsync(teacherId, request.RoomId, cancellationToken))
         {
             return null;
         }
 
         var now = timeProvider.GetUtcNow();
+        var session = await SaveWithFreePinAsync(
+            async pin =>
+            {
+                var schoolClass = await FindOrAddClassAsync(teacherId, request.ClassName, cancellationToken);
+                return Session.Start(
+                    request.RoomId, schoolClass.Id, pin, request.Mode, request.TeamCount, now, options.Value.Lifetime);
+            },
+            now,
+            cancellationToken);
+        return session.Id;
+    }
+
+    /// <summary>
+    /// Starts a preview of the room and joins the teacher's device to it. Returns the device token, or null if the
+    /// room is neither the teacher's own nor a template. Throws <see cref="DomainErrors.RoomInvalid"/> like a start.
+    /// </summary>
+    public async Task<string?> StartPreviewAsync(Guid teacherId, Guid roomId, CancellationToken cancellationToken)
+    {
+        if (!await EnsurePlayableAsync(teacherId, roomId, cancellationToken))
+        {
+            return null;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var deviceToken = DeviceToken.Create();
+        await SaveWithFreePinAsync(
+            pin => Task.FromResult(
+                Session.StartPreview(roomId, pin, DeviceToken.Hash(deviceToken), now, options.Value.PreviewLifetime).Session),
+            now,
+            cancellationToken);
+        return deviceToken;
+    }
+
+    /// <summary>False if the room is not available to the teacher; throws if it is available but unfinished.</summary>
+    private async Task<bool> EnsurePlayableAsync(Guid teacherId, Guid roomId, CancellationToken cancellationToken)
+    {
+        var room = await db.EscapeRooms
+            .AsNoTracking()
+            .Include(r => r.Scenes)
+            .ThenInclude(s => s.Objects)
+            .AsSplitQuery()
+            .SingleOrDefaultAsync(r => r.Id == roomId && (r.OwnerTeacherId == teacherId || r.IsTemplate), cancellationToken);
+        room?.EnsurePlayable();
+        return room is not null;
+    }
+
+    private async Task<Session> SaveWithFreePinAsync(
+        Func<string, Task<Session>> createSession, DateTimeOffset now, CancellationToken cancellationToken)
+    {
         await CloseExpiredSessionsAsync(now, cancellationToken);
 
         for (var attempt = 1; ; attempt++)
         {
-            var schoolClass = await FindOrAddClassAsync(teacherId, request.ClassName, cancellationToken);
             var pin = await DrawFreePinAsync(cancellationToken);
-            var session = Session.Start(
-                request.RoomId, schoolClass.Id, pin, request.Mode, request.TeamCount, now, options.Value.Lifetime);
+            var session = await createSession(pin);
             db.Sessions.Add(session);
 
             try
             {
                 await db.SaveChangesAsync(cancellationToken);
-                return session.Id;
+                return session;
             }
             catch (DbUpdateException ex)
                 when (attempt < MaxSaveAttempts && DatabaseErrors.IsUniqueViolation(ex, DatabaseErrors.ActiveSessionPinIndex))

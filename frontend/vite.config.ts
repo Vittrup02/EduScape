@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   const apiUrl = env.VITE_API_URL ?? defaultApiUrl
 
   return {
-    plugins: [react(), securityHeaders(apiUrl)],
+    plugins: [react(), securityHeaders(apiUrl, env.VITE_IMAGE_STORAGE_URL)],
     build: {
       // Vite otherwise inlines small files (e.g. the asset library's SVGs) as data: URLs, which CSP img-src 'self' blocks.
       assetsInlineLimit: 0,

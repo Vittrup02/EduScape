@@ -122,4 +122,84 @@ public class EscapeRoomValidationTests
             ],
             errors);
     }
+
+    [Fact]
+    public void DoorToARemovedScene_IsReported()
+    {
+        var (room, scene) = NewRoom();
+        var second = room.AddScene("Anden", "s2.jpg");
+        var door = scene.AddObject(new Door(Center, "door.png", null, second.Id));
+
+        room.RemoveScene(second.Id);
+
+        Assert.Equal([new RoomValidationError(DomainErrors.DoorTargetMissing, door.Id)], room.Validate());
+    }
+
+    [Fact]
+    public void NewDoorWithoutTarget_IsReported()
+    {
+        var (room, scene) = NewRoom();
+        var door = scene.AddObject(new Door(Center, "door.png", null, targetSceneId: null));
+
+        Assert.Equal([new RoomValidationError(DomainErrors.DoorTargetMissing, door.Id)], room.Validate());
+    }
+
+    [Fact]
+    public void UnfinishedLockAndLetter_AreReported()
+    {
+        var (room, scene) = NewRoom();
+        var draft = scene.AddObject(new Lock(Center, "lock.png", null, "", AnswerType.Code, ""));
+        var letter = scene.AddObject(new Letter(Center, "letter.png", ""));
+
+        Assert.Equal(
+            [
+                new RoomValidationError(DomainErrors.LockQuestionMissing, draft.Id),
+                new RoomValidationError(DomainErrors.LockAnswerMissing, draft.Id),
+                new RoomValidationError(DomainErrors.LetterTextMissing, letter.Id),
+            ],
+            room.Validate());
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("1", " 1 ")]
+    [InlineData("1", "")]
+    public void MultipleChoiceWithoutTwoDistinctOptions_IsReported(params string[] options)
+    {
+        var (room, scene) = NewRoom();
+        var choice = scene.AddObject(
+            new Lock(Center, "lock.png", null, "?", AnswerType.MultipleChoice, "1", options: options));
+
+        Assert.Equal([new RoomValidationError(DomainErrors.LockOptionsInvalid, choice.Id)], room.Validate());
+    }
+
+    [Fact]
+    public void MultipleChoiceAnswerThatIsNotAnOption_IsReported()
+    {
+        var (room, scene) = NewRoom();
+        var choice = scene.AddObject(
+            new Lock(Center, "lock.png", null, "?", AnswerType.MultipleChoice, "5", options: ["1", "2"]));
+
+        Assert.Equal([new RoomValidationError(DomainErrors.LockAnswerNotInOptions, choice.Id)], room.Validate());
+    }
+
+    [Fact]
+    public void MultipleChoiceAnswer_IsMatchedCaseInsensitively()
+    {
+        var (room, scene) = NewRoom();
+        scene.AddObject(new Lock(Center, "lock.png", null, "?", AnswerType.MultipleChoice, "Paris", options: ["paris", "Rom"]));
+
+        Assert.Empty(room.Validate());
+    }
+
+    [Fact]
+    public void EnsurePlayable_ThrowsRoomInvalid_OnlyWhenThereAreProblems()
+    {
+        var (room, scene) = NewRoom();
+        room.EnsurePlayable();
+
+        scene.AddObject(new Letter(Center, "letter.png", ""));
+
+        Assert.Equal(DomainErrors.RoomInvalid, Assert.Throws<DomainException>(room.EnsurePlayable).Code);
+    }
 }

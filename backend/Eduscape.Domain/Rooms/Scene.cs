@@ -7,8 +7,9 @@ public sealed class Scene
 {
     private readonly List<RoomObject> _objects = [];
 
-    internal Scene(Guid escapeRoomId, string name, string backgroundImageKey, int sortOrder)
+    internal Scene(Guid escapeRoomId, string name, string backgroundImageKey, int sortOrder, Guid? id)
     {
+        Id = id ?? Guid.CreateVersion7();
         EscapeRoomId = escapeRoomId;
         Name = Guard.Required(name, TextLimits.Name);
         BackgroundImageKey = Guard.Required(backgroundImageKey, TextLimits.StorageKey);
@@ -22,7 +23,7 @@ public sealed class Scene
         BackgroundImageKey = null!;
     }
 
-    public Guid Id { get; private set; } = Guid.CreateVersion7();
+    public Guid Id { get; private set; }
 
     public Guid EscapeRoomId { get; private set; }
 
@@ -31,7 +32,7 @@ public sealed class Scene
     /// <summary>A built-in background key ("builtin:classroom") or the R2 object key of an uploaded image.</summary>
     public string BackgroundImageKey { get; private set; }
 
-    public int SortOrder { get; private set; }
+    public int SortOrder { get; internal set; }
 
     public bool IsStartScene { get; internal set; }
 

@@ -97,3 +97,12 @@ public sealed class PostgresFactAttribute : FactAttribute
         }
     }
 }
+
+/// <summary>A theory that needs PostgreSQL; skipped like <see cref="PostgresFactAttribute"/>.</summary>
+public sealed class PostgresTheoryAttribute : TheoryAttribute
+{
+    public PostgresTheoryAttribute()
+    {
+        Skip = new PostgresFactAttribute().Skip;
+    }
+}

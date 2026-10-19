@@ -3,7 +3,11 @@ using Eduscape.Domain.Common;
 
 namespace Eduscape.Domain.Rooms;
 
-/// <summary>A question that must be answered correctly to unlock it. Answers are only ever checked on the server.</summary>
+/// <summary>
+/// A question that must be answered correctly to unlock it. Answers are only ever checked on the server.
+/// While a teacher is editing, the question, answer and options may be unfinished; <see cref="EscapeRoom.Validate"/>
+/// reports what is missing, and a room with such problems cannot be played.
+/// </summary>
 public sealed class Lock : RoomObject
 {
     public Lock(
@@ -15,11 +19,11 @@ public sealed class Lock : RoomObject
         string correctAnswer,
         decimal? tolerance = null,
         string? hint = null,
-        IEnumerable<string>? options = null)
-        : base(position, graphicKey, unlockedGraphicKey)
+        IEnumerable<string>? options = null,
+        Guid? id = null)
+        : base(position, graphicKey, unlockedGraphicKey, id)
     {
-        Question = Guard.Required(question, TextLimits.Question);
-        Hint = Guard.Optional(hint, TextLimits.Hint);
+        SetQuestion(question, hint);
         SetAnswer(answerType, correctAnswer, tolerance, options);
     }
 
@@ -47,37 +51,25 @@ public sealed class Lock : RoomObject
     /// <summary>Choices for <see cref="AnswerType.MultipleChoice"/>; empty for other answer types.</summary>
     public string[] Options { get; private set; } = [];
 
+    [MemberNotNull(nameof(Question))]
     public void SetQuestion(string question, string? hint)
     {
-        Question = Guard.Required(question, TextLimits.Question);
+        Question = Guard.Draft(question, TextLimits.Question);
         Hint = Guard.Optional(hint, TextLimits.Hint);
     }
 
     [MemberNotNull(nameof(CorrectAnswer))]
     public void SetAnswer(AnswerType answerType, string correctAnswer, decimal? tolerance = null, IEnumerable<string>? options = null)
     {
-        var answer = Guard.Required(correctAnswer, TextLimits.Answer);
+        var answer = Guard.Draft(correctAnswer, TextLimits.Answer);
 
         if (tolerance is not null && (answerType != AnswerType.Text || tolerance < 0))
         {
             throw new DomainException(DomainErrors.LockToleranceInvalid);
         }
 
-        var choices = (options ?? []).Select(o => Guard.Required(o, TextLimits.Answer)).ToArray();
-        if (answerType == AnswerType.MultipleChoice)
-        {
-            var distinct = choices.Distinct(StringComparer.OrdinalIgnoreCase).Count();
-            if (choices.Length < 2 || distinct != choices.Length)
-            {
-                throw new DomainException(DomainErrors.LockOptionsInvalid);
-            }
-
-            if (!choices.Contains(answer, StringComparer.OrdinalIgnoreCase))
-            {
-                throw new DomainException(DomainErrors.LockAnswerNotInOptions);
-            }
-        }
-        else if (choices.Length > 0)
+        var choices = (options ?? []).Select(o => Guard.Draft(o, TextLimits.Answer)).ToArray();
+        if (answerType != AnswerType.MultipleChoice && choices.Length > 0)
         {
             throw new DomainException(DomainErrors.LockOptionsInvalid);
         }
@@ -86,5 +78,33 @@ public sealed class Lock : RoomObject
         CorrectAnswer = answer;
         Tolerance = tolerance;
         Options = choices;
+    }
+
+    internal override IEnumerable<string> ContentErrors()
+    {
+        if (Question.Length == 0)
+        {
+            yield return DomainErrors.LockQuestionMissing;
+        }
+
+        if (CorrectAnswer.Length == 0)
+        {
+            yield return DomainErrors.LockAnswerMissing;
+        }
+
+        if (AnswerType != AnswerType.MultipleChoice)
+        {
+            yield break;
+        }
+
+        var distinct = Options.Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        if (Options.Length < 2 || distinct != Options.Length || Options.Any(o => o.Length == 0))
+        {
+            yield return DomainErrors.LockOptionsInvalid;
+        }
+        else if (CorrectAnswer.Length > 0 && !Options.Contains(CorrectAnswer, StringComparer.OrdinalIgnoreCase))
+        {
+            yield return DomainErrors.LockAnswerNotInOptions;
+        }
     }
 }

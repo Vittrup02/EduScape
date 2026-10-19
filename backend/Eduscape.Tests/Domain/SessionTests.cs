@@ -230,6 +230,30 @@ public class SessionTests
     private static Session StartTeamSession(int teamCount) =>
         Session.Start(Guid.NewGuid(), Guid.NewGuid(), "123456", SessionMode.Team, teamCount, Now, Lifetime);
 
+    [Fact]
+    public void StartPreview_IsALockedIndividualSessionWithOnlyTheTeacher()
+    {
+        var roomId = Guid.NewGuid();
+
+        var (session, participant) = Session.StartPreview(roomId, "123456", "hash", Now, TimeSpan.FromHours(2));
+
+        Assert.True(session.IsPreview);
+        Assert.Null(session.ClassId);
+        Assert.Equal(roomId, session.EscapeRoomId);
+        Assert.Equal(SessionMode.Individual, session.Mode);
+        Assert.Equal(SessionStatus.Locked, session.Status);
+        Assert.Equal(Now.AddHours(2), session.ExpiresAt);
+        var team = Assert.Single(session.Teams);
+        Assert.Equal(participant, Assert.Single(team.Participants));
+        Assert.Null(participant.Nickname);
+        Assert.Equal(
+            DomainErrors.SessionLocked,
+            Assert.Throws<DomainException>(() => session.Join(null, "Elev", "other", Now)).Code);
+    }
+
+    [Fact]
+    public void Start_IsNotAPreview() => Assert.False(StartIndividualSession().IsPreview);
+
     private static Session StartIndividualSession() =>
         Session.Start(Guid.NewGuid(), Guid.NewGuid(), "123456", SessionMode.Individual, 0, Now, Lifetime);
 }

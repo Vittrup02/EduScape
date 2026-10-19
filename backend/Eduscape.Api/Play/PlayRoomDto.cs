@@ -1,3 +1,4 @@
+using Eduscape.Api.Uploads;
 using Eduscape.Domain.Rooms;
 
 namespace Eduscape.Api.Play;
@@ -20,12 +21,14 @@ public sealed record PlayObjectDto(
     string? Text,
     Guid? TargetSceneId);
 
-public sealed record PlaySceneDto(Guid Id, string Name, string BackgroundImageKey, PlayObjectDto[] Objects);
+/// <summary><c>BackgroundImageUrl</c> is a short-lived link to an uploaded background; null for built-in ones.</summary>
+public sealed record PlaySceneDto(
+    Guid Id, string Name, string BackgroundImageKey, string? BackgroundImageUrl, PlayObjectDto[] Objects);
 
 /// <summary>The room's content for the play view, the same for every team.</summary>
 public sealed record PlayRoomDto(Guid Id, string Title, Guid? StartSceneId, PlaySceneDto[] Scenes)
 {
-    public static PlayRoomDto From(EscapeRoom room) => new(
+    public static PlayRoomDto From(EscapeRoom room, ImageUrls imageUrls) => new(
         room.Id,
         room.Title,
         room.StartScene?.Id,
@@ -33,6 +36,7 @@ public sealed record PlayRoomDto(Guid Id, string Title, Guid? StartSceneId, Play
             scene.Id,
             scene.Name,
             scene.BackgroundImageKey,
+            imageUrls.For(scene.BackgroundImageKey),
             [.. scene.Objects.OrderBy(o => o.Id).Select(ToDto)]))]);
 
     private static PlayObjectDto ToDto(RoomObject roomObject)

@@ -111,6 +111,39 @@ Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i 
 - **Push via SignalR** (`/hubs/play`): hvert hold er en gruppe. Efter en gemt ændring får gruppen `LockSolved(lockId)`, `HintRevealed(lockId, hint)`, `DoorOpened(doorId)` eller `TeamEscaped()`. Hubben har kun metoden `Subscribe(deviceToken)`, og tokenet sendes som besked, ikke i URL'en. Render kører én instans, så der er ingen backplane.
 - **Reconnect:** klienten forbinder til hubben, kalder `Subscribe` og henter *derefter* hele holdets tilstand med `POST /api/play/reconnect`. Så går ingen events tabt imellem. SignalR genforbinder automatisk, og imens viser rummet "Forbindelsen blev afbrudt. Forbinder igen...". Efter hver genforbindelse gentages `Subscribe` og tilstandskaldet.
 
+## Editoren
+
+Læreren bygger rum på `/teacher/rooms/:id/edit`. Et nyt rum kræver kun titel, fag og klassetrin (`/teacher/rooms/new`). En skabelon redigeres aldrig direkte: **Brug skabelonen** laver en kopi (`POST /api/teacher/templates/{id}/copy`), som åbnes i samme editor.
+
+- **Træk og slip:** klistermærker fra asset-biblioteket trækkes ind på scenen, eller klikkes for at lande midt på. Objekter flyttes med musen, fingeren eller piletasterne (Shift giver større skridt). Positioner gemmes i procent af billedet.
+- **Panelet** viser kun det, der er relevant for objektet: spørgsmål, svartype og svar for en lås (tolerance kun ved talsvar, svarmuligheder kun ved multiple choice, hint kun når læreren beder om det), tekst for et brev og målscene for en dør. `unlockedBy` er én dropdown: "Synlig fra start" eller "Vises når … er løst". Den tilbyder kun låse og døre, der ikke allerede venter på objektet, så der ikke kan opstå ringe.
+- **Fortryd/gentag** (også Ctrl+Z / Ctrl+Y) går gennem hele versioner af rummet. Et træk eller én omgang skrivning i et felt er ét skridt.
+- **Autosave:** editoren sender hele rummet med `PUT /api/teacher/rooms/{id}/editor` kort efter hver ændring. Scener og objekter får id'er i klienten (UUID v7), så fortryd kan genskabe dem præcis. Hver gemning bærer rummets `revision`; en ældre revision afvises med `ROOM_CHANGED`, så to faner ikke overskriver hinanden.
+- **Kladder er tilladt:** en lås uden spørgsmål eller en dør uden mål kan gemmes. Serveren returnerer problemerne (`EscapeRoom.Validate()`), og editoren viser dem med et link til objektet. Et rum med problemer kan ikke startes eller prøves (`ROOM_INVALID`).
+- **Kortet** viser scenerne og dørene imellem dem fra startscenen og frem. Scener, ingen dør fører til, er stiplede.
+- **Prøv rummet** (`POST /api/teacher/rooms/{id}/preview`) starter en skjult preview-session i Individual-mode uden klasse, melder lærerens enhed ind og låser den straks. Elevvisningen åbner i en ny fane og spilles på serveren som enhver anden session. Preview-sessioner vises ikke på dashboardet eller i historikken og udløber efter 2 timer (`Sessions__PreviewLifetime`).
+
+### Egne baggrundsbilleder (R2)
+
+Bucketten er privat. Browseren uploader direkte til et `incoming/<lærer>/<upload>`-område via en presigned PUT-URL (`POST /api/teacher/uploads`). Når upload er færdig (`POST /api/teacher/uploads/{id}/complete`), henter serveren filen, tjekker MIME-type mod filsignaturen, afviser filer over 10 MB eller 40 megapixel, vender billedet efter EXIF-orienteringen, skalerer ned til højst 2400 px og genindkoder som WebP. Genindkodningen fjerner al metadata (EXIF, GPS, kamera). Resultatet gemmes som `uploads/<tilfældigt navn>.webp`, og originalen slettes. Brugerens filnavn bruges aldrig. Billeder vises via presigned GET-URL'er, der udløber efter 12 timer.
+
+Uden R2-konfiguration er upload slået fra, og editoren viser kun de indbyggede baggrunde.
+
+Opsætning:
+1. Opret en R2-bucket med **jurisdiction EU**.
+2. Opret et R2 API-token med *Object Read & Write* på bucketten.
+3. Tilføj en CORS-regel på bucketten, der tillader `PUT` og `GET` fra frontendens origin med headeren `Content-Type`.
+4. Tilføj en lifecycle-regel, der sletter objekter med præfikset `incoming/` efter 1 dag (uploads, der aldrig blev færdige).
+5. Sæt environment variables på Render (lokalt med `dotnet user-secrets set "R2:AccountId" …`):
+
+| Variabel | Værdi |
+|---|---|
+| `R2__AccountId` | Cloudflare-kontoens id |
+| `R2__AccessKeyId` / `R2__SecretAccessKey` | API-tokenets nøgler |
+| `R2__Bucket` | Bucketens navn |
+
+6. Sæt build-variablen `VITE_IMAGE_STORAGE_URL` = `https://<AccountId>.eu.r2.cloudflarestorage.com` på frontenden, så CSP'en tillader upload til og visning fra bucketten.
+
 ## Tests
 
 ```bash
@@ -162,7 +195,7 @@ Sæt derefter Workerens URL i `Cors__AllowedOrigins` på Render.
 
 #### Sikkerhedsheadere
 
-Buildet skriver en `dist/_headers`-fil med Content-Security-Policy, `X-Content-Type-Options`, `Referrer-Policy` m.fl., som Cloudflare sender med på alle svar. Filen genereres af [frontend/security/securityHeaders.ts](frontend/security/securityHeaders.ts), fordi `connect-src` skal indeholde API-adressen fra `VITE_API_URL` (både `https://` og `wss://` til SignalR). Ret headerne dér, ikke i `dist`. Ekstra billedkilder (fx R2-bucketten) tilføjes i `imageSources` samme sted.
+Buildet skriver en `dist/_headers`-fil med Content-Security-Policy, `X-Content-Type-Options`, `Referrer-Policy` m.fl., som Cloudflare sender med på alle svar. Filen genereres af [frontend/security/securityHeaders.ts](frontend/security/securityHeaders.ts), fordi `connect-src` skal indeholde API-adressen fra `VITE_API_URL` (både `https://` og `wss://` til SignalR). Ret headerne dér, ikke i `dist`. R2-bucketten kommer med i `img-src` og `connect-src` via build-variablen `VITE_IMAGE_STORAGE_URL` (se [Egne baggrundsbilleder](#egne-baggrundsbilleder-r2)).
 
 Tjek lokalt med headerne slået til (backend skal køre; `http://localhost:8787` er tilladt i CORS i Development):
 

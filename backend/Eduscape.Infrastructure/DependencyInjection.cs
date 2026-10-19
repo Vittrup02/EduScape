@@ -1,5 +1,6 @@
 using Eduscape.Infrastructure.Persistence;
 using Eduscape.Infrastructure.Persistence.Seeding;
+using Eduscape.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,18 @@ public static class DependencyInjection
                     .UseAsyncSeeding(DemoRoomSeeder.SeedAsync);
             }
         });
+
+        // Without a complete R2 section (e.g. locally) uploads are off and only built-in images are used.
+        var r2 = configuration.GetSection(R2Options.SectionName);
+        services.Configure<R2Options>(r2);
+        if (r2.Get<R2Options>() is { IsComplete: true })
+        {
+            services.AddSingleton<IImageStorage, R2ImageStorage>();
+        }
+        else
+        {
+            services.AddSingleton<IImageStorage, UnconfiguredImageStorage>();
+        }
 
         return services;
     }

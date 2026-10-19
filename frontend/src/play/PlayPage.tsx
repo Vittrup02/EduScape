@@ -68,6 +68,7 @@ export function PlayPage({ retryDelayMs = 3000 }: { retryDelayMs?: number }) {
           {t('play.leave')}
         </button>
       </div>
+      {state.isPreview && <p className="preview-banner">{t('play.preview')}</p>}
       {!online && (
         <p role="status" className="connection-banner">
           {t('play.reconnecting')}

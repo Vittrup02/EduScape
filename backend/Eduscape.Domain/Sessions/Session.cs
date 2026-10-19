@@ -16,7 +16,7 @@ public sealed class Session
 
     public Session(
         Guid escapeRoomId,
-        Guid classId,
+        Guid? classId,
         string pin,
         SessionMode mode,
         DateTimeOffset startedAt,
@@ -45,7 +45,11 @@ public sealed class Session
 
     public Guid EscapeRoomId { get; private set; }
 
-    public Guid ClassId { get; private set; }
+    /// <summary>The class the session is run with; null only for a preview.</summary>
+    public Guid? ClassId { get; private set; }
+
+    /// <summary>A teacher trying their own room. Hidden from session lists, the dashboard and class history.</summary>
+    public bool IsPreview { get; private set; }
 
     public string Pin { get; private set; }
 
@@ -90,6 +94,22 @@ public sealed class Session
         }
 
         return session;
+    }
+
+    /// <summary>
+    /// Lets a teacher try a room exactly as students play it: an individual session without a class, which the
+    /// teacher joins as its only participant before it is locked against anyone else joining.
+    /// </summary>
+    public static (Session Session, Participant Participant) StartPreview(
+        Guid escapeRoomId, string pin, string deviceTokenHash, DateTimeOffset now, TimeSpan lifetime)
+    {
+        var session = new Session(escapeRoomId, classId: null, pin, SessionMode.Individual, now, lifetime)
+        {
+            IsPreview = true,
+        };
+        var participant = session.Join(teamId: null, nickname: null, deviceTokenHash, now);
+        session.Lock();
+        return (session, participant);
     }
 
     /// <summary>Six ASCII digits; leading zeros are allowed.</summary>

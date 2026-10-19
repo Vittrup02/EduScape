@@ -43,7 +43,12 @@
     "activeSessionDetails": "{{className}} · PIN {{pin}}",
     "templatesTitle": "Skabeloner",
     "noTemplates": "Der er ingen skabeloner endnu.",
-    "startSession": "Start session"
+    "startSession": "Start session",
+    "newRoom": "Nyt rum",
+    "editRoom": "Redigér",
+    "useTemplate": "Brug skabelonen",
+    "copyingTemplate": "Kopierer...",
+    "templatesIntro": "Brug en skabelon for at få din egen kopi, som du kan rette i."
   },
   "startSession": {
     "title": "Start en session",
@@ -82,6 +87,147 @@
     "noNickname": "Uden navn",
     "backToRooms": "Tilbage til mine rum"
   },
+  "editor": {
+    "loading": "Henter rummet... Har serveren sovet, kan det tage op til et minut.",
+    "back": "Tilbage til mine rum",
+    "title": "Titel",
+    "titlePlaceholder": "Fx Brøkernes hemmelighed",
+    "titleRequired": "Rummet skal have en titel.",
+    "subject": "Fag",
+    "gradeLevel": "Klassetrin",
+    "gradeGroups": {
+      "primary": "Folkeskole",
+      "secondary": "Ungdomsuddannelser"
+    },
+    "undo": "Fortryd",
+    "redo": "Gentag",
+    "reload": "Genindlæs",
+    "scenes": "Scener",
+    "save": {
+      "saved": "Gemt",
+      "pending": "Ændret",
+      "saving": "Gemmer...",
+      "waiting": "Ikke gemt – udfyld de tomme felter",
+      "retrying": "Kunne ikke gemme – prøver igen",
+      "conflict": "Ikke gemt"
+    },
+    "newRoom": {
+      "title": "Nyt rum",
+      "intro": "Giv rummet en titel, og vælg fag og klassetrin. Resten bygger du i editoren.",
+      "create": "Opret rummet",
+      "creating": "Opretter...",
+      "cancel": "Annullér"
+    },
+    "toolbox": {
+      "title": "Til rummet",
+      "hint": "Træk ind på billedet – eller klik for at sætte midt på.",
+      "add": "Tilføj {{name}}"
+    },
+    "stage": {
+      "label": "Scenen {{scene}}",
+      "empty": "Træk en lås, et brev eller en dør ind på billedet.",
+      "objectLater": "{{name}} (vises senere)"
+    },
+    "object": {
+      "lock": "Låsen „{{question}}“",
+      "lockNumbered": "Lås {{n}}",
+      "letter": "Brevet „{{text}}“",
+      "letterNumbered": "Brev {{n}}",
+      "door": "Døren til {{scene}}",
+      "doorNumbered": "Dør {{n}}",
+      "exitDoor": "Slutdøren"
+    },
+    "inspector": {
+      "done": "Færdig",
+      "removeLock": "Slet låsen",
+      "removeLetter": "Slet brevet",
+      "removeDoor": "Slet døren",
+      "removeExitDoor": "Slet slutdøren"
+    },
+    "lock": {
+      "look": "Udseende",
+      "question": "Spørgsmål",
+      "questionHint": "Det, eleverne ser, når de klikker på låsen.",
+      "answerType": "Hvordan svarer eleverne?",
+      "answerTypes": {
+        "Code": "Kode",
+        "Text": "Tekst eller tal",
+        "MultipleChoice": "Vælg mellem svar"
+      },
+      "answerTypeDescriptions": {
+        "Code": "Skal passe tegn for tegn, fx 0427.",
+        "Text": "Store og små bogstaver er ligegyldige, og 3,5 er det samme som 3.5.",
+        "MultipleChoice": "Eleverne vælger ét af dine svar."
+      },
+      "correctAnswer": "Det rigtige svar",
+      "tolerance": "Godkend også svar inden for ±",
+      "toleranceHint": "Fx 0,01, så afrundede resultater også godkendes.",
+      "hint": "Hint",
+      "hintHint": "Vises automatisk, når holdet har svaret forkert 3 gange.",
+      "removeHint": "Fjern hint",
+      "addHint": "Tilføj et hint",
+      "options": "Svarmuligheder",
+      "optionsHint": "Markér det rigtige svar.",
+      "markCorrect": "Svarmulighed {{n}} er det rigtige svar",
+      "option": "Svarmulighed {{n}}",
+      "removeOption": "Fjern svarmulighed {{n}}",
+      "removeOptionShort": "Fjern",
+      "addOption": "Tilføj svarmulighed"
+    },
+    "letter": {
+      "text": "Tekst på brevet",
+      "textHint": "Fx „Læs side 42 i bogen“."
+    },
+    "door": {
+      "target": "Døren fører til",
+      "noTarget": "Vælg en scene",
+      "newScene": "En ny scene"
+    },
+    "exitDoor": {
+      "explanation": "Slutdøren åbner, når alle låse i rummet er løst. Så er eleverne brudt ud."
+    },
+    "unlockedBy": {
+      "label": "Hvornår kan eleverne se den?",
+      "hint": "Sådan bestemmer du rækkefølgen i rummet.",
+      "fromStart": "Synlig fra start",
+      "whenSolved": "Vises når {{name}} er løst",
+      "whenOpened": "Vises når {{name}} er åbnet"
+    },
+    "scene": {
+      "title": "Scenen",
+      "name": "Navn",
+      "nameRequired": "Scenen skal have et navn.",
+      "background": "Baggrund",
+      "ownImage": "Dit billede",
+      "upload": "Upload eget billede",
+      "uploading": "Uploader...",
+      "uploadHint": "JPEG, PNG eller WebP på højst 10 MB. Oplysninger som sted og kamera fjernes fra billedet.",
+      "isStart": "Eleverne starter i denne scene.",
+      "makeStart": "Lad eleverne starte her",
+      "remove": "Slet scenen",
+      "defaultName": "Scene {{n}}",
+      "unnamed": "Uden navn",
+      "startBadge": "Start",
+      "add": "Ny scene"
+    },
+    "map": {
+      "title": "Kort over scenerne",
+      "unreachable": "Ingen dør fører hertil.",
+      "start": "Startscene.",
+      "exit": "Har slutdøren.",
+      "connection": "{{from}} fører til {{to}}",
+      "noDoors": "Ingen døre mellem scenerne endnu."
+    },
+    "validation": {
+      "ready": "Rummet er klar til at blive prøvet.",
+      "title": "Det mangler, før rummet kan spilles"
+    },
+    "preview": {
+      "button": "Prøv rummet",
+      "opening": "Åbner...",
+      "notSaved": "Rummet kunne ikke gemmes. Tjek titlen og scenernes navne, og prøv igen."
+    }
+  },
   "join": {
     "title": "Deltag i et escape room",
     "pin": "PIN-kode",
@@ -103,6 +249,7 @@
     "individual": "Du spiller for dig selv",
     "nickname": "Du er med som {{nickname}}.",
     "leave": "Forlad sessionen",
+    "preview": "Prøveversion – kun du kan se den, og den tæller ikke med i din historik.",
     "joinAgain": "Deltag i en ny session",
     "noRoom": "Rummet kan ikke spilles endnu. Spørg din lærer.",
     "scenes": "Scener",
@@ -245,6 +392,21 @@
     "UNLOCKED_BY_SELF": "Et objekt kan ikke vente på sig selv.",
     "UNLOCKED_BY_INVALID_TARGET": "Et objekt kan kun vente på en lås eller en dør.",
     "UNLOCKED_BY_CYCLE": "Objekterne venter på hinanden i ring, så ingen af dem kan låses op.",
-    "DOOR_TARGET_MISSING": "Døren fører ikke til nogen scene."
+    "DOOR_TARGET_MISSING": "Døren fører ikke til nogen scene.",
+    "LOCK_QUESTION_MISSING": "Låsen mangler et spørgsmål.",
+    "LOCK_ANSWER_MISSING": "Låsen mangler det rigtige svar.",
+    "LETTER_TEXT_MISSING": "Brevet er tomt.",
+    "LAST_SCENE": "Rummet skal have mindst én scene.",
+    "IMAGE_KEY_INVALID": "Billedet findes ikke. Vælg et andet.",
+    "ROOM_INVALID": "Rummet er ikke færdigt endnu. Ret punkterne i editoren først.",
+    "ROOM_CHANGED": "Rummet er blevet ændret et andet sted. Genindlæs siden for at se den nyeste udgave.",
+    "ID_TAKEN": "Ændringen kunne ikke gemmes. Genindlæs siden, og prøv igen.",
+    "DOCUMENT_INVALID": "Ændringen kunne ikke gemmes. Genindlæs siden, og prøv igen.",
+    "ROOM_TOO_LARGE": "Rummet er blevet for stort. Der kan højst være 20 scener og 60 objekter pr. scene.",
+    "UPLOADS_UNAVAILABLE": "Upload af billeder er ikke slået til endnu. Vælg en af de indbyggede baggrunde.",
+    "UPLOAD_NOT_FOUND": "Billedet blev ikke modtaget. Prøv at uploade det igen.",
+    "IMAGE_TYPE_NOT_ALLOWED": "Billedet skal være en JPEG-, PNG- eller WebP-fil.",
+    "IMAGE_TOO_LARGE": "Billedet er for stort. Det må højst fylde 10 MB og være 40 megapixel.",
+    "IMAGE_INVALID": "Filen kunne ikke læses som et billede. Prøv en anden fil."
   }
 }
