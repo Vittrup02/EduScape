@@ -13,6 +13,7 @@ export const playRoom: PlayRoom = {
       id: 'classroom',
       name: 'Klasselokalet',
       backgroundImageKey: 'builtin:classroom',
+      backgroundImageUrl: null,
       objects: [
         {
           id: 'letter',
@@ -64,6 +65,7 @@ export const playRoom: PlayRoom = {
       id: 'library',
       name: 'Biblioteket',
       backgroundImageKey: 'builtin:library',
+      backgroundImageUrl: null,
       objects: [
         {
           id: 'choice-lock',
@@ -112,6 +114,7 @@ export function playState(team: Partial<TeamState> = {}, overrides: Partial<Play
     nickname: 'Ida',
     team: teamState(team),
     room: playRoom,
+    isPreview: false,
     ...overrides,
   }
 }

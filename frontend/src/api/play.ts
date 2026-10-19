@@ -76,6 +76,8 @@ export interface PlayScene {
   /** The teacher's own name for the scene; not translated. */
   name: string
   backgroundImageKey: string
+  /** A short-lived link to an uploaded background; null for built-in ones. */
+  backgroundImageUrl: string | null
   objects: PlayObject[]
 }
 
@@ -95,6 +97,8 @@ export interface PlayState {
   nickname: string | null
   team: TeamState
   room: PlayRoom
+  /** A teacher trying their own room from the editor. */
+  isPreview: boolean
 }
 
 export interface JoinResult {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
-import { assetsOfType, findAsset, type ObjectAsset, type ObjectAssetType } from '../assets/registry'
+import { backgroundImage, objectAsset, objectStyle } from '../assets/sceneLayout'
 import { ApiError } from '../api/client'
 import { openDoor, openExitDoor, type PlayObject, type PlayState } from '../api/play'
 import { errorKey } from '../i18n/errors'
@@ -16,27 +16,6 @@ import {
   unlockedScenes,
   type TeamEvent,
 } from './progress'
-
-/** Object height in percent of the scene's height; doors stand taller than locks and letters. */
-const objectHeight: Record<ObjectAssetType, number> = { Lock: 16, Letter: 14, Door: 34, ExitDoor: 34 }
-
-/** Scenes are 16:9, like the built-in backgrounds. */
-const sceneAspectRatio = 16 / 9
-
-function percent(value: number): string {
-  return `${String(value)}%`
-}
-
-/** The object's built-in graphic. Unknown keys (e.g. uploads, which can't be shown yet) get the type's default. */
-function objectAsset(object: PlayObject): ObjectAsset {
-  const asset = findAsset(object.graphicKey)
-  return asset !== undefined && asset.type === object.type ? asset : assetsOfType(object.type)[0]
-}
-
-function backgroundImage(key: string): string | undefined {
-  const asset = findAsset(key)
-  return asset?.type === 'Background' ? asset.files.image : undefined
-}
 
 interface RoomViewProps {
   state: PlayState
@@ -148,7 +127,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
   const closeDialog = () => {
     setOpenObjectId(null)
   }
-  const background = backgroundImage(scene.backgroundImageKey)
+  const background = backgroundImage(scene.backgroundImageKey, scene.backgroundImageUrl)
 
   return (
     <>
@@ -172,8 +151,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
       <section className="scene" aria-label={scene.name}>
         {background !== undefined && <img className="scene-background" src={background} alt="" draggable={false} />}
         {visibleObjects.map((object) => {
-          const asset = objectAsset(object)
-          const height = objectHeight[object.type]
+          const asset = objectAsset(object.type, object.graphicKey)
           return (
             <button
               key={object.id}
@@ -181,11 +159,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
               className="room-object"
               aria-label={label(object)}
               disabled={!online || busy}
-              style={{
-                left: percent(object.x),
-                top: percent(object.y),
-                width: percent((height * asset.aspectRatio) / sceneAspectRatio),
-              }}
+              style={objectStyle(object.x, object.y, asset)}
               onClick={() => {
                 activate(object)
               }}
