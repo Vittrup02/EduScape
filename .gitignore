@@ -1,7 +1,11 @@
-# Claude Code
+# Claude Code / agent-værktøjer (holdes lokalt)
 CLAUDE.md
 CLAUDE.local.md
-.claude/settings.local.json
+.claude/
+.agents/
+skills-lock.json
+SKILL.md
+
 
 # Node / frontend
 node_modules/
@@ -24,3 +28,6 @@ obj/
 # OS / editor
 .DS_Store
 Thumbs.db
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+.playwright/
