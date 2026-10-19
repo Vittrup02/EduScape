@@ -25,6 +25,19 @@ public static class ApiErrors
     public const string PinNotFound = "PIN_NOT_FOUND";
     public const string DeviceNotRecognized = "DEVICE_NOT_RECOGNIZED";
 
+    // Room editor. A save based on an older revision is refused, so two open editors cannot overwrite each other.
+    public const string RoomChanged = "ROOM_CHANGED";
+    public const string IdTaken = "ID_TAKEN";
+    public const string DocumentInvalid = "DOCUMENT_INVALID";
+    public const string RoomTooLarge = "ROOM_TOO_LARGE";
+
+    // Image uploads.
+    public const string UploadsUnavailable = "UPLOADS_UNAVAILABLE";
+    public const string UploadNotFound = "UPLOAD_NOT_FOUND";
+    public const string ImageTypeNotAllowed = "IMAGE_TYPE_NOT_ALLOWED";
+    public const string ImageTooLarge = "IMAGE_TOO_LARGE";
+    public const string ImageInvalid = "IMAGE_INVALID";
+
     /// <summary>Generic code for an error response that has no more specific code.</summary>
     public static string FromStatusCode(int statusCode) => statusCode switch
     {

@@ -1,10 +1,12 @@
 using System.Text.Json.Serialization;
 using Eduscape.Api.Auth;
+using Eduscape.Api.Editor;
 using Eduscape.Api.Errors;
 using Eduscape.Api.Hosting;
 using Eduscape.Api.Play;
 using Eduscape.Api.Sessions;
 using Eduscape.Api.Teachers;
+using Eduscape.Api.Uploads;
 using Eduscape.Infrastructure;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -33,6 +35,7 @@ builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddTeacherAuth();
 builder.Services.AddSessions(builder.Configuration);
 builder.Services.AddPlay();
+builder.Services.AddSingleton<ImageUrls>();
 builder.Services.AddEduscapeRateLimiting(builder.Configuration);
 
 // Fixed lists (subject, grade level, ...) are sent as keys that the frontend translates.
@@ -65,8 +68,10 @@ app.UseStatusCodePages(context =>
     return response.WriteAsJsonAsync(new ApiError(ApiErrors.FromStatusCode(response.StatusCode)));
 });
 
-app.UseRateLimiter();
 app.UseAuthentication();
+
+// After authentication, so the upload limit can count per teacher; the other limits count per IP address.
+app.UseRateLimiter();
 app.UseAuthorization();
 
 // Used by the frontend as a wake-up call (Render free tier sleeps when idle).
@@ -75,6 +80,8 @@ app.MapHealthChecks("/health");
 app.MapAuthEndpoints();
 app.MapTeacherEndpoints();
 app.MapTeacherSessionEndpoints();
+app.MapEditorEndpoints();
+app.MapUploadEndpoints();
 app.MapPlayEndpoints();
 app.MapHub<PlayHub>(PlayHub.Path);
 

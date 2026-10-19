@@ -93,7 +93,7 @@ public static class TeacherSessionEndpoints
                 from session in db.Sessions
                 join schoolClass in db.Classes on session.ClassId equals schoolClass.Id
                 join room in db.EscapeRooms on session.EscapeRoomId equals room.Id
-                where schoolClass.OwnerTeacherId == teacherId
+                where schoolClass.OwnerTeacherId == teacherId && !session.IsPreview
                     && session.Status != SessionStatus.Closed
                     && session.ExpiresAt > now
                 orderby session.StartedAt descending
@@ -153,7 +153,7 @@ public static class TeacherSessionEndpoints
     }
 
     private static IQueryable<Session> OwnSessions(EduscapeDbContext db, Guid teacherId) =>
-        db.Sessions.Where(s => db.Classes.Any(c => c.Id == s.ClassId && c.OwnerTeacherId == teacherId));
+        db.Sessions.Where(s => !s.IsPreview && db.Classes.Any(c => c.Id == s.ClassId && c.OwnerTeacherId == teacherId));
 
     private static async Task<SessionDetailsDto?> LoadDetailsAsync(
         Guid id, Guid teacherId, EduscapeDbContext db, TimeProvider timeProvider, CancellationToken cancellationToken)

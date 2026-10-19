@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 
 namespace Eduscape.Api.Hosting;
@@ -27,10 +28,20 @@ public static class RateLimiting
     /// </summary>
     public const int DefaultJoinPermitLimit = 100;
 
+    public const string UploadPolicy = "upload";
+    public const string UploadPermitLimitSetting = "RateLimiting:Upload:PermitLimit";
+
+    /// <summary>
+    /// Upload calls (start and complete) per teacher and 10 minutes. Each image costs server memory and time to process;
+    /// a teacher building a room needs a handful.
+    /// </summary>
+    public const int DefaultUploadPermitLimit = 40;
+
     public static IServiceCollection AddEduscapeRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
         var authPermitLimit = configuration.GetValue(AuthPermitLimitSetting, DefaultAuthPermitLimit);
         var joinPermitLimit = configuration.GetValue(JoinPermitLimitSetting, DefaultJoinPermitLimit);
+        var uploadPermitLimit = configuration.GetValue(UploadPermitLimitSetting, DefaultUploadPermitLimit);
 
         services.AddRateLimiter(options =>
         {
@@ -40,6 +51,16 @@ public static class RateLimiting
             // Each policy keeps its own counters, so joining students do not use up the teachers' login budget.
             options.AddPolicy(AuthPolicy, context => PerIpAddressAndMinute(context, authPermitLimit));
             options.AddPolicy(JoinPolicy, context => PerIpAddressAndMinute(context, joinPermitLimit));
+
+            // Runs after authentication (see Program.cs), so the teacher is known.
+            options.AddPolicy(UploadPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = uploadPermitLimit,
+                    Window = TimeSpan.FromMinutes(10),
+                    QueueLimit = 0,
+                }));
         });
 
         return services;

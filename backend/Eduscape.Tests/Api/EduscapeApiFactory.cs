@@ -35,6 +35,10 @@ public sealed class EduscapeApiFactory : WebApplicationFactory<Program>, IAsyncL
         // Every test calls from the same (test server) address; the rate limits themselves are tested separately.
         builder.UseSetting(RateLimiting.AuthPermitLimitSetting, "100000");
         builder.UseSetting(RateLimiting.JoinPermitLimitSetting, "100000");
+        builder.UseSetting(RateLimiting.UploadPermitLimitSetting, "100000");
+
+        // Never the real bucket from user-secrets; upload tests use FakeImageStorage.
+        builder.UseSetting("R2:Bucket", string.Empty);
     }
 
     public Task InitializeAsync() => Database.InitializeAsync();
@@ -83,9 +87,12 @@ public sealed class EduscapeApiFactory : WebApplicationFactory<Program>, IAsyncL
         return client;
     }
 
-    public async Task<EscapeRoom> AddRoomAsync(Guid? ownerTeacherId, string title)
+    /// <summary>Adds a playable room: one scene with an exit door.</summary>
+    public async Task<EscapeRoom> AddRoomAsync(Guid? ownerTeacherId, string title, bool isTemplate = false)
     {
-        var room = new EscapeRoom(title, Subject.Mathematics, GradeLevel.Grade7, ownerTeacherId);
+        var room = new EscapeRoom(title, Subject.Mathematics, GradeLevel.Grade7, ownerTeacherId, isTemplate);
+        room.AddScene("Scene", "builtin:classroom")
+            .AddObject(new ExitDoor(new Position(50, 50), "builtin:exit-door", null));
         await using var db = Database.CreateContext();
         db.EscapeRooms.Add(room);
         await db.SaveChangesAsync();

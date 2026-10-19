@@ -9,7 +9,8 @@ public static class SessionServiceCollectionExtensions
     {
         services.AddOptions<SessionOptions>()
             .Bind(configuration.GetSection(SessionOptions.SectionName))
-            .Validate(options => options.Lifetime > TimeSpan.Zero, "Sessions:Lifetime must be positive.");
+            .Validate(options => options.Lifetime > TimeSpan.Zero, "Sessions:Lifetime must be positive.")
+            .Validate(options => options.PreviewLifetime > TimeSpan.Zero, "Sessions:PreviewLifetime must be positive.");
 
         // Registered here so tests can replace the clock (e.g. to let a PIN expire).
         services.TryAddSingleton(TimeProvider.System);
