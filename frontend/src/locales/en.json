@@ -98,12 +98,40 @@
   },
   "play": {
     "connecting": "Connecting... If the server has been asleep, this can take up to a minute.",
+    "reconnecting": "The connection was lost. Reconnecting...",
     "onTeam": "You are on {{team}}",
     "individual": "You are playing on your own",
     "nickname": "You are in as {{nickname}}.",
-    "waiting": "The escape room will be shown here.",
     "leave": "Leave the session",
-    "joinAgain": "Join a new session"
+    "joinAgain": "Join a new session",
+    "noRoom": "This room cannot be played yet. Ask your teacher.",
+    "scenes": "Scenes",
+    "close": "Close",
+    "object": {
+      "lock": "Lock: {{question}}",
+      "lockOpen": "Open lock: {{question}}",
+      "letter": "Letter",
+      "door": "Door to {{scene}}",
+      "doorOpen": "Open door to {{scene}}",
+      "exitDoor": "Exit door"
+    },
+    "lock": {
+      "title": "Lock",
+      "answer": "Your answer",
+      "submit": "Try",
+      "options": "Choose an answer",
+      "wrong": "Wrong answer. Try again.",
+      "solved": "The lock is open.",
+      "hint": "Hint:"
+    },
+    "letter": {
+      "title": "Letter"
+    },
+    "escaped": {
+      "team": "You broke out!",
+      "individual": "You broke out!",
+      "text": "Well done! Tell your teacher."
+    }
   },
   "teams": {
     "name": "Team {{color}}"
@@ -209,6 +237,9 @@
     "PIN_EXPIRED": "The PIN has expired. Ask your teacher for a new one.",
     "TEAM_NOT_FOUND": "The team does not exist. Choose one of the teams in the list.",
     "TEAM_COUNT_INVALID": "Choose between 2 and 8 teams.",
+    "OBJECT_NOT_FOUND": "The object does not exist in the room.",
+    "OBJECT_NOT_AVAILABLE": "You cannot use that yet. Solve something else first.",
+    "EXIT_DOOR_LOCKED": "The exit door is still locked. Solve every lock in the room first.",
     "START_SCENE_MISSING": "The room has no start scene.",
     "UNLOCKED_BY_NOT_FOUND": "The object is waiting for something that no longer exists in the room.",
     "UNLOCKED_BY_SELF": "An object can't wait for itself.",

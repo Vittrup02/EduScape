@@ -1,6 +1,7 @@
 using Eduscape.Api.Errors;
 using Eduscape.Api.Hosting;
 using Eduscape.Domain.Common;
+using Eduscape.Domain.Rooms;
 using Eduscape.Domain.Sessions;
 using Eduscape.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -19,12 +20,27 @@ public sealed record JoinRequest(string? Pin, Guid? TeamId, string? Nickname);
 
 public sealed record ReconnectRequest(string? DeviceToken);
 
+/// <summary>A lock's hint, which the team has earned with <see cref="Team.WrongAttemptsBeforeHint"/> wrong answers.</summary>
+public sealed record RevealedHintDto(Guid LockId, string Hint);
+
 public sealed record TeamStateDto(
     Guid Id,
     TeamColor Color,
     Guid[] SolvedLockIds,
     Guid[] OpenedDoorIds,
-    DateTimeOffset? EscapedAt);
+    RevealedHintDto[] RevealedHints,
+    DateTimeOffset? EscapedAt)
+{
+    public static TeamStateDto From(Team team, EscapeRoom room) => new(
+        team.Id,
+        team.Color,
+        [.. team.SolvedLockIds],
+        [.. team.OpenedDoorIds],
+        [.. room.Objects.OfType<Lock>()
+            .Where(l => l.Hint is not null && team.IsHintVisible(l.Id))
+            .Select(l => new RevealedHintDto(l.Id, l.Hint!))],
+        team.EscapedAt);
+}
 
 /// <summary>The whole state a student's device needs, sent on join and on every reconnect.</summary>
 public sealed record PlayStateDto(
@@ -33,7 +49,17 @@ public sealed record PlayStateDto(
     SessionStatus Status,
     Guid ParticipantId,
     string? Nickname,
-    TeamStateDto Team);
+    TeamStateDto Team,
+    PlayRoomDto Room);
+
+public sealed record AnswerRequest(string? DeviceToken, Guid LockId, string? Answer);
+
+/// <summary><c>Hint</c> is set once the team has earned the lock's hint. The correct answer is never sent.</summary>
+public sealed record AnswerResponse(AnswerOutcome Outcome, string? Hint);
+
+public sealed record OpenDoorRequest(string? DeviceToken, Guid DoorId);
+
+public sealed record OpenExitDoorRequest(string? DeviceToken, Guid ExitDoorId);
 
 /// <summary>The device token is returned only here; the server keeps just its hash.</summary>
 public sealed record JoinResponse(string DeviceToken, PlayStateDto State);
@@ -53,6 +79,11 @@ public static class PlayEndpoints
         // Not limited like the PIN endpoints: a 256-bit token cannot be guessed, and a whole class reconnects at once
         // when the backend wakes up.
         play.MapPost("/reconnect", ReconnectAsync);
+
+        // Answers are checked only here, on the server.
+        play.MapPost("/answer", AnswerAsync);
+        play.MapPost("/doors/open", OpenDoorAsync);
+        play.MapPost("/exit", OpenExitDoorAsync);
         return app;
     }
 
@@ -123,6 +154,77 @@ public static class PlayEndpoints
         return TypedResults.Ok(await LoadStateAsync(session, participant, db, cancellationToken));
     }
 
+    // The team is notified only of changes, and only after they are saved. A lock solved by two students at once is
+    // one LockSolved event. Notifications ignore the request's cancellation: once saved, the team must hear of it.
+
+    private static async Task<IResult> AnswerAsync(
+        AnswerRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
+    {
+        var done = await actions.RunAsync(
+            request.DeviceToken,
+            (room, team, now) => Gameplay.SubmitAnswer(room, team, request.LockId, request.Answer, now),
+            cancellationToken);
+        if (done is null)
+        {
+            return DeviceNotRecognized();
+        }
+
+        var hint = done.Team.IsHintVisible(request.LockId)
+            ? done.Room.Objects.OfType<Lock>().Single(l => l.Id == request.LockId).Hint
+            : null;
+
+        if (done.Result.Outcome == AnswerOutcome.Correct)
+        {
+            await notifier.LockSolvedAsync(done.Team.Id, request.LockId);
+        }
+        else if (done.Result.HintRevealedNow && hint is not null)
+        {
+            await notifier.HintRevealedAsync(done.Team.Id, request.LockId, hint);
+        }
+
+        return TypedResults.Ok(new AnswerResponse(done.Result.Outcome, hint));
+    }
+
+    private static async Task<IResult> OpenDoorAsync(
+        OpenDoorRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
+    {
+        var done = await actions.RunAsync(
+            request.DeviceToken,
+            (room, team, now) => Gameplay.OpenDoor(room, team, request.DoorId, now),
+            cancellationToken);
+        if (done is null)
+        {
+            return DeviceNotRecognized();
+        }
+
+        if (done.Result)
+        {
+            await notifier.DoorOpenedAsync(done.Team.Id, request.DoorId);
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<IResult> OpenExitDoorAsync(
+        OpenExitDoorRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
+    {
+        var done = await actions.RunAsync(
+            request.DeviceToken,
+            (room, team, now) => Gameplay.OpenExitDoor(room, team, request.ExitDoorId, now),
+            cancellationToken);
+        if (done is null)
+        {
+            return DeviceNotRecognized();
+        }
+
+        if (done.Result)
+        {
+            await notifier.TeamEscapedAsync(done.Team.Id);
+        }
+
+        return TypedResults.NoContent();
+    }
+
     /// <summary>
     /// The not-closed session with this PIN, or null. Throws the reason it cannot be joined (expired or locked),
     /// so the student gets a helpful message.
@@ -147,11 +249,8 @@ public static class PlayEndpoints
     private static async Task<PlayStateDto> LoadStateAsync(
         Session session, Participant participant, EduscapeDbContext db, CancellationToken cancellationToken)
     {
-        var team = await db.Teams
-            .Include(t => t.LockProgress)
-            .Include(t => t.OpenedDoors)
-            .AsSplitQuery()
-            .SingleAsync(t => t.Id == participant.TeamId, cancellationToken);
+        var team = await TeamActions.LoadTeamAsync(db, participant.TeamId, cancellationToken);
+        var room = await TeamActions.LoadRoomAsync(db, session.EscapeRoomId, cancellationToken);
 
         return new PlayStateDto(
             session.Id,
@@ -159,12 +258,8 @@ public static class PlayEndpoints
             session.Status,
             participant.Id,
             participant.Nickname,
-            new TeamStateDto(
-                team.Id,
-                team.Color,
-                [.. team.SolvedLockIds],
-                [.. team.OpenedDoorIds],
-                team.EscapedAt));
+            TeamStateDto.From(team, room),
+            PlayRoomDto.From(room));
     }
 
     private static IResult PinNotFound() =>

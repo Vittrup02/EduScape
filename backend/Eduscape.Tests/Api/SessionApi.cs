@@ -54,6 +54,18 @@ internal static class SessionApi
     public static Task<HttpResponseMessage> ReconnectAsync(HttpClient student, string? deviceToken) =>
         student.PostAsJsonAsync("/api/play/reconnect", new ReconnectRequest(deviceToken), Json);
 
+    public static Task<HttpResponseMessage> AnswerAsync(HttpClient student, string? deviceToken, Guid lockId, string? answer) =>
+        student.PostAsJsonAsync("/api/play/answer", new AnswerRequest(deviceToken, lockId, answer), Json);
+
+    public static async Task<AnswerResponse> AnsweredAsync(HttpClient student, string deviceToken, Guid lockId, string answer) =>
+        await ReadAsync<AnswerResponse>(await AnswerAsync(student, deviceToken, lockId, answer));
+
+    public static Task<HttpResponseMessage> OpenDoorAsync(HttpClient student, string? deviceToken, Guid doorId) =>
+        student.PostAsJsonAsync("/api/play/doors/open", new OpenDoorRequest(deviceToken, doorId), Json);
+
+    public static Task<HttpResponseMessage> OpenExitDoorAsync(HttpClient student, string? deviceToken, Guid exitDoorId) =>
+        student.PostAsJsonAsync("/api/play/exit", new OpenExitDoorRequest(deviceToken, exitDoorId), Json);
+
     public static async Task<T> ReadAsync<T>(HttpResponseMessage response)
     {
         Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");

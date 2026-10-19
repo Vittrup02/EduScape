@@ -20,6 +20,11 @@ public static class DomainErrors
     public const string TeamNotFound = "TEAM_NOT_FOUND";
     public const string TeamCountInvalid = "TEAM_COUNT_INVALID";
 
+    // Playing
+    public const string ObjectNotFound = "OBJECT_NOT_FOUND";
+    public const string ObjectNotAvailable = "OBJECT_NOT_AVAILABLE";
+    public const string ExitDoorLocked = "EXIT_DOOR_LOCKED";
+
     // Room validation (reported by EscapeRoom.Validate, not thrown)
     public const string StartSceneMissing = "START_SCENE_MISSING";
     public const string UnlockedByNotFound = "UNLOCKED_BY_NOT_FOUND";

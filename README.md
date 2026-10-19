@@ -102,6 +102,15 @@ Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i 
 - **Enheds-token:** kun dets SHA-256-hash gemmes i databasen. PIN og token sendes altid i request body, aldrig i URL'en, så de ikke havner i logs.
 - **Låst session:** nye elever afvises, men elever, der allerede er med, kan spille videre. **Lukket session:** PIN-koden virker ikke længere, og elevernes enheder får besked om, at sessionen er lukket.
 
+## Spilvisning og realtid
+
+`/play` viser scenens baggrund med objekterne fra asset-biblioteket, placeret i procent af billedet. Objekter, der venter på en anden lås eller dør (`unlockedBy`), vises først, når den er løst. Lock åbner en pop-up med spørgsmålet, Letter viser lærerens tekst, Door åbner den næste scene for hele holdet, og slutdøren afslutter rummet, når alle låse er løst. Eleven kan frit gå tilbage til scener, holdet har låst op.
+
+- **Svar valideres kun på serveren.** Klienten får spørgsmål og svarmuligheder, men aldrig det rigtige svar eller tolerancen. Et hint sendes først, når holdet har svaret forkert 3 gange.
+- **Handlinger går via REST** med enheds-tokenet i body: `POST /api/play/answer`, `/api/play/doors/open` og `/api/play/exit`. Hvert kald låser holdets række i databasen (`SELECT … FOR UPDATE`), så samtidige svar på samme lås håndteres ét ad gangen. Låsen bliver løst én gang, og den anden elev får `AlreadySolved`. Der kommer ingen fejl og ingen dobbelt registrering.
+- **Push via SignalR** (`/hubs/play`): hvert hold er en gruppe. Efter en gemt ændring får gruppen `LockSolved(lockId)`, `HintRevealed(lockId, hint)`, `DoorOpened(doorId)` eller `TeamEscaped()`. Hubben har kun metoden `Subscribe(deviceToken)`, og tokenet sendes som besked, ikke i URL'en. Render kører én instans, så der er ingen backplane.
+- **Reconnect:** klienten forbinder til hubben, kalder `Subscribe` og henter *derefter* hele holdets tilstand med `POST /api/play/reconnect`. Så går ingen events tabt imellem. SignalR genforbinder automatisk, og imens viser rummet "Forbindelsen blev afbrudt. Forbinder igen...". Efter hver genforbindelse gentages `Subscribe` og tilstandskaldet.
+
 ## Tests
 
 ```bash

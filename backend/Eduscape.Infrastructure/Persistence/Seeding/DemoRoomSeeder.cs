@@ -37,7 +37,7 @@ public static class DemoRoomSeeder
     /// <summary>
     /// Two scenes: a letter, a code lock, a numeric lock with tolerance and a door in the first;
     /// a multiple-choice lock and the exit door in the second. Each step is unlocked by the previous one.
-    /// Image keys are placeholders until uploads to R2 exist.
+    /// Uses only built-in assets (see frontend/src/assets/ASSETS.md).
     /// </summary>
     public static EscapeRoom BuildDemoRoom()
     {
@@ -48,15 +48,15 @@ public static class DemoRoomSeeder
             isTemplate: true,
             id: DemoRoomId);
 
-        var classroom = room.AddScene("Klasselokalet", "demo/classroom.jpg");
-        var library = room.AddScene("Biblioteket", "demo/library.jpg");
+        var classroom = room.AddScene("Klasselokalet", "builtin:classroom");
+        var library = room.AddScene("Biblioteket", "builtin:library");
 
-        classroom.AddObject(new Letter(new Position(15, 70), "demo/letter.png", "Tallet står på tavlen: 3 · 4 + 5"));
+        classroom.AddObject(new Letter(new Position(15, 70), "builtin:letter", "Tallet står på tavlen: 3 · 4 + 5"));
 
         var codeLock = classroom.AddObject(new Lock(
             new Position(40, 45),
-            "demo/padlock.png",
-            "demo/padlock-open.png",
+            "builtin:code-lock",
+            null,
             "Hvad giver regnestykket på tavlen?",
             AnswerType.Code,
             "17",
@@ -64,8 +64,8 @@ public static class DemoRoomSeeder
 
         var divisionLock = classroom.AddObject(new Lock(
             new Position(65, 50),
-            "demo/safe.png",
-            "demo/safe-open.png",
+            "builtin:padlock",
+            null,
             "Hvad er 10 / 3? Skriv svaret med to decimaler.",
             AnswerType.Text,
             "3,33",
@@ -73,20 +73,20 @@ public static class DemoRoomSeeder
             hint: "10 delt med 3 er lidt over 3."));
         divisionLock.SetUnlockedBy(codeLock);
 
-        var door = classroom.AddObject(new Door(new Position(88, 55), "demo/door.png", "demo/door-open.png", library.Id));
+        var door = classroom.AddObject(new Door(new Position(88, 55), "builtin:door", null, library.Id));
         door.SetUnlockedBy(divisionLock);
 
         var primeLock = library.AddObject(new Lock(
             new Position(35, 40),
-            "demo/book-lock.png",
-            "demo/book-open.png",
+            "builtin:padlock",
+            null,
             "Hvilket af tallene er et primtal?",
             AnswerType.MultipleChoice,
             "17",
             hint: "Et primtal kan kun deles med 1 og sig selv.",
             options: ["9", "15", "17", "21"]));
 
-        var exit = library.AddObject(new ExitDoor(new Position(85, 50), "demo/exit.png", "demo/exit-open.png"));
+        var exit = library.AddObject(new ExitDoor(new Position(85, 50), "builtin:exit-door", null));
         exit.SetUnlockedBy(primeLock);
 
         return room;

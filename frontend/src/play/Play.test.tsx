@@ -4,8 +4,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadDeviceToken, saveDeviceToken } from '../api/deviceStorage'
 import type { PlayState } from '../api/play'
 import { json, mockFetch, urlOf } from '../test/fetchMock'
+import { configureNextHub } from '../test/playHubMock'
+import { playState } from '../test/playRoom'
 import { JoinPage } from './JoinPage'
 import { PlayPage } from './PlayPage'
+
+vi.mock('../api/playHub', () => import('../test/playHubMock'))
 
 const teams = [
   { id: 'red', color: 'Red' },
@@ -13,15 +17,7 @@ const teams = [
 ]
 
 function stateFor(team: { id: string; color: string }, overrides: Partial<PlayState> = {}): PlayState {
-  return {
-    sessionId: 's1',
-    mode: 'Team',
-    status: 'Open',
-    participantId: 'p1',
-    nickname: 'Ida',
-    team: { id: team.id, color: team.color as PlayState['team']['color'], solvedLockIds: [], openedDoorIds: [], escapedAt: null },
-    ...overrides,
-  }
+  return playState({ id: team.id, color: team.color as PlayState['team']['color'] }, overrides)
 }
 
 function renderAt(path: string) {
@@ -169,6 +165,27 @@ describe('the play page', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Vi kunne ikke finde dig i sessionen.')
     expect(loadDeviceToken()).toBeNull()
+  })
+
+  it('keeps trying to reach the realtime hub while the backend wakes up', async () => {
+    saveDeviceToken('token-1')
+    configureNextHub({ startFailures: 2 })
+    mockFetch({ '/api/play/reconnect': () => json(stateFor(teams[0])) })
+    renderAt('/play')
+
+    expect(screen.getByRole('status')).toHaveTextContent('Forbinder...')
+    expect(await screen.findByRole('heading', { name: 'Du er på Hold Rød' })).toBeInTheDocument()
+  })
+
+  it('ends when the hub reports the session closed', async () => {
+    saveDeviceToken('token-1')
+    configureNextHub({ subscribeResult: 'SESSION_CLOSED' })
+    const fetchMock = mockFetch({ '/api/play/reconnect': () => json(stateFor(teams[0])) })
+    renderAt('/play')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sessionen er lukket.')
+    expect(loadDeviceToken()).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('lets the student leave, e.g. on a shared tablet', async () => {
