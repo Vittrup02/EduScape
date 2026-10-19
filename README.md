@@ -1,4 +1,4 @@
-# EduScape# eduscape
+# eduscape
 
 Læringsplatform hvor undervisere forvandler deres pensum til interaktive point-and-click escape rooms på under 5 minutter.
 
@@ -86,4 +86,46 @@ cd frontend && npm run test:e2e   # End-to-end (Playwright)
 
 Backendens database-tests opretter og sletter deres egen midlertidige database på den server, `ConnectionStrings:Default` peger på. Uden connection string springes de over lokalt; i CI kører de altid mod en PostgreSQL-service.
 
-GitHub Actions bygger projektet og kører alle tests på hver pull request.
+GitHub Actions bygger projektet og kører alle tests på hver pull request. CI bygger også backendens Docker-image og tjekker, at containeren svarer på `/health`, så en ødelagt Dockerfile fanges før deploy.
+
+## Deploy (Render + Neon)
+
+Backenden kører som Docker-container på Render. Imaget bygges fra [backend/Dockerfile](backend/Dockerfile).
+
+**Render (Web Service)**
+- Runtime: Docker · Region: Frankfurt · Root Directory: `backend` · Dockerfile Path: `./Dockerfile`
+- Health Check Path: `/health`
+
+**Environment variables på Render**
+
+| Variabel | Værdi |
+|---|---|
+| `ConnectionStrings__Default` | Neons **pooled** endpoint (værtsnavn med `-pooler`) i Npgsql-format: `Host=<host>;Database=<db>;Username=<bruger>;Password=<kode>;SSL Mode=Require`. Neons `postgresql://`-URL virker ikke direkte i Npgsql. |
+| `Cors__AllowedOrigins` | Frontendens origin(s), kommasepareret, fx `https://eduscape.pages.dev`. Uden afsluttende `/`. |
+| `PORT` | Sættes af Render selv. Appen lytter på `0.0.0.0:$PORT` (standard i imaget: 8080). |
+
+`ASPNETCORE_ENVIRONMENT` skal ikke sættes. Containeren kører som Production, så demo-rummet ikke seedes og user-secrets ikke læses.
+
+### Migrationer mod Neon
+
+Migrationer køres **aldrig automatisk** ved opstart. Kør dem manuelt fra din egen maskine, når en release indeholder nye migrationer. Kør dem **før** deploy, hvis migrationen er bagudkompatibel med den kørende version.
+
+Brug Neons **direkte** endpoint (uden `-pooler`) til migrationer. Sæt connection string som environment variable i stedet for `--connection`, så koden ikke havner i shell-historikken (PowerShell, fra `backend/`):
+
+```powershell
+# Vigtigt: dotnet ef kører som Development som standard og ville så seede demo-rummet i produktion
+$env:ASPNETCORE_ENVIRONMENT = "Production"
+$env:ConnectionStrings__Default = "Host=<direkte host>;Database=<db>;Username=<bruger>;Password=<kode>;SSL Mode=Require"
+
+dotnet tool restore
+dotnet ef migrations list --project Eduscape.Infrastructure --startup-project Eduscape.Api   # se hvad der mangler
+dotnet ef database update --project Eduscape.Infrastructure --startup-project Eduscape.Api
+
+Remove-Item Env:ConnectionStrings__Default, Env:ASPNETCORE_ENVIRONMENT
+```
+
+Vil du gennemse SQL'en først, kan du generere et idempotent script og køre det i Neons SQL Editor:
+
+```bash
+dotnet ef migrations script --idempotent --output migrate.sql --project Eduscape.Infrastructure --startup-project Eduscape.Api
+```
