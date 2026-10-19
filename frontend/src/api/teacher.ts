@@ -1,9 +1,18 @@
-import type { Translation } from '../i18n/languages'
+import { languages, type Translation } from '../i18n/languages'
 import { teacherFetch } from './auth'
 
 /** Fixed lists arrive as keys (e.g. "Mathematics") and are translated with t(`subjects.${subject}`). */
 export type Subject = keyof Translation['subjects']
 export type GradeLevel = keyof Translation['gradeLevels']
+
+/** Every subject and grade level, in the backend's order (the default language file lists them the same way). */
+export const subjects = Object.keys(languages.da.subjects) as Subject[]
+export const gradeLevels = Object.keys(languages.da.gradeLevels) as GradeLevel[]
+
+/** Folkeskole (0.–10. klasse); the rest are upper-secondary levels. */
+export function isPrimarySchool(gradeLevel: GradeLevel): boolean {
+  return gradeLevel.startsWith('Grade')
+}
 
 export interface RoomSummary {
   id: string

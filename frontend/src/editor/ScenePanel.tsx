@@ -1,0 +1,150 @@
+import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { ApiError } from '../api/client'
+import { maxUploadBytes, uploadContentTypes, uploadImage, type EditorScene } from '../api/editor'
+import { assetsOfType } from '../assets/registry'
+import { errorKey } from '../i18n/errors'
+
+const backgrounds = assetsOfType('Background')
+
+interface ScenePanelProps {
+  scene: EditorScene
+  isStart: boolean
+  canRemove: boolean
+  uploadsEnabled: boolean
+  onRename: (name: string) => void
+  onBackground: (key: string, url: string | null) => void
+  onMakeStart: () => void
+  onRemove: () => void
+  onSeal: () => void
+}
+
+/** The current scene's settings, shown while no object is selected. */
+export function ScenePanel({
+  scene,
+  isStart,
+  canRemove,
+  uploadsEnabled,
+  onRename,
+  onBackground,
+  onMakeStart,
+  onRemove,
+  onSeal,
+}: ScenePanelProps) {
+  const { t } = useTranslation()
+  const nameId = useId()
+  const uploadId = useId()
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const isUploaded = backgrounds.every((b) => b.key !== scene.backgroundImageKey)
+
+  const upload = async (file: File) => {
+    setUploadError(null)
+    if (!(uploadContentTypes as readonly string[]).includes(file.type)) {
+      setUploadError('IMAGE_TYPE_NOT_ALLOWED')
+      return
+    }
+    if (file.size > maxUploadBytes) {
+      setUploadError('IMAGE_TOO_LARGE')
+      return
+    }
+    setUploading(true)
+    try {
+      const image = await uploadImage(file)
+      onBackground(image.imageKey, image.imageUrl)
+    } catch (error) {
+      setUploadError(error instanceof ApiError ? error.code : 'UNKNOWN')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <section className="scene-panel" aria-labelledby="scene-panel-title">
+      <h2 id="scene-panel-title" className="panel-heading">
+        {t('editor.scene.title')}
+      </h2>
+      <div className="field">
+        <label htmlFor={nameId}>{t('editor.scene.name')}</label>
+        <input
+          id={nameId}
+          value={scene.name}
+          aria-invalid={scene.name.trim() === '' || undefined}
+          onChange={(event) => {
+            onRename(event.target.value)
+          }}
+          onBlur={onSeal}
+        />
+        {scene.name.trim() === '' && <p className="error">{t('editor.scene.nameRequired')}</p>}
+      </div>
+
+      <fieldset className="backgrounds">
+        <legend>{t('editor.scene.background')}</legend>
+        {backgrounds.map((background) => (
+          <label key={background.key} className="background-choice">
+            <input
+              type="radio"
+              name={`background-${scene.id}`}
+              checked={scene.backgroundImageKey === background.key}
+              onChange={() => {
+                onBackground(background.key, null)
+              }}
+            />
+            <img src={background.files.image} alt="" draggable={false} />
+            <span>{t(background.nameKey)}</span>
+          </label>
+        ))}
+        {isUploaded && scene.backgroundImageUrl !== null && (
+          <label className="background-choice">
+            <input type="radio" name={`background-${scene.id}`} checked readOnly />
+            <img src={scene.backgroundImageUrl} alt="" draggable={false} />
+            <span>{t('editor.scene.ownImage')}</span>
+          </label>
+        )}
+      </fieldset>
+
+      {uploadsEnabled && (
+        <div className="field">
+          <label htmlFor={uploadId} className="button upload-button" data-busy={uploading || undefined}>
+            {uploading ? t('editor.scene.uploading') : t('editor.scene.upload')}
+          </label>
+          <input
+            id={uploadId}
+            className="visually-hidden"
+            type="file"
+            accept={uploadContentTypes.join(',')}
+            disabled={uploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (file !== undefined) {
+                void upload(file)
+              }
+            }}
+          />
+          <p className="field-hint">{t('editor.scene.uploadHint')}</p>
+          {uploadError !== null && (
+            <p role="alert" className="error">
+              {t(errorKey(uploadError))}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="actions">
+        {isStart ? (
+          <p className="start-note">{t('editor.scene.isStart')}</p>
+        ) : (
+          <button type="button" onClick={onMakeStart}>
+            {t('editor.scene.makeStart')}
+          </button>
+        )}
+        {canRemove && (
+          <button type="button" className="danger" onClick={onRemove}>
+            {t('editor.scene.remove')}
+          </button>
+        )}
+      </div>
+    </section>
+  )
+}

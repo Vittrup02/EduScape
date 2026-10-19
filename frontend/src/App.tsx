@@ -4,6 +4,8 @@ import { logout } from './api/auth'
 import { LoginPage, RegisterPage } from './auth/AuthForm'
 import { RequireTeacher } from './auth/RequireTeacher'
 import { useTeacher } from './auth/useTeacher'
+import { EditorPage } from './editor/EditorPage'
+import { NewRoomPage } from './editor/NewRoomPage'
 import { HomePage } from './HomePage'
 import { LanguageSwitcher } from './i18n/LanguageSwitcher'
 import { JoinPage } from './play/JoinPage'
@@ -57,6 +59,8 @@ export function AppRoutes() {
           }
         >
           <Route index element={<TeacherHomePage />} />
+          <Route path="rooms/new" element={<NewRoomPage />} />
+          <Route path="rooms/:roomId/edit" element={<EditorPage />} />
           <Route path="rooms/:roomId/start" element={<StartSessionPage kind="room" />} />
           <Route path="templates/:roomId/start" element={<StartSessionPage kind="template" />} />
           <Route path="sessions/:sessionId" element={<SessionPage />} />

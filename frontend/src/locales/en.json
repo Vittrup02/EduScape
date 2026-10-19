@@ -43,7 +43,12 @@
     "activeSessionDetails": "{{className}} · PIN {{pin}}",
     "templatesTitle": "Templates",
     "noTemplates": "There are no templates yet.",
-    "startSession": "Start session"
+    "startSession": "Start session",
+    "newRoom": "New room",
+    "editRoom": "Edit",
+    "useTemplate": "Use template",
+    "copyingTemplate": "Copying...",
+    "templatesIntro": "Use a template to get your own copy that you can change."
   },
   "startSession": {
     "title": "Start a session",
@@ -82,6 +87,147 @@
     "noNickname": "No name",
     "backToRooms": "Back to my rooms"
   },
+  "editor": {
+    "loading": "Loading the room... If the server has been asleep, this can take up to a minute.",
+    "back": "Back to my rooms",
+    "title": "Title",
+    "titlePlaceholder": "E.g. The secret of fractions",
+    "titleRequired": "The room needs a title.",
+    "subject": "Subject",
+    "gradeLevel": "Grade level",
+    "gradeGroups": {
+      "primary": "Primary and lower secondary",
+      "secondary": "Upper secondary"
+    },
+    "undo": "Undo",
+    "redo": "Redo",
+    "reload": "Reload",
+    "scenes": "Scenes",
+    "save": {
+      "saved": "Saved",
+      "pending": "Changed",
+      "saving": "Saving...",
+      "waiting": "Not saved – fill in the empty fields",
+      "retrying": "Couldn't save – trying again",
+      "conflict": "Not saved"
+    },
+    "newRoom": {
+      "title": "New room",
+      "intro": "Give the room a title and choose a subject and grade level. You build the rest in the editor.",
+      "create": "Create room",
+      "creating": "Creating...",
+      "cancel": "Cancel"
+    },
+    "toolbox": {
+      "title": "For the room",
+      "hint": "Drag onto the picture – or click to place it in the middle.",
+      "add": "Add {{name}}"
+    },
+    "stage": {
+      "label": "Scene {{scene}}",
+      "empty": "Drag a lock, a letter or a door onto the picture.",
+      "objectLater": "{{name}} (appears later)"
+    },
+    "object": {
+      "lock": "The lock “{{question}}”",
+      "lockNumbered": "Lock {{n}}",
+      "letter": "The letter “{{text}}”",
+      "letterNumbered": "Letter {{n}}",
+      "door": "The door to {{scene}}",
+      "doorNumbered": "Door {{n}}",
+      "exitDoor": "The exit door"
+    },
+    "inspector": {
+      "done": "Done",
+      "removeLock": "Delete the lock",
+      "removeLetter": "Delete the letter",
+      "removeDoor": "Delete the door",
+      "removeExitDoor": "Delete the exit door"
+    },
+    "lock": {
+      "look": "Look",
+      "question": "Question",
+      "questionHint": "What students see when they click the lock.",
+      "answerType": "How do students answer?",
+      "answerTypes": {
+        "Code": "Code",
+        "Text": "Text or number",
+        "MultipleChoice": "Choose an answer"
+      },
+      "answerTypeDescriptions": {
+        "Code": "Must match character for character, e.g. 0427.",
+        "Text": "Upper and lower case don't matter, and 3,5 is the same as 3.5.",
+        "MultipleChoice": "Students pick one of your answers."
+      },
+      "correctAnswer": "The correct answer",
+      "tolerance": "Also accept answers within ±",
+      "toleranceHint": "E.g. 0.01, so rounded results are accepted too.",
+      "hint": "Hint",
+      "hintHint": "Shown automatically after the team has answered wrong 3 times.",
+      "removeHint": "Remove hint",
+      "addHint": "Add a hint",
+      "options": "Answer options",
+      "optionsHint": "Mark the correct answer.",
+      "markCorrect": "Option {{n}} is the correct answer",
+      "option": "Option {{n}}",
+      "removeOption": "Remove option {{n}}",
+      "removeOptionShort": "Remove",
+      "addOption": "Add option"
+    },
+    "letter": {
+      "text": "Text on the letter",
+      "textHint": "E.g. “Read page 42 in the book”."
+    },
+    "door": {
+      "target": "The door leads to",
+      "noTarget": "Choose a scene",
+      "newScene": "A new scene"
+    },
+    "exitDoor": {
+      "explanation": "The exit door opens when every lock in the room is solved. Then the students have escaped."
+    },
+    "unlockedBy": {
+      "label": "When can students see it?",
+      "hint": "This is how you set the order of the room.",
+      "fromStart": "Visible from the start",
+      "whenSolved": "Appears when {{name}} is solved",
+      "whenOpened": "Appears when {{name}} is opened"
+    },
+    "scene": {
+      "title": "The scene",
+      "name": "Name",
+      "nameRequired": "The scene needs a name.",
+      "background": "Background",
+      "ownImage": "Your image",
+      "upload": "Upload your own image",
+      "uploading": "Uploading...",
+      "uploadHint": "JPEG, PNG or WebP of at most 10 MB. Details such as location and camera are removed from the image.",
+      "isStart": "Students start in this scene.",
+      "makeStart": "Let students start here",
+      "remove": "Delete the scene",
+      "defaultName": "Scene {{n}}",
+      "unnamed": "Untitled",
+      "startBadge": "Start",
+      "add": "New scene"
+    },
+    "map": {
+      "title": "Map of the scenes",
+      "unreachable": "No door leads here.",
+      "start": "Start scene.",
+      "exit": "Has the exit door.",
+      "connection": "{{from}} leads to {{to}}",
+      "noDoors": "No doors between the scenes yet."
+    },
+    "validation": {
+      "ready": "The room is ready to try.",
+      "title": "Missing before the room can be played"
+    },
+    "preview": {
+      "button": "Try the room",
+      "opening": "Opening...",
+      "notSaved": "The room couldn't be saved. Check the title and the scene names, and try again."
+    }
+  },
   "join": {
     "title": "Join an escape room",
     "pin": "PIN",
@@ -103,6 +249,7 @@
     "individual": "You are playing on your own",
     "nickname": "You are in as {{nickname}}.",
     "leave": "Leave the session",
+    "preview": "Preview – only you can see it, and it isn't added to your history.",
     "joinAgain": "Join a new session",
     "noRoom": "This room cannot be played yet. Ask your teacher.",
     "scenes": "Scenes",

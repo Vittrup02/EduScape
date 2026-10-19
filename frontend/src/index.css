@@ -638,3 +638,747 @@ main.play {
 .escaped h2 {
   font-size: 2rem;
 }
+
+/* Shown at the top of the play view when a teacher is trying their own room. */
+.preview-banner {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 0.5rem solid #ffe27a;
+  background: rgb(255 226 122 / 15%);
+  font-weight: 600;
+}
+
+/* Shared by the editor and available elsewhere. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Plain-looking buttons for secondary actions, still with a large click target. */
+button.quiet {
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+button.quiet:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+button.danger {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+button:focus-visible,
+.button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--focus, var(--text));
+  outline-offset: 2px;
+}
+
+select,
+textarea {
+  min-height: 2.75rem;
+  padding: 0.4rem 0.75rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.room-list li .room-actions > .room-action {
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   The room editor: a calm work desk with the scene on it, a sheet of stickers on the left and one paper sheet on
+   the right. The only flourish is a sticker lifting off when dragged and pressing down when dropped.
+   --------------------------------------------------------------------------------------------------------------- */
+
+main.editor {
+  --desk: #e4eaee;
+  --paper: #ffffff;
+  --ink: #1d2b3a;
+  --signal: #ffe27a;
+  --focus: #1d2b3a;
+  --lift-shadow: drop-shadow(0 0.7rem 0.6rem rgb(29 43 58 / 35%));
+
+  max-width: none;
+  min-height: calc(100vh - 3.5rem);
+  padding: 0;
+  background: var(--desk);
+}
+
+@media (prefers-color-scheme: dark) {
+  main.editor {
+    --desk: #1e2530;
+    --paper: #16171d;
+    --ink: #f3f4f6;
+    --focus: #ffe27a;
+  }
+}
+
+.editor-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.editor-bar > .error {
+  grid-column: 1 / -1;
+}
+
+.back-link {
+  white-space: nowrap;
+}
+
+/* Title, subject and grade level on one line: the title takes the room that is left. */
+.room-details-form {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(0, 12rem) minmax(0, 9rem);
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.room-details-form select {
+  width: 100%;
+}
+
+/* The title reads as the page heading and is edited in place. */
+.room-title-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.55rem;
+  font-weight: 700;
+}
+
+.room-title-input:hover,
+.room-title-input:focus {
+  border-color: var(--muted);
+}
+
+.room-title-input[aria-invalid] {
+  border-color: var(--error);
+}
+
+/* Undo, redo and whether it is saved, right above the work. */
+.stage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.stage-toolbar button {
+  background: var(--paper);
+}
+
+.save-status {
+  margin: 0 0 0 auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.save-status[data-status='retrying'],
+.save-status[data-status='waiting'],
+.save-status[data-status='conflict'] {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.preview .error {
+  max-width: 20rem;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: 10.5rem minmax(0, 1fr) minmax(18rem, 23rem);
+  align-items: start;
+  gap: 1.25rem;
+  padding: 1.25rem 1rem 2rem;
+}
+
+/* The sticker sheet: stickers lie directly on the desk, with no cards around them. */
+.toolbox-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.toolbox-hint {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.stickers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sticker {
+  width: 100%;
+  min-height: 4.5rem;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-color: transparent;
+  color: var(--ink);
+  cursor: grab;
+  touch-action: none;
+}
+
+.sticker:hover {
+  border-color: var(--muted);
+}
+
+.sticker .object-graphic {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  transition: transform 120ms ease-out;
+}
+
+.sticker:hover .object-graphic {
+  transform: rotate(-3deg);
+}
+
+.sticker[data-lifted] {
+  opacity: 0.45;
+}
+
+.sticker-name {
+  text-align: left;
+  line-height: 1.2;
+}
+
+/* The sticker under the pointer while dragging; it has the size it will have on the scene. */
+.sticker-ghost {
+  position: fixed;
+  z-index: 20;
+  width: 5rem;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.sticker-ghost .object-graphic {
+  display: block;
+  width: 100%;
+  transform: scale(1.06) rotate(-3deg);
+  filter: var(--lift-shadow);
+}
+
+/* Over the scene, a ring shows where it will land. */
+.sticker-ghost[data-over-stage]::after {
+  position: absolute;
+  inset: -0.4rem;
+  z-index: -1;
+  border: 4px solid var(--signal);
+  border-radius: 50%;
+  content: "";
+}
+
+.stage-column {
+  min-width: 0;
+}
+
+.editor-stage {
+  margin: 0;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.stage-empty {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 85%);
+  color: #1d2b3a;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.stage-object {
+  cursor: grab;
+  touch-action: none;
+}
+
+.stage-object[data-dragging] {
+  z-index: 2;
+  cursor: grabbing;
+}
+
+.stage-object[aria-pressed='true'] {
+  outline: 4px solid var(--signal);
+  outline-offset: 3px;
+}
+
+/* Objects that appear later are still shown to the teacher, with a dashed outline. */
+.stage-object[data-waits]:not([aria-pressed='true']) {
+  outline: 3px dashed rgb(255 255 255 / 85%);
+  outline-offset: 3px;
+}
+
+.stage-object .object-graphic {
+  transition: transform 120ms ease-out;
+}
+
+.stage-object[data-dragging] .object-graphic {
+  transform: scale(1.06) rotate(-3deg);
+  filter: var(--lift-shadow);
+}
+
+.stage-object[data-pressed] .object-graphic {
+  animation: sticker-press 240ms ease-out;
+}
+
+@keyframes sticker-press {
+  0% { transform: scale(1.06) rotate(-3deg); }
+  55% { transform: scale(0.96) rotate(0deg); }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker .object-graphic,
+  .stage-object .object-graphic {
+    transition: none;
+  }
+
+  .sticker:hover .object-graphic,
+  .stage-object[data-dragging] .object-graphic,
+  .sticker-ghost .object-graphic {
+    transform: none;
+  }
+
+  .stage-object[data-pressed] .object-graphic {
+    animation: asset-fade 150ms ease-out;
+  }
+}
+
+/* Scenes under the stage, each a small picture of itself. */
+.scene-strip ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scene-tab {
+  position: relative;
+  flex-direction: column;
+  width: 8.5rem;
+  min-height: 5.5rem;
+  padding: 0.25rem;
+  overflow: hidden;
+  border-color: transparent;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.scene-tab img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+
+.scene-tab-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-tab[aria-current='true'] {
+  border-color: var(--ink);
+  box-shadow: inset 0 -0.3rem 0 var(--signal);
+}
+
+.scene-tab-start {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  padding: 0 0.4rem;
+  border-radius: 0.25rem;
+  background: var(--signal);
+  color: #1d2b3a;
+  font-size: 0.75rem;
+}
+
+.add-scene {
+  border: 2px dashed var(--muted);
+  background: transparent;
+}
+
+/* The one paper sheet: settings for what is selected, the map and what is missing. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.75rem;
+  background: var(--paper);
+}
+
+.panel > section + section,
+.panel > section + .validation-ok {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--muted);
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.inspector,
+.scene-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inspector > .danger {
+  align-self: flex-start;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field input:not([type='radio'], [type='file']),
+.option-row input:not([type='radio']) {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.field input[aria-invalid] {
+  border-color: var(--error);
+}
+
+.field-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.short-input {
+  max-width: 8rem;
+}
+
+.panel fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.panel legend {
+  margin-bottom: 0.4rem;
+  padding: 0;
+  font-weight: 600;
+}
+
+/* Radio choices are whole clickable rows; the chosen one gets the ink border and a yellow edge. */
+.answer-type,
+.look-choice,
+.background-choice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.answer-type:has(input:checked),
+.look-choice:has(input:checked),
+.background-choice:has(input:checked) {
+  border-color: var(--ink);
+  box-shadow: inset 0.35rem 0 0 var(--signal);
+}
+
+.answer-type input,
+.look-choice input,
+.background-choice input,
+.option-row input[type='radio'] {
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0;
+}
+
+.answer-type input {
+  grid-row: span 2;
+}
+
+.answer-type-name {
+  font-weight: 600;
+}
+
+.answer-type-description {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.look-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.look-choice {
+  grid-template-columns: auto 2rem minmax(0, 1fr);
+  justify-content: start;
+  padding-inline: 0.5rem;
+}
+
+.look-choice .object-graphic {
+  width: 2.25rem;
+}
+
+.panel .backgrounds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.background-choice {
+  grid-template-rows: auto auto;
+  padding: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.background-choice input {
+  grid-row: 2;
+}
+
+.background-choice img {
+  grid-column: 1 / -1;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 0.3rem;
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+
+.option-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button.add,
+.upload-button {
+  align-self: flex-start;
+}
+
+.upload-button[data-busy] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.start-note {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 0.35rem solid var(--signal);
+  font-weight: 600;
+}
+
+/* The map: scenes as small labelled boxes, doors as arrows between them. */
+.scene-map-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 24rem;
+  margin-top: 0.75rem;
+}
+
+.scene-map-canvas svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.map-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.map-arrowhead {
+  fill: var(--ink);
+}
+
+.map-node {
+  position: absolute;
+  min-height: 0;
+  padding: 0 0.25rem;
+  border-color: var(--ink);
+  border-radius: 0.4rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1.1;
+}
+
+.map-node-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-node[data-start] {
+  border-width: 4px;
+}
+
+.map-node[aria-current='true'] {
+  background: var(--signal);
+  color: #1d2b3a;
+}
+
+.map-node[data-unreachable] {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.map-connections {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  list-style: none;
+}
+
+.validation ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.validation-item {
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.6rem;
+  font-weight: 400;
+  text-align: left;
+  text-decoration: none;
+}
+
+.validation-object {
+  font-weight: 700;
+}
+
+.validation-ok {
+  margin: 0;
+  color: var(--ok);
+  font-weight: 600;
+}
+
+/* Tablets and narrow windows: stickers in a row above the scene, the sheet below it. */
+@media (max-width: 64rem) {
+  .workbench,
+  .editor-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-bar .preview {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .room-details-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .room-title-input {
+    grid-column: 1 / -1;
+  }
+
+  .stickers {
+    flex-flow: row wrap;
+  }
+
+  .sticker {
+    width: auto;
+  }
+}
