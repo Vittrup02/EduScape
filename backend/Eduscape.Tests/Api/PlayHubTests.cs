@@ -42,6 +42,25 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
     }
 
     [PostgresFact]
+    public async Task ClosingTheSession_TellsEveryTeamsDevices()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = await PlayTestRoom.AddAsync(factory, teacher.Id);
+        var session = await SessionApi.StartSessionAsync(teacher.Client, room.Room.Id, teamCount: 2);
+        var ida = await JoinAsync(session, session.Teams[0].Id);
+        var bo = await JoinAsync(session, session.Teams[1].Id);
+        await using var idaDevice = await TeamDevice.ConnectAsync(factory);
+        await using var boDevice = await TeamDevice.ConnectAsync(factory);
+        Assert.Null(await idaDevice.SubscribeAsync(ida));
+        Assert.Null(await boDevice.SubscribeAsync(bo));
+
+        (await SessionApi.PostAsync(teacher.Client, session.Id, "close")).EnsureSuccessStatusCode();
+
+        Assert.Equal("SessionClosed", await idaDevice.NextEventAsync());
+        Assert.Equal("SessionClosed", await boDevice.NextEventAsync());
+    }
+
+    [PostgresFact]
     public async Task TeamProgress_IsPushedToTeammates_ButNotToOtherTeams()
     {
         var (room, session) = await StartAsync();
@@ -118,6 +137,7 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
             _connection.On<Guid, string>(nameof(IPlayClient.HintRevealed), (id, hint) => Record($"HintRevealed {id} {hint}"));
             _connection.On<Guid>(nameof(IPlayClient.DoorOpened), id => Record($"DoorOpened {id}"));
             _connection.On(nameof(IPlayClient.TeamEscaped), () => Record("TeamEscaped"));
+            _connection.On(nameof(IPlayClient.SessionClosed), () => Record("SessionClosed"));
         }
 
         public bool HasEvents => _events.Reader.TryPeek(out _);
@@ -166,6 +186,9 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
         public Task TeamEscapedAsync(Guid teamId) => Record($"TeamEscaped {teamId}");
 
         public Task TeamChangedAsync(Guid participantId) => Record($"TeamChanged {participantId}");
+
+        public Task SessionClosedAsync(IReadOnlyCollection<Guid> teamIds) =>
+            Record($"SessionClosed {string.Join(' ', teamIds.Order())}");
 
         private Task Record(string text)
         {

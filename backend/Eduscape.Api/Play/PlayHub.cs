@@ -24,6 +24,9 @@ public interface IPlayClient
     /// again (a new connection, so it leaves the old team's group) and fetches the new team's state.
     /// </summary>
     Task TeamChanged();
+
+    /// <summary>The teacher closed the session. The device forgets its token and stops showing the room.</summary>
+    Task SessionClosed();
 }
 
 /// <summary>
@@ -86,6 +89,8 @@ public interface ITeamNotifier
     Task TeamEscapedAsync(Guid teamId);
 
     Task TeamChangedAsync(Guid participantId);
+
+    Task SessionClosedAsync(IReadOnlyCollection<Guid> teamIds);
 }
 
 internal sealed class SignalRTeamNotifier(IHubContext<PlayHub, IPlayClient> hub) : ITeamNotifier
@@ -100,6 +105,9 @@ internal sealed class SignalRTeamNotifier(IHubContext<PlayHub, IPlayClient> hub)
 
     public Task TeamChangedAsync(Guid participantId) =>
         hub.Clients.Group(PlayHub.ParticipantGroup(participantId)).TeamChanged();
+
+    public Task SessionClosedAsync(IReadOnlyCollection<Guid> teamIds) =>
+        teamIds.Count == 0 ? Task.CompletedTask : hub.Clients.Groups([.. teamIds.Select(PlayHub.TeamGroup)]).SessionClosed();
 
     private IPlayClient Team(Guid teamId) => hub.Clients.Group(PlayHub.TeamGroup(teamId));
 }
