@@ -142,7 +142,7 @@ public static class TeacherSessionEndpoints
 
     /// <summary>
     /// Ends the session: the PIN stops working at once and is released for other sessions. The students' data is
-    /// erased shortly after; the teams' results stay without names.
+    /// erased shortly after (see <see cref="StudentDataCleanup"/>); the teams' results stay without names.
     /// </summary>
     private static Task<Results<NoContent, NotFound>> CloseAsync(
         Guid id,

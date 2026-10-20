@@ -85,7 +85,7 @@ public sealed class SessionStarter(
     private async Task<Session> SaveWithFreePinAsync(
         Func<string, Task<Session>> createSession, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        await CloseExpiredSessionsAsync(now, cancellationToken);
+        await ExpiredSessions.CloseAsync(db, now, cancellationToken);
 
         for (var attempt = 1; ; attempt++)
         {
@@ -106,19 +106,6 @@ public sealed class SessionStarter(
             }
         }
     }
-
-    /// <summary>
-    /// Closes every session whose PIN has expired, as of its expiry time (like <see cref="Session.CloseIfExpired"/>),
-    /// which releases the PINs for reuse.
-    /// </summary>
-    private Task<int> CloseExpiredSessionsAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
-        db.Sessions
-            .Where(s => s.Status != SessionStatus.Closed && s.ExpiresAt <= now)
-            .ExecuteUpdateAsync(
-                update => update
-                    .SetProperty(s => s.Status, SessionStatus.Closed)
-                    .SetProperty(s => s.ClosedAt, s => s.ExpiresAt),
-                cancellationToken);
 
     /// <summary>A class is just a label: "9.A" and " 9.a " are the same class of the same teacher.</summary>
     private async Task<Class> FindOrAddClassAsync(Guid teacherId, string? name, CancellationToken cancellationToken)
