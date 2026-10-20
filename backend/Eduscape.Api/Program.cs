@@ -32,7 +32,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<ErrorCodeExceptionHandler>();
 
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
-builder.Services.AddTeacherAuth();
+builder.Services.AddTeacherAuth(builder.Configuration, builder.Environment);
 builder.Services.AddSessions(builder.Configuration);
 builder.Services.AddPlay();
 builder.Services.AddSingleton<ImageUrls>();

@@ -19,7 +19,10 @@ public static class AuthServiceCollectionExtensions
     /// <summary>Identity's limit on e-mail and user name columns.</summary>
     public const int MaxEmailLength = 256;
 
-    public static IServiceCollection AddTeacherAuth(this IServiceCollection services)
+    public static IServiceCollection AddTeacherAuth(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         services.AddIdentityCore<Teacher>(options =>
             {
@@ -67,10 +70,12 @@ public static class AuthServiceCollectionExtensions
 
         // Tokens are protected with the Data Protection key ring. Render's file system is ephemeral and the service
         // restarts after sleeping, so the keys live in the database; otherwise every restart would sign everyone out.
-        // The key ring is loaded on first use, not at startup.
+        // The key ring is loaded on first use, not at startup. Outside Development the keys are encrypted with a
+        // certificate from a Render secret file, so a database dump alone cannot forge tokens (see KeyEncryption).
         services.AddDataProtection()
             .SetApplicationName("eduscape")
-            .PersistKeysToDbContext<EduscapeDbContext>();
+            .PersistKeysToDbContext<EduscapeDbContext>()
+            .ProtectKeysWithConfiguredCertificate(configuration, environment);
 
         return services;
     }
