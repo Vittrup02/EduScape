@@ -7,15 +7,16 @@
     "name": "English",
     "switcherLabel": "Language"
   },
-  "health": {
-    "checking": "Connecting to the server...",
-    "online": "The server is responding",
-    "offline": "The server isn't responding right now"
+  "backend": {
+    "waking": "Getting ready … this can take up to a minute the first time."
   },
   "home": {
+    "tagline": "Escape rooms for the classroom. The teacher builds the room, and the students solve the puzzles together to break out.",
     "teacherLogin": "Log in as a teacher",
     "teacherHome": "Go to my rooms",
-    "joinAsStudent": "Join with a PIN"
+    "joinAsStudent": "Join with a PIN",
+    "newTeacher": "New teacher?",
+    "createAccount": "Create a teacher account"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -36,7 +37,7 @@
   },
   "teacher": {
     "roomsTitle": "My rooms",
-    "loadingRooms": "Loading your rooms... If the server has been asleep, this can take up to a minute.",
+    "loadingRooms": "Loading your rooms...",
     "noRooms": "You don't have any rooms yet.",
     "roomDetails": "{{subject}} · {{gradeLevel}}",
     "activeSessionsTitle": "Running sessions",
@@ -80,7 +81,7 @@
     "closeConfirm": "Close the session? Students cannot keep playing, and this cannot be undone.",
     "closeConfirmYes": "Yes, close the session",
     "closeConfirmNo": "Cancel",
-    "connecting": "Connecting to the live overview... If the server has been asleep, this can take up to a minute.",
+    "connecting": "Connecting to the live overview...",
     "showPin": "Show the PIN on the board",
     "hidePin": "Close",
     "teamsTitle": "Teams",
@@ -101,7 +102,7 @@
     "backToRooms": "Back to my rooms"
   },
   "editor": {
-    "loading": "Loading the room... If the server has been asleep, this can take up to a minute.",
+    "loading": "Loading the room...",
     "back": "Back to my rooms",
     "title": "Title",
     "titlePlaceholder": "E.g. The secret of fractions",

@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
 import { logout } from './api/auth'
+import { checkHealth } from './api/client'
 import { LoginPage, RegisterPage } from './auth/AuthForm'
 import { RequireTeacher } from './auth/RequireTeacher'
 import { useTeacher } from './auth/useTeacher'
@@ -13,11 +15,24 @@ import { PlayPage } from './play/PlayPage'
 import { SessionPage } from './teacher/SessionPage'
 import { StartSessionPage } from './teacher/StartSessionPage'
 import { TeacherHomePage } from './teacher/TeacherHomePage'
+import { WakeUpNotice } from './WakeUpNotice'
 
-/** Header on every page: the language switcher for everyone, and logout for a signed-in teacher. */
+/**
+ * Around every page: the language switcher for everyone, logout for a signed-in teacher, and the "getting ready"
+ * notice while the backend wakes up.
+ */
 function Layout() {
   const { t } = useTranslation()
   const teacher = useTeacher()
+
+  // Wakes the backend (Render free tier) as soon as anyone opens the app, whichever page they land on.
+  useEffect(() => {
+    const controller = new AbortController()
+    void checkHealth(controller.signal)
+    return () => {
+      controller.abort()
+    }
+  }, [])
 
   return (
     <>
@@ -37,6 +52,7 @@ function Layout() {
           <LanguageSwitcher />
         </div>
       </header>
+      <WakeUpNotice />
       <Outlet />
     </>
   )

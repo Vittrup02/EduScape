@@ -1,7 +1,7 @@
-import { useEffect, useId, useState, type SubmitEvent } from 'react'
+import { useId, useState, type SubmitEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router'
-import { ApiError, checkHealth } from '../api/client'
+import { ApiError } from '../api/client'
 import { loadDeviceToken, saveDeviceToken } from '../api/deviceStorage'
 import { joinSession, lookupPin, type LookupResult } from '../api/play'
 import { errorKey } from '../i18n/errors'
@@ -31,15 +31,6 @@ export function JoinPage() {
   const [nickname, setNickname] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-
-  // Wakes the backend (Render free tier) while the student types the PIN.
-  useEffect(() => {
-    const controller = new AbortController()
-    void checkHealth(controller.signal)
-    return () => {
-      controller.abort()
-    }
-  }, [])
 
   if (hasToken) {
     return <Navigate to="/play" replace />

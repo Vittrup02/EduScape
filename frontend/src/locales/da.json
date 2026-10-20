@@ -7,15 +7,16 @@
     "name": "Dansk",
     "switcherLabel": "Sprog"
   },
-  "health": {
-    "checking": "Forbinder til serveren...",
-    "online": "Serveren svarer",
-    "offline": "Serveren svarer ikke lige nu"
+  "backend": {
+    "waking": "Gør klar … det tager op til et minut første gang."
   },
   "home": {
+    "tagline": "Escape rooms til undervisningen. Læreren bygger rummet, og eleverne løser gåderne sammen for at bryde ud.",
     "teacherLogin": "Log ind som lærer",
     "teacherHome": "Gå til mine rum",
-    "joinAsStudent": "Deltag med PIN-kode"
+    "joinAsStudent": "Deltag med PIN-kode",
+    "newTeacher": "Ny lærer?",
+    "createAccount": "Opret en lærerkonto"
   },
   "auth": {
     "loginTitle": "Log ind",
@@ -36,7 +37,7 @@
   },
   "teacher": {
     "roomsTitle": "Mine rum",
-    "loadingRooms": "Henter dine rum... Har serveren sovet, kan det tage op til et minut.",
+    "loadingRooms": "Henter dine rum...",
     "noRooms": "Du har ingen rum endnu.",
     "roomDetails": "{{subject}} · {{gradeLevel}}",
     "activeSessionsTitle": "Igangværende sessioner",
@@ -80,7 +81,7 @@
     "closeConfirm": "Vil du lukke sessionen? Eleverne kan ikke spille videre, og det kan ikke fortrydes.",
     "closeConfirmYes": "Ja, luk sessionen",
     "closeConfirmNo": "Fortryd",
-    "connecting": "Forbinder til live-overblikket... Har serveren sovet, kan det tage op til et minut.",
+    "connecting": "Forbinder til live-overblikket...",
     "showPin": "Vis PIN-koden på tavlen",
     "hidePin": "Luk",
     "teamsTitle": "Hold",
@@ -101,7 +102,7 @@
     "backToRooms": "Tilbage til mine rum"
   },
   "editor": {
-    "loading": "Henter rummet... Har serveren sovet, kan det tage op til et minut.",
+    "loading": "Henter rummet...",
     "back": "Tilbage til mine rum",
     "title": "Titel",
     "titlePlaceholder": "Fx Brøkernes hemmelighed",
