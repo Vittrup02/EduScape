@@ -9,16 +9,24 @@ public class EscapeRoomValidationTests
 
     private static Lock NewLock() => new(Center, "lock.png", null, "?", AnswerType.Code, "1");
 
+    /// <summary>A room with one scene and an exit door visible from the start, so each test adds only what it checks.</summary>
     private static (EscapeRoom Room, Scene Scene) NewRoom()
     {
+        var (room, scene) = EmptyRoom();
+        scene.AddObject(new ExitDoor(Center, "exit.png", null));
+        return (room, scene);
+    }
+
+    private static (EscapeRoom Room, Scene Scene) EmptyRoom()
+    {
         var room = new EscapeRoom("Rum", Subject.Danish, GradeLevel.Grade5);
-        return (room, room.AddScene("Scene", "s.jpg"));
+        return (room, room.AddScene("Start", "s.jpg"));
     }
 
     [Fact]
     public void ValidRoom_HasNoErrors()
     {
-        var (room, scene) = NewRoom();
+        var (room, scene) = EmptyRoom();
         var second = room.AddScene("Anden", "s2.jpg");
         var lockA = scene.AddObject(NewLock());
         var door = scene.AddObject(new Door(Center, "door.png", null, second.Id));
@@ -29,13 +37,78 @@ public class EscapeRoomValidationTests
     }
 
     [Fact]
-    public void RoomWithoutScenes_ReportsMissingStartScene()
+    public void RoomWithoutScenes_ReportsMissingStartSceneAndExitDoor()
     {
         var room = new EscapeRoom("Tomt", Subject.Danish, GradeLevel.Grade5);
 
-        var error = Assert.Single(room.Validate());
+        Assert.Equal(
+            [
+                new RoomValidationError(DomainErrors.StartSceneMissing, null),
+                new RoomValidationError(DomainErrors.ExitDoorMissing, null),
+            ],
+            room.Validate());
+    }
 
-        Assert.Equal(new RoomValidationError(DomainErrors.StartSceneMissing, null), error);
+    [Fact]
+    public void RoomWithoutExitDoor_IsReported()
+    {
+        var (room, scene) = EmptyRoom();
+        scene.AddObject(NewLock());
+
+        Assert.Equal([new RoomValidationError(DomainErrors.ExitDoorMissing, null)], room.Validate());
+    }
+
+    [Fact]
+    public void LocksAndExitDoorInASceneNoDoorLeadsTo_AreUnreachable()
+    {
+        var (room, scene) = EmptyRoom();
+        scene.AddObject(NewLock());
+        var hidden = room.AddScene("Gemt", "s2.jpg");
+        var hiddenLock = hidden.AddObject(NewLock());
+        var exit = hidden.AddObject(new ExitDoor(Center, "exit.png", null));
+        hidden.AddObject(new Letter(Center, "letter.png", "Et brev, ingen kan nå, spærrer ikke for noget."));
+
+        Assert.Equal(
+            [
+                new RoomValidationError(DomainErrors.ObjectUnreachable, hiddenLock.Id),
+                new RoomValidationError(DomainErrors.ObjectUnreachable, exit.Id),
+            ],
+            room.Validate());
+    }
+
+    [Fact]
+    public void DoorWaitingForALockBehindItself_LeavesTheSceneUnreachable()
+    {
+        var (room, start) = EmptyRoom();
+        var lab = room.AddScene("Lab", "s2.jpg");
+        var door = start.AddObject(new Door(Center, "door.png", null, lab.Id));
+        var labLock = lab.AddObject(NewLock());
+        var exit = lab.AddObject(new ExitDoor(Center, "exit.png", null));
+        door.SetUnlockedBy(labLock);
+
+        Assert.Equal(
+            [
+                new RoomValidationError(DomainErrors.ObjectUnreachable, labLock.Id),
+                new RoomValidationError(DomainErrors.ObjectUnreachable, exit.Id),
+            ],
+            room.Validate());
+    }
+
+    [Fact]
+    public void SceneReachedThroughAChainOfLocksAndDoors_IsReachable()
+    {
+        var (room, start) = EmptyRoom();
+        var lab = room.AddScene("Lab", "s2.jpg");
+        var basement = room.AddScene("Kælder", "s3.jpg");
+        var first = start.AddObject(NewLock());
+        start.AddObject(new Door(Center, "door.png", null, lab.Id)).SetUnlockedBy(first);
+        var labLock = lab.AddObject(NewLock());
+        // Back in the start scene, a door appears once the lab's lock is solved.
+        var toBasement = start.AddObject(new Door(Center, "door.png", null, basement.Id));
+        toBasement.SetUnlockedBy(labLock);
+        basement.AddObject(new ExitDoor(Center, "exit.png", null)).SetUnlockedBy(toBasement);
+
+        Assert.Empty(room.Validate());
     }
 
     [Fact]
@@ -100,8 +173,13 @@ public class EscapeRoomValidationTests
 
         var errors = room.Validate();
 
-        Assert.All(errors, e => Assert.Equal(DomainErrors.UnlockedByCycle, e.Code));
-        Assert.Equal(new[] { a.Id, b.Id, c.Id }.Order(), errors.Select(e => e.ObjectId!.Value).Order());
+        var cycle = errors.Where(e => e.Code == DomainErrors.UnlockedByCycle);
+        Assert.Equal(new[] { a.Id, b.Id, c.Id }.Order(), cycle.Select(e => e.ObjectId!.Value).Order());
+
+        // The lock after the cycle can never appear either; the locks in the cycle already say why.
+        Assert.Equal(
+            new RoomValidationError(DomainErrors.ObjectUnreachable, outside.Id),
+            Assert.Single(errors, e => e.Code != DomainErrors.UnlockedByCycle));
     }
 
     [Fact]

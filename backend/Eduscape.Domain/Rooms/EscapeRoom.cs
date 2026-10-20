@@ -182,7 +182,8 @@ public sealed class EscapeRoom
 
     /// <summary>
     /// Finds problems that make the room unplayable: no start scene, unfinished locks and letters, broken or circular
-    /// unlockedBy references, and doors without a target scene in this room.
+    /// unlockedBy references, doors without a target scene in this room, and a room students can never escape from
+    /// (no exit door, or locks and exit doors they can never reach).
     /// </summary>
     public IReadOnlyList<RoomValidationError> Validate()
     {
@@ -192,8 +193,14 @@ public sealed class EscapeRoom
             errors.Add(new RoomValidationError(DomainErrors.StartSceneMissing, null));
         }
 
+        if (!Objects.OfType<ExitDoor>().Any())
+        {
+            errors.Add(new RoomValidationError(DomainErrors.ExitDoorMissing, null));
+        }
+
         var objects = Objects.ToDictionary(o => o.Id);
         var sceneIds = _scenes.Select(s => s.Id).ToHashSet();
+        var brokenUnlockedBy = new HashSet<Guid>();
 
         foreach (var roomObject in objects.Values)
         {
@@ -203,6 +210,7 @@ public sealed class EscapeRoom
             if (unlockedByError is not null)
             {
                 errors.Add(new RoomValidationError(unlockedByError, roomObject.Id));
+                brokenUnlockedBy.Add(roomObject.Id);
             }
 
             if (roomObject is Door door && (door.TargetSceneId is not { } target || !sceneIds.Contains(target)))
@@ -211,7 +219,46 @@ public sealed class EscapeRoom
             }
         }
 
+        // Objects with a broken unlockedBy are unreachable as well, but their own error already says why.
+        if (StartScene is not null)
+        {
+            errors.AddRange(UnreachableObjects()
+                .Where(o => !brokenUnlockedBy.Contains(o.Id))
+                .Select(o => new RoomValidationError(DomainErrors.ObjectUnreachable, o.Id)));
+        }
+
         return errors;
+    }
+
+    /// <summary>
+    /// Plays the room like a team that solves every lock and opens every door it can see, until nothing new appears.
+    /// Locks and exit doors still out of reach can then never be completed, so the team can never escape: no door
+    /// leads to their scene, or they wait for something behind themselves (e.g. a door that waits for a lock in the
+    /// scene the door leads to).
+    /// </summary>
+    private IEnumerable<RoomObject> UnreachableObjects()
+    {
+        var solved = new HashSet<Guid>();
+        var opened = new HashSet<Guid>();
+        bool progressed;
+        do
+        {
+            var progress = new RoomProgress(this, solved, opened);
+            progressed = false;
+            foreach (var roomObject in Objects.Where(progress.IsAvailable))
+            {
+                progressed |= roomObject switch
+                {
+                    Lock => solved.Add(roomObject.Id),
+                    Door => opened.Add(roomObject.Id),
+                    _ => false,
+                };
+            }
+        }
+        while (progressed);
+
+        var final = new RoomProgress(this, solved, opened);
+        return Objects.Where(o => o is Lock or ExitDoor && !final.IsAvailable(o));
     }
 
     private static string? ValidateUnlockedBy(RoomObject roomObject, Dictionary<Guid, RoomObject> objects)

@@ -56,6 +56,10 @@ test('a teacher builds a room with a lock and a door, and tries it', async ({ pa
   await page.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /^Scene 2/ }).click()
   await expect(page.getByRole('region', { name: 'Scenen Scene 2' })).toBeVisible()
   await page.getByLabel('Fortællertekst').fill('Døren smækker bag jer. Nu er I alene i mørket.')
+  // Without an exit door the students could never break out, so the editor asks for one.
+  await expect(page.getByText(/Rummet har ingen slutdør/)).toBeVisible()
+  await dragTo(page, page.getByRole('button', { name: 'Tilføj Slutdør' }), page.getByRole('region', { name: 'Scenen Scene 2' }), 80, 55)
+  await expect(panel.getByRole('heading', { name: 'Slutdøren' })).toBeVisible()
   await page.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /^Scene 1/ }).click()
 
   // A new door leads to the other scene; it should appear once the lock is solved.
