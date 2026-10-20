@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import type { EditorObject, EditorRoom, RoomDocument } from '../api/editor'
 import { subjects, type Subject } from '../api/teacher'
 
@@ -59,6 +59,7 @@ const statusKeys: Record<SaveStatus, `editor.save.${SaveStatus}`> = {
  */
 export function Editor({ room }: { room: EditorRoom }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const history = useHistory(toDocument(room))
   const document = history.present
   const autosave = useAutosave(room.id, document, room)
@@ -204,6 +205,21 @@ export function Editor({ room }: { room: EditorRoom }) {
             }}
           />
         </div>
+        {/* Once nothing is missing, the teacher can go straight on to the class; the last change is saved first. */}
+        {autosave.validationErrors.length === 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              void autosave.flush().then(async (saved) => {
+                if (saved) {
+                  await navigate(`/teacher/rooms/${room.id}/start`)
+                }
+              })
+            }
+          >
+            {t('teacher.startSession')}
+          </button>
+        )}
         <PreviewButton roomId={room.id} flush={autosave.flush} />
         {document.title.trim() === '' && <p className="error">{t('editor.titleRequired')}</p>}
         {autosave.status === 'conflict' && (
