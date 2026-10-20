@@ -257,3 +257,61 @@ describe('playing a room', () => {
     expect(screen.getByRole('heading', { name: 'I er brudt ud!' })).toBeInTheDocument()
   })
 })
+
+describe("telling the teacher's dashboard where the student is", () => {
+  beforeEach(() => {
+    saveDeviceToken('token-1')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    saveDeviceToken(null)
+  })
+
+  const reportScene = () => new Response(null, { status: 204 })
+
+  it('reports the start scene and every scene the student moves to', async () => {
+    const fetchMock = serve(() => playState({ solvedLockIds: ['code-lock', 'text-lock'], openedDoorIds: ['door'] }), [], {
+      '/api/play/scene': reportScene,
+    })
+    await renderPlay()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteket' }))
+    await screen.findByRole('region', { name: 'Biblioteket' })
+
+    const reported = () => callsTo(fetchMock, '/api/play/scene').map(([, init]) => bodyOf(init))
+    await vi.waitFor(() => {
+      expect(reported()).toEqual([
+        { deviceToken: 'token-1', sceneId: 'classroom' },
+        { deviceToken: 'token-1', sceneId: 'library' },
+      ])
+    })
+  })
+
+  it('switches to the new team when the teacher moves the student', async () => {
+    let state = playState({ solvedLockIds: ['code-lock', 'text-lock'], openedDoorIds: ['door'] })
+    const fetchMock = serve(() => state, [], { '/api/play/scene': reportScene })
+    await renderPlay()
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteket' }))
+    await screen.findByRole('region', { name: 'Biblioteket' })
+    const firstHub = latestHub()
+
+    // The new team has not opened the door to the library yet.
+    state = playState({ id: 'blue', color: 'Blue' })
+    act(() => {
+      firstHub.handlers.teamChanged()
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Du er på Hold Blå' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Klasselokalet' })).toBeInTheDocument()
+    // A fresh connection, so the old team's events no longer arrive.
+    expect(firstHub.subscribedTokens).toEqual(['token-1', 'token-1'])
+    expect(callsTo(fetchMock, '/api/play/reconnect')).toHaveLength(2)
+    await vi.waitFor(() => {
+      expect(bodyOf(callsTo(fetchMock, '/api/play/scene').at(-1)?.[1])).toEqual({
+        deviceToken: 'token-1',
+        sceneId: 'classroom',
+      })
+    })
+  })
+})

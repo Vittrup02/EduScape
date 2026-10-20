@@ -7,6 +7,8 @@ export interface PlayHubEvents {
   hintRevealed(lockId: string, hint: string): void
   doorOpened(doorId: string): void
   teamEscaped(): void
+  /** Sent to this student only: the teacher moved them to another team, whose state must be fetched. */
+  teamChanged(): void
 }
 
 export interface PlayHubHandlers extends PlayHubEvents {
@@ -53,6 +55,9 @@ export function createPlayHub(handlers: PlayHubHandlers): PlayHub {
   })
   connection.on('TeamEscaped', () => {
     handlers.teamEscaped()
+  })
+  connection.on('TeamChanged', () => {
+    handlers.teamChanged()
   })
   connection.onreconnecting(() => {
     handlers.reconnecting()

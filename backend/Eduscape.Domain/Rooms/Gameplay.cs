@@ -41,7 +41,7 @@ public static class Gameplay
         }
 
         var hintWasVisible = team.IsHintVisible(@lock.Id);
-        team.RegisterWrongAttempt(@lock.Id);
+        team.RegisterWrongAttempt(@lock.Id, now);
         var hintRevealedNow = @lock.Hint is not null && !hintWasVisible && team.IsHintVisible(@lock.Id);
         return new AnswerResult(AnswerOutcome.Wrong, hintRevealedNow);
     }
@@ -71,6 +71,25 @@ public static class Gameplay
 
         team.MarkEscaped(now);
         return true;
+    }
+
+    /// <summary>
+    /// Records the scene a student moved to, for the teacher's dashboard. Students move freely between the scenes
+    /// their team has unlocked, so only those can be reported. Returns false if the student was already there.
+    /// </summary>
+    public static bool EnterScene(EscapeRoom room, Team team, Participant participant, Guid sceneId, DateTimeOffset now)
+    {
+        if (room.Scenes.All(s => s.Id != sceneId))
+        {
+            throw new DomainException(DomainErrors.SceneNotFound);
+        }
+
+        if (!RoomProgress.For(room, team).IsSceneUnlocked(sceneId))
+        {
+            throw new DomainException(DomainErrors.SceneLocked);
+        }
+
+        return participant.EnterScene(sceneId, now);
     }
 
     private static T FindAvailable<T>(EscapeRoom room, Team team, Guid objectId)

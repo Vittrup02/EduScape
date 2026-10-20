@@ -31,10 +31,9 @@ test('teacher starts a session, a student joins with the PIN and stays on the te
   await expect(student.getByRole('heading', { name: 'Du er på Hold Blå' })).toBeVisible()
   await expect(student.getByText('Du er med som Ida.')).toBeVisible()
 
-  // The teacher sees the student on the team.
-  await teacher.getByRole('button', { name: 'Opdater' }).click()
-  const blueTeam = teacher.getByRole('listitem').filter({ hasText: 'Hold Blå' })
-  await expect(blueTeam.getByText('Ida')).toBeVisible()
+  // The teacher's live dashboard shows the student on the team.
+  const blueTeam = teacher.getByRole('listitem').filter({ has: teacher.getByRole('heading', { name: 'Hold Blå' }) })
+  await expect(blueTeam.getByText('Ida', { exact: true })).toBeVisible()
 
   // Closing the session (after confirming) ends it for the student and the PIN stops working.
   await teacher.getByRole('button', { name: 'Luk session' }).click()

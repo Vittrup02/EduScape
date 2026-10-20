@@ -26,11 +26,16 @@ public static class DomainErrors
     public const string PinExpired = "PIN_EXPIRED";
     public const string TeamNotFound = "TEAM_NOT_FOUND";
     public const string TeamCountInvalid = "TEAM_COUNT_INVALID";
+    public const string ParticipantNotFound = "PARTICIPANT_NOT_FOUND";
+
+    /// <summary>Students cannot be moved in individual mode, where every team is one student.</summary>
+    public const string ParticipantMoveNotAllowed = "PARTICIPANT_MOVE_NOT_ALLOWED";
 
     // Playing
     public const string ObjectNotFound = "OBJECT_NOT_FOUND";
     public const string ObjectNotAvailable = "OBJECT_NOT_AVAILABLE";
     public const string ExitDoorLocked = "EXIT_DOOR_LOCKED";
+    public const string SceneLocked = "SCENE_LOCKED";
 
     // Room validation (reported by EscapeRoom.Validate, not thrown)
     public const string StartSceneMissing = "START_SCENE_MISSING";

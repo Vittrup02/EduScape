@@ -165,3 +165,11 @@ export function openDoor(deviceToken: string, doorId: string): Promise<void> {
 export function openExitDoor(deviceToken: string, exitDoorId: string): Promise<void> {
   return post('/api/play/exit', { deviceToken, exitDoorId })
 }
+
+/**
+ * Tells the teacher's dashboard which scene the student is in. Only the team's unlocked scenes can be reported
+ * (SCENE_LOCKED otherwise).
+ */
+export function reportScene(deviceToken: string, sceneId: string): Promise<void> {
+  return post('/api/play/scene', { deviceToken, sceneId })
+}

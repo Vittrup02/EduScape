@@ -67,14 +67,70 @@ export async function getActiveSessions(signal?: AbortSignal): Promise<SessionSu
   return (await response.json()) as SessionSummary[]
 }
 
-export async function getSession(id: string, signal?: AbortSignal): Promise<SessionDetails> {
-  const response = await teacherFetch(`/api/teacher/sessions/${encodeURIComponent(id)}`, { signal })
-  return (await response.json()) as SessionDetails
-}
 
 export type SessionAction = 'lock' | 'unlock' | 'close'
 
 /** Lock stops new students from joining; close ends the session and the PIN stops working. */
 export async function changeSession(id: string, action: SessionAction): Promise<void> {
   await teacherFetch(`/api/teacher/sessions/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
+}
+
+export interface DashboardScene {
+  id: string
+  name: string
+}
+
+/** A lock's question; the dashboard never gets the answer. */
+export interface DashboardLock {
+  id: string
+  sceneId: string
+  question: string
+}
+
+export interface DashboardParticipant {
+  id: string
+  nickname: string | null
+  /** The scene the student's device last reported. */
+  sceneId: string | null
+  sceneEnteredAt: string | null
+}
+
+/** The unsolved lock the team tried last, since when it has made no progress, and its wrong answers. */
+export interface DashboardCurrentLock {
+  lockId: string
+  stuckSince: string
+  wrongAttempts: number
+}
+
+export interface DashboardTeam {
+  id: string
+  color: TeamColor
+  solvedLockIds: string[]
+  escapedAt: string | null
+  currentLock: DashboardCurrentLock | null
+  /** Still set once the students' names have been erased after the session. */
+  participantCount: number
+  participants: DashboardParticipant[]
+}
+
+/** Everything the live dashboard shows. `serverNow` lets it count minutes with the server's clock. */
+export interface SessionDashboard extends SessionSummary {
+  closedAt: string | null
+  serverNow: string
+  scenes: DashboardScene[]
+  locks: DashboardLock[]
+  teams: DashboardTeam[]
+}
+
+export async function getDashboard(id: string, signal?: AbortSignal): Promise<SessionDashboard> {
+  const response = await teacherFetch(`/api/teacher/sessions/${encodeURIComponent(id)}/dashboard`, { signal })
+  return (await response.json()) as SessionDashboard
+}
+
+/** Team mode only. Throws an ApiError, e.g. PARTICIPANT_NOT_FOUND. */
+export async function moveParticipant(sessionId: string, participantId: string, teamId: string): Promise<void> {
+  await teacherFetch(
+    `/api/teacher/sessions/${encodeURIComponent(sessionId)}/participants/${encodeURIComponent(participantId)}/move`,
+    { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ teamId }) },
+  )
 }

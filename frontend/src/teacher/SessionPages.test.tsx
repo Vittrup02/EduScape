@@ -1,10 +1,20 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { SessionDetails } from '../api/sessions'
+import type {
+  DashboardParticipant,
+  DashboardTeam,
+  SessionDashboard,
+  SessionDetails,
+  TeamColor,
+} from '../api/sessions'
 import { saveAuth } from '../api/tokenStorage'
 import { AppRoutes } from '../App'
-import { json, mockFetch } from '../test/fetchMock'
+import { json, mockFetch, urlOf } from '../test/fetchMock'
+import { configureNextTeacherHub, latestTeacherHub } from '../test/teacherHubMock'
+import { SessionPage } from './SessionPage'
+
+vi.mock('../api/teacherHub', () => import('../test/teacherHubMock'))
 
 const room = { id: 'r1', title: 'Brøkernes hemmelighed', subject: 'Mathematics', gradeLevel: 'Grade7' }
 
@@ -23,10 +33,87 @@ const session: SessionDetails = {
   ],
 }
 
+const serverNow = '2026-10-19T08:30:00Z'
+
+function minutesBeforeNow(minutes: number): string {
+  return new Date(Date.parse(serverNow) - minutes * 60_000).toISOString()
+}
+
+function student(id: string, nickname: string | null, sceneId = 'classroom'): DashboardParticipant {
+  return { id, nickname, sceneId, sceneEnteredAt: minutesBeforeNow(3) }
+}
+
+function team(id: string, color: TeamColor, overrides: Partial<DashboardTeam> = {}): DashboardTeam {
+  return {
+    id,
+    color,
+    solvedLockIds: [],
+    escapedAt: null,
+    currentLock: null,
+    participantCount: 0,
+    participants: [],
+    ...overrides,
+  }
+}
+
+/** Red: Ida in the library and a student without a name; one of two locks solved. Blue: nobody yet. */
+const dashboard: SessionDashboard = {
+  id: 's1',
+  pin: '042042',
+  mode: 'Team',
+  status: 'Open',
+  roomTitle: 'Brøkernes hemmelighed',
+  className: '9.A',
+  startedAt: '2026-10-19T08:00:00Z',
+  expiresAt: '2026-10-19T20:00:00Z',
+  closedAt: null,
+  serverNow,
+  scenes: [
+    { id: 'classroom', name: 'Klasselokalet' },
+    { id: 'library', name: 'Biblioteket' },
+  ],
+  locks: [
+    { id: 'lock-1', sceneId: 'classroom', question: 'Hvad giver regnestykket?' },
+    { id: 'lock-2', sceneId: 'classroom', question: 'Hvad er 10 / 3?' },
+  ],
+  teams: [
+    team('red', 'Red', {
+      solvedLockIds: ['lock-1'],
+      participantCount: 2,
+      participants: [student('p1', 'Ida', 'library'), student('p2', null)],
+    }),
+    team('blue', 'Blue'),
+  ],
+}
+
+/** The dashboard with one team changed. */
+function withTeam(id: string, changes: Partial<DashboardTeam>): SessionDashboard {
+  return { ...dashboard, teams: dashboard.teams.map((t) => (t.id === id ? { ...t, ...changes } : t)) }
+}
+
+function teamCard(name: string): HTMLElement {
+  const card = screen.getByRole('heading', { name }).closest('li')
+  if (card === null) {
+    throw new Error(`No card for ${name}`)
+  }
+  return card
+}
+
 function renderAt(path: string) {
   render(
     <MemoryRouter initialEntries={[path]}>
       <AppRoutes />
+    </MemoryRouter>,
+  )
+}
+
+/** The dashboard alone, retrying at once instead of waiting for the backend. */
+function renderDashboard() {
+  render(
+    <MemoryRouter initialEntries={['/teacher/sessions/s1']}>
+      <Routes>
+        <Route path="/teacher/sessions/:sessionId" element={<SessionPage retryDelayMs={0} />} />
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -81,7 +168,7 @@ describe('starting a session', () => {
       '/api/teacher/templates/t1': () => json({ ...room, id: 't1' }),
       '/api/teacher/classes': () => json(['9.A', '8.B']),
       '/api/teacher/sessions': () => json(session, 201),
-      '/api/teacher/sessions/s1': () => json(session),
+      '/api/teacher/sessions/s1/dashboard': () => json(dashboard),
     })
     renderAt('/teacher/templates/t1/start')
 
@@ -117,7 +204,7 @@ describe('starting a session', () => {
   })
 })
 
-describe('the session page', () => {
+describe('the live dashboard', () => {
   beforeEach(() => {
     saveAuth({ email: 'ida@skole.dk', accessToken: 'access-1', refreshToken: 'refresh-1' })
   })
@@ -126,25 +213,145 @@ describe('the session page', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows the PIN, where to join and the teams with their students', async () => {
-    mockFetch({ '/api/teacher/sessions/s1': () => json(session) })
+  it('shows the PIN, where to join and every team with its progress and students', async () => {
+    mockFetch({ '/api/teacher/sessions/s1/dashboard': () => json(dashboard) })
     renderAt('/teacher/sessions/s1')
 
     expect(await screen.findByLabelText('PIN-kode')).toHaveTextContent('042042')
     expect(screen.getByText(`Eleverne går ind på ${window.location.origin}/join og skriver PIN-koden.`)).toBeInTheDocument()
-    const red = screen.getByText('Hold Rød').closest('li')
-    expect(red).not.toBeNull()
-    expect(within(red as HTMLElement).getByText('Ida')).toBeInTheDocument()
-    expect(within(red as HTMLElement).getByText('Uden navn')).toBeInTheDocument()
-    expect(screen.getByText('Ingen elever endnu.')).toBeInTheDocument()
+    const red = teamCard('Hold Rød')
+    expect(red).toHaveTextContent('1 af 2 låse løst')
+    expect(within(red).getByText('Ida')).toBeInTheDocument()
+    expect(within(red).getByText('i Biblioteket')).toBeInTheDocument()
+    expect(within(red).getByText('Uden navn')).toBeInTheDocument()
+    expect(within(teamCard('Hold Blå')).getByText('Ingen elever endnu.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Opdater' })).not.toBeInTheDocument()
+  })
+
+  it('wakes the backend as soon as it opens', async () => {
+    const fetchMock = mockFetch({
+      '/health': () => new Response(null, { status: 200 }),
+      '/api/teacher/sessions/s1/dashboard': () => json(dashboard),
+    })
+    renderAt('/teacher/sessions/s1')
+
+    await screen.findByLabelText('PIN-kode')
+    expect(fetchMock.mock.calls.some(([url]) => new URL(urlOf(url)).pathname === '/health')).toBe(true)
+  })
+
+  it('watches the session and fetches it again whenever the server says it changed', async () => {
+    let current = dashboard
+    mockFetch({ '/api/teacher/sessions/s1/dashboard': () => json(current) })
+    renderAt('/teacher/sessions/s1')
+    await screen.findByLabelText('PIN-kode')
+    await waitFor(() => {
+      expect(latestTeacherHub().watchedSessions).toEqual(['s1'])
+    })
+
+    current = withTeam('blue', { participants: [student('p3', 'Bo')], participantCount: 1 })
+    act(() => {
+      latestTeacherHub().handlers.dashboardChanged()
+    })
+
+    expect(await within(teamCard('Hold Blå')).findByText('Bo')).toBeInTheDocument()
+  })
+
+  it('shows "connecting" until the realtime connection is up, and keeps trying', async () => {
+    configureNextTeacherHub({ startFailures: 2 })
+    mockFetch({ '/api/teacher/sessions/s1/dashboard': () => json(dashboard) })
+    renderDashboard()
+
+    expect(await screen.findByText(/Forbinder til live-overblikket/)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText(/Forbinder til live-overblikket/)).not.toBeInTheDocument()
+    })
+    expect(latestTeacherHub().watchedSessions).toEqual(['s1'])
+  })
+
+  it('shows "connecting" while the connection is lost and catches up afterwards', async () => {
+    let current = dashboard
+    mockFetch({ '/api/teacher/sessions/s1/dashboard': () => json(current) })
+    renderAt('/teacher/sessions/s1')
+    await screen.findByLabelText('PIN-kode')
+    await waitFor(() => {
+      expect(screen.queryByText(/Forbinder til live-overblikket/)).not.toBeInTheDocument()
+    })
+
+    act(() => {
+      latestTeacherHub().drop()
+    })
+    expect(screen.getByText(/Forbinder til live-overblikket/)).toBeInTheDocument()
+
+    current = withTeam('red', { solvedLockIds: ['lock-1', 'lock-2'] })
+    act(() => {
+      latestTeacherHub().restore()
+    })
+
+    expect(await screen.findByText('2 af 2 låse løst')).toBeInTheDocument()
+    expect(screen.queryByText(/Forbinder til live-overblikket/)).not.toBeInTheDocument()
+  })
+
+  it('tells which lock a team is working on, and warns once it has been stuck for 5 minutes', async () => {
+    let current = withTeam('red', {
+      currentLock: { lockId: 'lock-2', stuckSince: minutesBeforeNow(2), wrongAttempts: 1 },
+    })
+    mockFetch({ '/api/teacher/sessions/s1/dashboard': () => json(current) })
+    renderAt('/teacher/sessions/s1')
+
+    const working = await screen.findByText(/Arbejder på „Hvad er 10 \/ 3\?“/)
+    expect(working).toHaveTextContent('· 1 forkert svar')
+    expect(working).not.toHaveAttribute('data-stuck')
+
+    current = withTeam('red', {
+      currentLock: { lockId: 'lock-2', stuckSince: minutesBeforeNow(7), wrongAttempts: 4 },
+    })
+    act(() => {
+      latestTeacherHub().handlers.dashboardChanged()
+    })
+
+    const stuck = await screen.findByText(/Har siddet fast på „Hvad er 10 \/ 3\?“ i 7 minutter/)
+    expect(stuck).toHaveTextContent('· 4 forkerte svar')
+    expect(stuck).toHaveAttribute('data-stuck')
+  })
+
+  it('moves a student to another team', async () => {
+    const fetchMock = mockFetch({
+      '/api/teacher/sessions/s1/dashboard': () => json(dashboard),
+      '/api/teacher/sessions/s1/participants/p1/move': () => new Response(null, { status: 204 }),
+    })
+    renderAt('/teacher/sessions/s1')
+
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Flyt Ida til et andet hold' }), {
+      target: { value: 'blue' },
+    })
+
+    await waitFor(() => {
+      const move = fetchMock.mock.calls.find(([url]) => urlOf(url).endsWith('/participants/p1/move'))
+      expect(bodyOf(move?.[1])).toEqual({ teamId: 'blue' })
+    })
+  })
+
+  it('shows the PIN full screen for the board and closes it again', async () => {
+    mockFetch({ '/api/teacher/sessions/s1/dashboard': () => json(dashboard) })
+    renderAt('/teacher/sessions/s1')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Vis PIN-koden på tavlen' }))
+    expect(screen.getByRole('dialog', { name: 'PIN-kode' })).toHaveTextContent('042042')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vis PIN-koden på tavlen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Luk' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('closes the session only after confirming', async () => {
-    let current: SessionDetails = session
+    let current = dashboard
     const fetchMock = mockFetch({
-      '/api/teacher/sessions/s1': () => json(current),
+      '/api/teacher/sessions/s1/dashboard': () => json(current),
       '/api/teacher/sessions/s1/close': () => {
-        current = { ...session, status: 'Closed' }
+        current = { ...dashboard, status: 'Closed' }
         return new Response(null, { status: 204 })
       },
     })
@@ -163,14 +370,15 @@ describe('the session page', () => {
 
     expect(await screen.findByText('Sessionen er lukket. PIN-koden virker ikke længere.')).toBeInTheDocument()
     expect(screen.queryByText('042042')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   })
 
   it('locks and unlocks the session for new students', async () => {
-    let current: SessionDetails = session
+    let current = dashboard
     mockFetch({
-      '/api/teacher/sessions/s1': () => json(current),
+      '/api/teacher/sessions/s1/dashboard': () => json(current),
       '/api/teacher/sessions/s1/lock': () => {
-        current = { ...session, status: 'Locked' }
+        current = { ...dashboard, status: 'Locked' }
         return new Response(null, { status: 204 })
       },
     })
@@ -179,27 +387,44 @@ describe('the session page', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Lås for nye elever' }))
 
     expect(await screen.findByRole('button', { name: 'Åbn for nye elever' })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Låst – nye elever kan ikke deltage.')
+    expect(screen.getByText(/Låst – nye elever kan ikke deltage\./)).toBeInTheDocument()
   })
 
-  it('lists just the students in individual mode', async () => {
+  it('shows one card per student in individual mode, without moving', async () => {
     mockFetch({
-      '/api/teacher/sessions/s1': () =>
+      '/api/teacher/sessions/s1/dashboard': () =>
         json({
-          ...session,
+          ...dashboard,
           mode: 'Individual',
           teams: [
-            { id: 'a', color: 'Red', participants: [{ id: 'p1', nickname: 'Ida' }] },
-            { id: 'b', color: 'Blue', participants: [{ id: 'p2', nickname: 'Bo' }] },
+            team('a', 'Red', { participants: [student('p1', 'Ida')], participantCount: 1 }),
+            team('b', 'Blue', { participants: [student('p2', 'Bo')], participantCount: 1 }),
           ],
         }),
     })
     renderAt('/teacher/sessions/s1')
 
     expect(await screen.findByRole('heading', { name: 'Elever' })).toBeInTheDocument()
-    expect(screen.getByText('Ida')).toBeInTheDocument()
-    expect(screen.getByText('Bo')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ida' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Bo' })).toBeInTheDocument()
     expect(screen.queryByText('Hold Rød')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  })
+
+  it("shows the results without names once the students' data is erased", async () => {
+    mockFetch({
+      '/api/teacher/sessions/s1/dashboard': () =>
+        json({
+          ...withTeam('red', { participants: [], participantCount: 2, escapedAt: '2026-10-19T08:23:00Z' }),
+          status: 'Closed',
+        }),
+    })
+    renderAt('/teacher/sessions/s1')
+
+    await screen.findByRole('heading', { name: 'Hold Rød' })
+    const red = teamCard('Hold Rød')
+    expect(red).toHaveTextContent('2 elever deltog')
+    expect(red).toHaveTextContent('Brudt ud efter 23 minutter')
   })
 
   it("shows not found for another teacher's session", async () => {

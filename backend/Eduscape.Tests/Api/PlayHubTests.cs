@@ -165,6 +165,8 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
 
         public Task TeamEscapedAsync(Guid teamId) => Record($"TeamEscaped {teamId}");
 
+        public Task TeamChangedAsync(Guid participantId) => Record($"TeamChanged {participantId}");
+
         private Task Record(string text)
         {
             _events.Enqueue(text);

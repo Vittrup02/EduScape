@@ -20,7 +20,7 @@ function isFinal(error: unknown): error is ApiError {
  * Keeps the student's device in sync with the team. It connects to the play hub, subscribes to the team's events
  * and then fetches the team's whole state, in that order, so no event is missed in between. After every reconnect
  * it does the same again, because events may have been missed while offline. While the backend wakes up it keeps
- * trying.
+ * trying. When the teacher moves the student to another team, it starts over on a fresh connection.
  *
  * `apply` updates the state right away after the student's own action; the server's push of the same event
  * changes nothing more.
@@ -44,6 +44,8 @@ export function usePlayConnection(token: string | null, retryDelayMs: number) {
     // A function, so TypeScript does not assume the flag is unchanged after an await.
     const isCancelled = () => cancelled
     let retryTimer: ReturnType<typeof setTimeout> | undefined
+    // Set while the hub is stopped on purpose to start a fresh connection, which leaves the old team's group.
+    let switchingTeam = false
 
     const retry = (step: () => Promise<void>) => {
       clearTimeout(retryTimer)
@@ -67,11 +69,22 @@ export function usePlayConnection(token: string | null, retryDelayMs: number) {
       teamEscaped: () => {
         apply({ type: 'teamEscaped' })
       },
+      teamChanged: () => {
+        switchingTeam = true
+        setOffline()
+        void hub.stop()
+      },
       reconnecting: setOffline,
       reconnected: () => void sync(),
       closed: () => {
-        if (!isCancelled()) {
-          setOffline()
+        if (isCancelled()) {
+          return
+        }
+        setOffline()
+        if (switchingTeam) {
+          switchingTeam = false
+          void connect()
+        } else {
           retry(connect)
         }
       },

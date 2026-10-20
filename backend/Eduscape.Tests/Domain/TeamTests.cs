@@ -29,11 +29,11 @@ public class TeamTests
         var team = NewTeam();
         var lockId = Guid.NewGuid();
 
-        team.RegisterWrongAttempt(lockId);
-        team.RegisterWrongAttempt(lockId);
+        team.RegisterWrongAttempt(lockId, Now);
+        team.RegisterWrongAttempt(lockId, Now);
         Assert.False(team.IsHintVisible(lockId));
 
-        team.RegisterWrongAttempt(lockId);
+        team.RegisterWrongAttempt(lockId, Now);
         Assert.True(team.IsHintVisible(lockId));
     }
 
@@ -46,7 +46,7 @@ public class TeamTests
 
         for (var i = 0; i < 3; i++)
         {
-            team.RegisterWrongAttempt(first);
+            team.RegisterWrongAttempt(first, Now);
         }
 
         Assert.True(team.IsHintVisible(first));
@@ -60,7 +60,7 @@ public class TeamTests
         var lockId = Guid.NewGuid();
         team.TrySolveLock(lockId, Now);
 
-        team.RegisterWrongAttempt(lockId);
+        team.RegisterWrongAttempt(lockId, Now);
 
         Assert.Equal(0, team.WrongAttempts(lockId));
     }

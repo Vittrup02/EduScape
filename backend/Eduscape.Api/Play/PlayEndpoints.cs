@@ -1,5 +1,6 @@
 using Eduscape.Api.Errors;
 using Eduscape.Api.Hosting;
+using Eduscape.Api.Sessions;
 using Eduscape.Api.Uploads;
 using Eduscape.Domain.Common;
 using Eduscape.Domain.Rooms;
@@ -66,6 +67,8 @@ public sealed record OpenDoorRequest(string? DeviceToken, Guid DoorId);
 
 public sealed record OpenExitDoorRequest(string? DeviceToken, Guid ExitDoorId);
 
+public sealed record EnterSceneRequest(string? DeviceToken, Guid SceneId);
+
 /// <summary>The device token is returned only here; the server keeps just its hash.</summary>
 public sealed record JoinResponse(string DeviceToken, PlayStateDto State);
 
@@ -89,6 +92,9 @@ public static class PlayEndpoints
         play.MapPost("/answer", AnswerAsync);
         play.MapPost("/doors/open", OpenDoorAsync);
         play.MapPost("/exit", OpenExitDoorAsync);
+
+        // Which scene a student looks at is their own choice; it is reported only for the teacher's dashboard.
+        play.MapPost("/scene", EnterSceneAsync);
         return app;
     }
 
@@ -112,6 +118,7 @@ public static class PlayEndpoints
         EduscapeDbContext db,
         TimeProvider timeProvider,
         ImageUrls imageUrls,
+        IDashboardNotifier dashboard,
         CancellationToken cancellationToken)
     {
         var session = await FindJoinableSessionAsync(request.Pin, db, timeProvider, cancellationToken);
@@ -124,6 +131,7 @@ public static class PlayEndpoints
         var participant = session.Join(
             request.TeamId, request.Nickname, DeviceToken.Hash(deviceToken), timeProvider.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
+        await dashboard.SessionChangedAsync(session.Id);
 
         var state = await LoadStateAsync(session, participant, db, imageUrls, cancellationToken);
         return TypedResults.Ok(new JoinResponse(deviceToken, state));
@@ -167,11 +175,16 @@ public static class PlayEndpoints
         return TypedResults.Ok(await LoadStateAsync(session, participant, db, imageUrls, cancellationToken));
     }
 
-    // The team is notified only of changes, and only after they are saved. A lock solved by two students at once is
-    // one LockSolved event. Notifications ignore the request's cancellation: once saved, the team must hear of it.
+    // The team and the teacher's dashboard are notified only of changes, and only after they are saved. A lock solved
+    // by two students at once is one LockSolved event. Notifications ignore the request's cancellation: once saved,
+    // the team must hear of it.
 
     private static async Task<IResult> AnswerAsync(
-        AnswerRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
+        AnswerRequest request,
+        TeamActions actions,
+        ITeamNotifier notifier,
+        IDashboardNotifier dashboard,
+        CancellationToken cancellationToken)
     {
         var done = await actions.RunAsync(
             request.DeviceToken,
@@ -195,11 +208,21 @@ public static class PlayEndpoints
             await notifier.HintRevealedAsync(done.Team.Id, request.LockId, hint);
         }
 
+        // A wrong answer changes what the dashboard shows too: the attempts on the lock the team is stuck on.
+        if (done.Result.Outcome != AnswerOutcome.AlreadySolved)
+        {
+            await dashboard.SessionChangedAsync(done.Team.SessionId);
+        }
+
         return TypedResults.Ok(new AnswerResponse(done.Result.Outcome, hint));
     }
 
     private static async Task<IResult> OpenDoorAsync(
-        OpenDoorRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
+        OpenDoorRequest request,
+        TeamActions actions,
+        ITeamNotifier notifier,
+        IDashboardNotifier dashboard,
+        CancellationToken cancellationToken)
     {
         var done = await actions.RunAsync(
             request.DeviceToken,
@@ -213,13 +236,18 @@ public static class PlayEndpoints
         if (done.Result)
         {
             await notifier.DoorOpenedAsync(done.Team.Id, request.DoorId);
+            await dashboard.SessionChangedAsync(done.Team.SessionId);
         }
 
         return TypedResults.NoContent();
     }
 
     private static async Task<IResult> OpenExitDoorAsync(
-        OpenExitDoorRequest request, TeamActions actions, ITeamNotifier notifier, CancellationToken cancellationToken)
+        OpenExitDoorRequest request,
+        TeamActions actions,
+        ITeamNotifier notifier,
+        IDashboardNotifier dashboard,
+        CancellationToken cancellationToken)
     {
         var done = await actions.RunAsync(
             request.DeviceToken,
@@ -233,6 +261,27 @@ public static class PlayEndpoints
         if (done.Result)
         {
             await notifier.TeamEscapedAsync(done.Team.Id);
+            await dashboard.SessionChangedAsync(done.Team.SessionId);
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<IResult> EnterSceneAsync(
+        EnterSceneRequest request, TeamActions actions, IDashboardNotifier dashboard, CancellationToken cancellationToken)
+    {
+        var done = await actions.RunAsync(
+            request.DeviceToken,
+            (room, team, participant, now) => Gameplay.EnterScene(room, team, participant, request.SceneId, now),
+            cancellationToken);
+        if (done is null)
+        {
+            return DeviceNotRecognized();
+        }
+
+        if (done.Result)
+        {
+            await dashboard.SessionChangedAsync(done.Team.SessionId);
         }
 
         return TypedResults.NoContent();

@@ -2,7 +2,7 @@ namespace Eduscape.Domain.Sessions;
 
 /// <summary>
 /// A team in a session. Progress (solved locks, opened doors) is shared by the whole team and owned by the server;
-/// navigation between unlocked scenes is individual and not stored.
+/// navigation between unlocked scenes is individual (each <see cref="Participant"/> reports its own scene).
 /// </summary>
 public sealed class Team
 {
@@ -31,6 +31,12 @@ public sealed class Team
 
     /// <summary>When the team opened the exit door. Kept (without nicknames) for the teacher's history.</summary>
     public DateTimeOffset? EscapedAt { get; private set; }
+
+    /// <summary>
+    /// How many students were on the team, recorded when their data is erased after the session (see
+    /// <see cref="EraseParticipants"/>). Null while the participants are still stored.
+    /// </summary>
+    public int? ParticipantCount { get; private set; }
 
     public IReadOnlyList<TeamLockProgress> LockProgress => _lockProgress;
 
@@ -75,12 +81,14 @@ public sealed class Team
         return true;
     }
 
-    public void RegisterWrongAttempt(Guid lockId)
+    public void RegisterWrongAttempt(Guid lockId, DateTimeOffset now)
     {
         var progress = GetOrAddProgress(lockId);
         if (!progress.IsSolved)
         {
             progress.WrongAttempts++;
+            progress.FirstAttemptAt ??= now;
+            progress.LastAttemptAt = now;
         }
     }
 
@@ -104,6 +112,48 @@ public sealed class Team
 
     /// <summary>Records that the team escaped. Idempotent: the first time is kept.</summary>
     public void MarkEscaped(DateTimeOffset now) => EscapedAt ??= now;
+
+    /// <summary>When the team last solved a lock or opened a door; null before its first progress.</summary>
+    public DateTimeOffset? LastProgressAt =>
+        _lockProgress.Select(p => p.SolvedAt)
+            .Concat(_openedDoors.Select(d => (DateTimeOffset?)d.OpenedAt))
+            .Max();
+
+    /// <summary>
+    /// The unsolved lock the team tried last, for the teacher's dashboard: since when the team has been working on it
+    /// without progress (its first attempt, or the team's last progress if that came later) and how many wrong
+    /// answers it has given. Null when the team has not tried an unsolved lock, or once it has escaped.
+    /// </summary>
+    public CurrentLock? FindCurrentLock()
+    {
+        if (EscapedAt is not null)
+        {
+            return null;
+        }
+
+        var current = _lockProgress
+            .Where(p => !p.IsSolved && p.LastAttemptAt is not null)
+            .MaxBy(p => p.LastAttemptAt);
+        if (current?.FirstAttemptAt is not { } firstAttemptAt)
+        {
+            return null;
+        }
+
+        var stuckSince = LastProgressAt is { } lastProgressAt && lastProgressAt > firstAttemptAt
+            ? lastProgressAt
+            : firstAttemptAt;
+        return new CurrentLock(current.LockId, stuckSince, current.WrongAttempts);
+    }
+
+    /// <summary>
+    /// Deletes the team's students (nicknames and device tokens) and keeps only how many there were. The team's
+    /// progress stays, without names, as the teacher's history.
+    /// </summary>
+    public void EraseParticipants()
+    {
+        ParticipantCount = (ParticipantCount ?? 0) + _participants.Count;
+        _participants.Clear();
+    }
 
     private TeamLockProgress? FindProgress(Guid lockId) => _lockProgress.Find(p => p.LockId == lockId);
 

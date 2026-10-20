@@ -134,6 +134,18 @@ function refreshTokens(): Promise<RefreshResult> {
 }
 
 /**
+ * The access token for a long-lived connection such as the teacher hub, which cannot refresh on a 401 itself.
+ * `refresh` gets new tokens first, e.g. when the connection reconnects after the stored token may have expired.
+ * Null when the teacher is signed out.
+ */
+export async function accessToken(refresh: boolean): Promise<string | null> {
+  if (refresh) {
+    await refreshTokens()
+  }
+  return loadAuth()?.accessToken ?? null
+}
+
+/**
  * Calls an endpoint that requires a signed-in teacher. Refreshes the tokens once on 401; the teacher is signed out
  * only when the server rejects them, never because it could not be reached. Throws an ApiError for error responses.
  */

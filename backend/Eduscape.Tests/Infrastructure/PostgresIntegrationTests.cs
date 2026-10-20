@@ -54,7 +54,7 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture database) : IClass
         var sessionId = await CreateSessionAsync(RandomPin(), (team, now) =>
         {
             team.AddParticipant("Ida", $"device-{Guid.NewGuid():N}", now);
-            team.RegisterWrongAttempt(lockId);
+            team.RegisterWrongAttempt(lockId, now);
             team.TrySolveLock(lockId, now);
         });
 

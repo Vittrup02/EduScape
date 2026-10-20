@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Eduscape.Api.Hosting;
+using Eduscape.Api.Sessions;
 using Eduscape.Domain.Rooms;
 using Eduscape.Infrastructure;
 using Eduscape.Tests.Infrastructure;
@@ -39,6 +40,10 @@ public sealed class EduscapeApiFactory : WebApplicationFactory<Program>, IAsyncL
 
         // Never the real bucket from user-secrets; upload tests use FakeImageStorage.
         builder.UseSetting("R2:Bucket", string.Empty);
+
+        // Tests move the clock themselves; the cleanup runs only when a test calls StudentDataCleanup.
+        builder.ConfigureTestServices(services =>
+            services.Remove(services.Single(s => s.ImplementationType == typeof(StudentDataCleanupService))));
     }
 
     public Task InitializeAsync() => Database.InitializeAsync();

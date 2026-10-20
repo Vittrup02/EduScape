@@ -84,5 +84,6 @@ app.MapEditorEndpoints();
 app.MapUploadEndpoints();
 app.MapPlayEndpoints();
 app.MapHub<PlayHub>(PlayHub.Path);
+app.MapHub<TeacherHub>(TeacherHub.Path);
 
 app.Run();

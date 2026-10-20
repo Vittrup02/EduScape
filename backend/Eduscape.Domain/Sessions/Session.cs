@@ -165,6 +165,42 @@ public sealed class Session
     public Team? FindTeamOf(Guid participantId) =>
         _teams.Find(t => t.Participants.Any(p => p.Id == participantId));
 
+    /// <summary>
+    /// The teacher moves a student to another team. Only in team mode: in individual mode every team is one student.
+    /// The student keeps playing with the new team's progress.
+    /// </summary>
+    public Participant MoveParticipant(Guid participantId, Guid targetTeamId)
+    {
+        EnsureNotClosed();
+        if (Mode == SessionMode.Individual)
+        {
+            throw new DomainException(DomainErrors.ParticipantMoveNotAllowed);
+        }
+
+        var from = FindTeamOf(participantId) ?? throw new DomainException(DomainErrors.ParticipantNotFound);
+        var to = _teams.Find(t => t.Id == targetTeamId) ?? throw new DomainException(DomainErrors.TeamNotFound);
+        var participant = from.Participants.Single(p => p.Id == participantId);
+        from.MoveParticipantTo(participant, to);
+        return participant;
+    }
+
+    /// <summary>
+    /// Deletes the students' data (nicknames, device tokens) of a closed session; the teams' results stay, without
+    /// names, for the teacher's history.
+    /// </summary>
+    public void EraseStudentData()
+    {
+        if (Status != SessionStatus.Closed)
+        {
+            throw new InvalidOperationException("Student data is erased only after the session is closed.");
+        }
+
+        foreach (var team in _teams)
+        {
+            team.EraseParticipants();
+        }
+    }
+
     /// <summary>Stops new students from joining.</summary>
     public void Lock()
     {

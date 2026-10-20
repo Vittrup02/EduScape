@@ -20,6 +20,11 @@ public sealed class TeamLockProgress
 
     public int WrongAttempts { get; internal set; }
 
+    /// <summary>The team's first wrong answer; with <see cref="LastAttemptAt"/> it shows the teacher who is stuck.</summary>
+    public DateTimeOffset? FirstAttemptAt { get; internal set; }
+
+    public DateTimeOffset? LastAttemptAt { get; internal set; }
+
     public DateTimeOffset? SolvedAt { get; internal set; }
 
     public bool IsSolved => SolvedAt is not null;
