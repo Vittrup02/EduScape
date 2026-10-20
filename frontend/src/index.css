@@ -679,6 +679,13 @@ main.play {
   -webkit-user-select: none;
 }
 
+/* On a landscape tablet or laptop the whole scene should fit below the header and the scene buttons without
+   scrolling. Capping the width keeps the 16:9 shape, so objects stay where the teacher put them. */
+main.play .scene {
+  max-width: max(28rem, calc((100dvh - 15rem) * 16 / 9));
+  margin-inline: auto;
+}
+
 .scene-background {
   position: absolute;
   inset: 0;
@@ -696,6 +703,18 @@ main.play {
   border-radius: 0.5rem;
   transform: translate(-50%, -50%);
   touch-action: manipulation;
+}
+
+/* On a phone the scene is small and a lock only ~25px wide. An invisible area of at least 44px around the centre
+   keeps it easy to tap, without changing the size of the graphic the teacher placed. */
+.room-object::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }
 
 .room-object .object-graphic {
