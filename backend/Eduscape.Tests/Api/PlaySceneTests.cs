@@ -56,8 +56,8 @@ public class PlaySceneTests(EduscapeApiFactory factory) : IClassFixture<Eduscape
     private async Task UnlockSecondSceneAsync(PlayTestRoom room, string deviceToken)
     {
         await SessionApi.AnsweredAsync(Student, deviceToken, room.CodeLock.Id, PlayTestRoom.CodeAnswer);
+        // The door opens by itself with the scene's last lock.
         await SessionApi.AnsweredAsync(Student, deviceToken, room.TextLock.Id, PlayTestRoom.TextAnswer);
-        (await SessionApi.OpenDoorAsync(Student, deviceToken, room.Door.Id)).EnsureSuccessStatusCode();
     }
 
     private async Task<(PlayTestRoom Room, SessionDetailsDto Session)> StartAsync()

@@ -45,10 +45,21 @@ public abstract class RoomObject
 
     public void MoveTo(Position position) => Position = position;
 
-    public void SetUnlockedBy(RoomObject? source) => UnlockedById = source?.Id;
+    public void SetUnlockedBy(RoomObject? source) => SetUnlockedBy(source?.Id);
 
-    /// <summary>Sets the reference by id; whether it points to a valid object is reported by <see cref="EscapeRoom.Validate"/>.</summary>
-    public void SetUnlockedBy(Guid? sourceId) => UnlockedById = sourceId;
+    /// <summary>
+    /// Sets the reference by id; whether it points to a valid object is reported by <see cref="EscapeRoom.Validate"/>.
+    /// Doors and exit doors never wait for anything: they open by their own condition.
+    /// </summary>
+    public void SetUnlockedBy(Guid? sourceId)
+    {
+        if (sourceId is not null && this is Doorway)
+        {
+            throw new DomainException(DomainErrors.DoorCannotWait);
+        }
+
+        UnlockedById = sourceId;
+    }
 
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(GraphicKey))]
     public void SetGraphic(string graphicKey, string? unlockedGraphicKey)

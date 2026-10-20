@@ -75,7 +75,6 @@ public sealed class TeamActions(EduscapeDbContext db, TimeProvider timeProvider)
     public static Task<Team> LoadTeamAsync(EduscapeDbContext db, Guid teamId, CancellationToken cancellationToken) =>
         db.Teams
             .Include(t => t.LockProgress)
-            .Include(t => t.OpenedDoors)
             .AsSplitQuery()
             .SingleAsync(t => t.Id == teamId, cancellationToken);
 

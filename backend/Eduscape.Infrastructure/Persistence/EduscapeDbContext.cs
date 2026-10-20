@@ -38,6 +38,7 @@ public sealed class EduscapeDbContext(DbContextOptions<EduscapeDbContext> option
         StoreAsKey<Subject>(configurationBuilder);
         StoreAsKey<GradeLevel>(configurationBuilder);
         StoreAsKey<AnswerType>(configurationBuilder);
+        StoreAsKey<DoorOpenCondition>(configurationBuilder);
         StoreAsKey<RoomObjectType>(configurationBuilder);
         StoreAsKey<SessionMode>(configurationBuilder);
         StoreAsKey<SessionStatus>(configurationBuilder);

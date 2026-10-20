@@ -87,12 +87,13 @@ public class RoomModelTests
     {
         var draft = new Lock(Center, "lock.png", null, "  ", AnswerType.Code, "", options: null);
 
-        Assert.Equal(string.Empty, draft.Question);
-        Assert.Equal(string.Empty, draft.CorrectAnswer);
+        Assert.Equal(string.Empty, draft.Steps[0].Question);
+        Assert.Equal(string.Empty, draft.Steps[0].CorrectAnswer);
 
-        draft.SetQuestion(" Hvad er 2 + 2? ", "  ");
-        Assert.Equal("Hvad er 2 + 2?", draft.Question);
-        Assert.Null(draft.Hint);
+        draft.SetSteps([new LockStep(" Hvad er 2 + 2? ", AnswerType.Text, " 4 ", hint: "  ")]);
+        Assert.Equal("Hvad er 2 + 2?", draft.Steps[0].Question);
+        Assert.Equal("4", draft.Steps[0].CorrectAnswer);
+        Assert.Null(draft.Steps[0].Hint);
     }
 
     [Fact]
@@ -102,6 +103,89 @@ public class RoomModelTests
             new Lock(Center, "lock.png", null, new string('a', TextLimits.Question + 1), AnswerType.Code, "1"));
 
         Assert.Equal(DomainErrors.ValueTooLong, ex.Code);
+    }
+
+    [Fact]
+    public void LockStep_SynonymsAndTypos_OnlyForTextAnswers()
+    {
+        var text = new LockStep("?", AnswerType.Text, "vand", acceptedAnswers: [" H2O ", " "], acceptTypos: true);
+
+        Assert.Equal(["H2O"], text.AcceptedAnswers);
+        Assert.True(text.AcceptTypos);
+        Assert.Equal(
+            DomainErrors.LockStepInvalid,
+            Assert.Throws<DomainException>(() => new LockStep("?", AnswerType.Code, "1", acceptTypos: true)).Code);
+        Assert.Equal(
+            DomainErrors.LockStepInvalid,
+            Assert.Throws<DomainException>(() => new LockStep("?", AnswerType.MultipleChoice, "1", acceptedAnswers: ["2"])).Code);
+    }
+
+    [Fact]
+    public void LockStep_OrderItems_OnlyForOrderSteps_WithUploadedImages()
+    {
+        var item = new OrderItem(Guid.NewGuid(), " Afvej ", "uploads/0123456789abcdef0123456789abcdef.webp");
+        var step = new LockStep("Rækkefølgen?", AnswerType.Order, "ignored", orderItems: [item]);
+
+        Assert.Equal("Afvej", step.OrderItems[0].Text);
+        Assert.Equal(string.Empty, step.CorrectAnswer);
+        Assert.Equal(
+            DomainErrors.LockStepInvalid,
+            Assert.Throws<DomainException>(() => new LockStep("?", AnswerType.Text, "1", orderItems: [item])).Code);
+        Assert.Equal(
+            DomainErrors.ImageKeyInvalid,
+            Assert.Throws<DomainException>(() => new OrderItem(Guid.NewGuid(), "Afvej", "https://example.com/a.png")).Code);
+    }
+
+    [Fact]
+    public void Lock_StepsAreLimited_AndNeedTheirOwnIds()
+    {
+        var steps = Enumerable.Range(0, Lock.MaxSteps + 1).Select(i => new LockStep($"{i}?", AnswerType.Code, "1")).ToList();
+        var @lock = new Lock(Center, "lock.png", null, []);
+
+        Assert.Equal(DomainErrors.ListTooLong, Assert.Throws<DomainException>(() => @lock.SetSteps(steps)).Code);
+
+        var step = new LockStep("?", AnswerType.Code, "1");
+        Assert.Equal(DomainErrors.LockStepInvalid, Assert.Throws<DomainException>(() => @lock.SetSteps([step, step])).Code);
+    }
+
+    [Fact]
+    public void Lock_GraphicChanges_WithoutTouchingItsPuzzle()
+    {
+        var @lock = new Lock(Center, "builtin:padlock", null, "Hvad er Na?", AnswerType.Text, "Natrium");
+        var puzzle = @lock.Steps;
+
+        @lock.SetGraphic("builtin:chest", null);
+
+        Assert.Equal("builtin:chest", @lock.GraphicKey);
+        Assert.Same(puzzle, @lock.Steps);
+    }
+
+    [Fact]
+    public void Room_WaitAfterWrongAnswer_DefaultsTo15Seconds_AndIsLimited()
+    {
+        var room = new EscapeRoom("Rum", Subject.Chemistry, GradeLevel.Stx2);
+        Assert.Equal(15, room.WrongAnswerCooldownSeconds);
+
+        room.SetWrongAnswerCooldown(0);
+        Assert.Equal(0, room.WrongAnswerCooldownSeconds);
+
+        Assert.Equal(DomainErrors.CooldownInvalid, Assert.Throws<DomainException>(() => room.SetWrongAnswerCooldown(-1)).Code);
+        Assert.Equal(DomainErrors.CooldownInvalid, Assert.Throws<DomainException>(() => room.SetWrongAnswerCooldown(301)).Code);
+    }
+
+    [Fact]
+    public void Room_ScenesCanBeReordered()
+    {
+        var room = new EscapeRoom("Rum", Subject.Chemistry, GradeLevel.Stx2);
+        var first = room.AddScene("Første", "s1.jpg");
+        var second = room.AddScene("Anden", "s2.jpg");
+
+        room.ReorderScenes([second.Id, first.Id]);
+
+        Assert.Equal([second, first], room.Scenes);
+        Assert.Equal((0, 1), (second.SortOrder, first.SortOrder));
+        Assert.True(first.IsStartScene);
+        Assert.Equal(DomainErrors.SceneNotFound, Assert.Throws<DomainException>(() => room.ReorderScenes([first.Id])).Code);
     }
 
     [Fact]

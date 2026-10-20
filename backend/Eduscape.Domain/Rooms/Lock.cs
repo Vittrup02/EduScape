@@ -1,15 +1,25 @@
-using System.Diagnostics.CodeAnalysis;
 using Eduscape.Domain.Common;
 
 namespace Eduscape.Domain.Rooms;
 
 /// <summary>
-/// A question that must be answered correctly to unlock it. Answers are only ever checked on the server.
-/// While a teacher is editing, the question, answer and options may be unfinished; <see cref="EscapeRoom.Validate"/>
-/// reports what is missing, and a room with such problems cannot be played.
+/// A lock has two separate parts: its graphic (a padlock, a chest, a safe …) and its puzzle, which is one or more
+/// <see cref="LockStep"/>s answered in order. The lock opens after the last step; a lock with one step is an ordinary
+/// question. The graphic can change without touching the puzzle. Answers are only ever checked on the server.
 /// </summary>
 public sealed class Lock : RoomObject
 {
+    public const int MaxSteps = 10;
+
+    private List<LockStep> _steps = [];
+
+    public Lock(Position position, string graphicKey, string? unlockedGraphicKey, IEnumerable<LockStep> steps, Guid? id = null)
+        : base(position, graphicKey, unlockedGraphicKey, id)
+    {
+        SetSteps(steps);
+    }
+
+    /// <summary>A lock with a single question, the common case.</summary>
     public Lock(
         Position position,
         string graphicKey,
@@ -21,90 +31,56 @@ public sealed class Lock : RoomObject
         string? hint = null,
         IEnumerable<string>? options = null,
         Guid? id = null)
-        : base(position, graphicKey, unlockedGraphicKey, id)
+        : this(
+            position,
+            graphicKey,
+            unlockedGraphicKey,
+            [new LockStep(question, answerType, correctAnswer, tolerance, hint, options)],
+            id)
     {
-        SetQuestion(question, hint);
-        SetAnswer(answerType, correctAnswer, tolerance, options);
     }
 
     // For EF Core
     private Lock()
     {
-        Question = null!;
-        CorrectAnswer = null!;
     }
 
     public override RoomObjectType Type => RoomObjectType.Lock;
 
-    public string Question { get; private set; }
+    /// <summary>The puzzle, in the order students answer it. Empty only while the teacher hasn't chosen a puzzle yet.</summary>
+    public IReadOnlyList<LockStep> Steps => _steps;
 
-    public AnswerType AnswerType { get; private set; }
-
-    public string CorrectAnswer { get; private set; }
-
-    /// <summary>Accepted numeric deviation for <see cref="AnswerType.Text"/> answers, e.g. 0.01.</summary>
-    public decimal? Tolerance { get; private set; }
-
-    /// <summary>Shown automatically after <see cref="Sessions.Team.WrongAttemptsBeforeHint"/> wrong attempts by the team.</summary>
-    public string? Hint { get; private set; }
-
-    /// <summary>Choices for <see cref="AnswerType.MultipleChoice"/>; empty for other answer types.</summary>
-    public string[] Options { get; private set; } = [];
-
-    [MemberNotNull(nameof(Question))]
-    public void SetQuestion(string question, string? hint)
+    public void SetSteps(IEnumerable<LockStep> steps)
     {
-        Question = Guard.Draft(question, TextLimits.Question);
-        Hint = Guard.Optional(hint, TextLimits.Hint);
+        var list = steps.ToList();
+        if (list.Count > MaxSteps)
+        {
+            throw new DomainException(DomainErrors.ListTooLong);
+        }
+
+        if (list.Select(s => s.Id).Distinct().Count() != list.Count)
+        {
+            throw new DomainException(DomainErrors.LockStepInvalid);
+        }
+
+        _steps = list;
     }
 
-    [MemberNotNull(nameof(CorrectAnswer))]
-    public void SetAnswer(AnswerType answerType, string correctAnswer, decimal? tolerance = null, IEnumerable<string>? options = null)
+    /// <summary>The steps' own problems, with the step they belong to; a lock without a puzzle has no step.</summary>
+    internal IEnumerable<(string Code, int? StepIndex)> PuzzleErrors()
     {
-        var answer = Guard.Draft(correctAnswer, TextLimits.Answer);
-
-        if (tolerance is not null && (answerType != AnswerType.Text || tolerance < 0))
+        if (_steps.Count == 0)
         {
-            throw new DomainException(DomainErrors.LockToleranceInvalid);
-        }
-
-        var choices = (options ?? []).Select(o => Guard.Draft(o, TextLimits.Answer)).ToArray();
-        if (answerType != AnswerType.MultipleChoice && choices.Length > 0)
-        {
-            throw new DomainException(DomainErrors.LockOptionsInvalid);
-        }
-
-        AnswerType = answerType;
-        CorrectAnswer = answer;
-        Tolerance = tolerance;
-        Options = choices;
-    }
-
-    internal override IEnumerable<string> ContentErrors()
-    {
-        if (Question.Length == 0)
-        {
-            yield return DomainErrors.LockQuestionMissing;
-        }
-
-        if (CorrectAnswer.Length == 0)
-        {
-            yield return DomainErrors.LockAnswerMissing;
-        }
-
-        if (AnswerType != AnswerType.MultipleChoice)
-        {
+            yield return (DomainErrors.LockPuzzleMissing, null);
             yield break;
         }
 
-        var distinct = Options.Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        if (Options.Length < 2 || distinct != Options.Length || Options.Any(o => o.Length == 0))
+        for (var i = 0; i < _steps.Count; i++)
         {
-            yield return DomainErrors.LockOptionsInvalid;
-        }
-        else if (CorrectAnswer.Length > 0 && !Options.Contains(CorrectAnswer, StringComparer.OrdinalIgnoreCase))
-        {
-            yield return DomainErrors.LockAnswerNotInOptions;
+            foreach (var code in _steps[i].ContentErrors())
+            {
+                yield return (code, i);
+            }
         }
     }
 }

@@ -54,14 +54,19 @@ internal static class SessionApi
     public static Task<HttpResponseMessage> ReconnectAsync(HttpClient student, string? deviceToken) =>
         student.PostAsJsonAsync("/api/play/reconnect", new ReconnectRequest(deviceToken), Json);
 
-    public static Task<HttpResponseMessage> AnswerAsync(HttpClient student, string? deviceToken, Guid lockId, string? answer) =>
-        student.PostAsJsonAsync("/api/play/answer", new AnswerRequest(deviceToken, lockId, answer), Json);
+    public static Task<HttpResponseMessage> AnswerAsync(
+        HttpClient student, string? deviceToken, Guid lockId, string? answer, int step = 0) =>
+        student.PostAsJsonAsync("/api/play/answer", new AnswerRequest(deviceToken, lockId, step, answer), Json);
 
-    public static async Task<AnswerResponse> AnsweredAsync(HttpClient student, string deviceToken, Guid lockId, string answer) =>
-        await ReadAsync<AnswerResponse>(await AnswerAsync(student, deviceToken, lockId, answer));
+    public static async Task<AnswerResponse> AnsweredAsync(
+        HttpClient student, string deviceToken, Guid lockId, string answer, int step = 0) =>
+        await ReadAsync<AnswerResponse>(await AnswerAsync(student, deviceToken, lockId, answer, step));
 
-    public static Task<HttpResponseMessage> OpenDoorAsync(HttpClient student, string? deviceToken, Guid doorId) =>
-        student.PostAsJsonAsync("/api/play/doors/open", new OpenDoorRequest(deviceToken, doorId), Json);
+    /// <summary>Answers an order step with the item ids in this order.</summary>
+    public static async Task<AnswerResponse> OrderedAsync(
+        HttpClient student, string deviceToken, Guid lockId, Guid[] order, int step = 0) =>
+        await ReadAsync<AnswerResponse>(await student.PostAsJsonAsync(
+            "/api/play/answer", new AnswerRequest(deviceToken, lockId, step, null, order), Json));
 
     public static Task<HttpResponseMessage> OpenExitDoorAsync(HttpClient student, string? deviceToken, Guid exitDoorId) =>
         student.PostAsJsonAsync("/api/play/exit", new OpenExitDoorRequest(deviceToken, exitDoorId), Json);

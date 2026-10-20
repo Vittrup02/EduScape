@@ -40,8 +40,11 @@ internal static class EditorApi
     public static Task<HttpResponseMessage> CopyTemplateAsync(HttpClient teacher, Guid templateId) =>
         teacher.PostAsync($"/api/teacher/templates/{templateId}/copy", content: null);
 
-    public static Task<HttpResponseMessage> PreviewAsync(HttpClient teacher, Guid roomId) =>
-        teacher.PostAsync($"/api/teacher/rooms/{roomId}/preview", content: null);
+    /// <summary>Without a start scene, the preview starts from the beginning (and the request has no body).</summary>
+    public static Task<HttpResponseMessage> PreviewAsync(HttpClient teacher, Guid roomId, Guid? startSceneId = null) =>
+        startSceneId is null
+            ? teacher.PostAsync($"/api/teacher/rooms/{roomId}/preview", content: null)
+            : teacher.PostAsJsonAsync($"/api/teacher/rooms/{roomId}/preview", new StartPreviewRequest(startSceneId), Json);
 
     /// <summary>The loaded room as a save request, unchanged.</summary>
     public static SaveRoomRequest ToRequest(EditorRoomDto room) => new(
@@ -50,14 +53,23 @@ internal static class EditorApi
         room.Subject,
         room.GradeLevel,
         room.StartSceneId!.Value,
-        [.. room.Scenes.Select(s => new SaveSceneRequest(s.Id, s.Name, s.BackgroundImageKey, s.Objects, s.Narration))]);
+        [.. room.Scenes.Select(s => new SaveSceneRequest(s.Id, s.Name, s.BackgroundImageKey, s.Objects, s.Narration))],
+        room.WrongAnswerCooldownSeconds);
+
+    public static EditorStepDto NewStep(string question = "2 + 2?", string answer = "4", AnswerType answerType = AnswerType.Code) =>
+        new(Guid.CreateVersion7(), question, answerType, answer);
 
     public static EditorObjectDto NewLock(double x = 30, double y = 40, string question = "2 + 2?", string answer = "4") =>
-        new(Guid.CreateVersion7(), RoomObjectType.Lock, x, y, "builtin:padlock", null,
-            Question: question, AnswerType: AnswerType.Code, CorrectAnswer: answer);
+        NewLock([NewStep(question, answer)], x, y);
 
-    public static EditorObjectDto NewDoor(Guid? targetSceneId, Guid? unlockedById = null) =>
-        new(Guid.CreateVersion7(), RoomObjectType.Door, 80, 50, "builtin:door", unlockedById, TargetSceneId: targetSceneId);
+    public static EditorObjectDto NewLock(EditorStepDto[] steps, double x = 30, double y = 40) =>
+        new(Guid.CreateVersion7(), RoomObjectType.Lock, x, y, "builtin:padlock", null, Steps: steps);
+
+    /// <summary>A door that opens once its scene's locks are solved, or once <paramref name="requiredLockIds"/> are.</summary>
+    public static EditorObjectDto NewDoor(Guid? targetSceneId, params Guid[] requiredLockIds) =>
+        new(Guid.CreateVersion7(), RoomObjectType.Door, 80, 50, "builtin:door", null, TargetSceneId: targetSceneId,
+            OpenCondition: requiredLockIds.Length == 0 ? DoorOpenCondition.AllInScene : DoorOpenCondition.SelectedLocks,
+            RequiredLockIds: requiredLockIds);
 
     public static EditorObjectDto NewLetter(string text = "Læs side 42") =>
         new(Guid.CreateVersion7(), RoomObjectType.Letter, 10, 80, "builtin:letter", null, Text: text);

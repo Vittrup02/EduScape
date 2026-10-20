@@ -8,14 +8,17 @@ namespace Eduscape.Api.Sessions;
 
 public sealed record DashboardSceneDto(Guid Id, string Name);
 
-/// <summary>A lock as the teacher's dashboard shows it: its question, never its answer.</summary>
-public sealed record DashboardLockDto(Guid Id, Guid SceneId, string Question);
+/// <summary>A lock as the teacher's dashboard shows it: each step's question, never an answer.</summary>
+public sealed record DashboardLockDto(Guid Id, Guid SceneId, string[] Questions);
 
 /// <summary><c>SceneId</c> is the scene the student's device last reported, or the start scene before that.</summary>
 public sealed record DashboardParticipantDto(Guid Id, string? Nickname, Guid? SceneId, DateTimeOffset? SceneEnteredAt);
 
-/// <summary>The unsolved lock the team tried last (see <see cref="Team.FindCurrentLock"/>).</summary>
-public sealed record DashboardCurrentLockDto(Guid LockId, DateTimeOffset StuckSince, int WrongAttempts);
+/// <summary>
+/// The unsolved lock the team tried last (see <see cref="Team.FindCurrentLock"/>); <c>SolvedSteps</c> is the index of
+/// the step it is on.
+/// </summary>
+public sealed record DashboardCurrentLockDto(Guid LockId, DateTimeOffset StuckSince, int WrongAttempts, int SolvedSteps);
 
 /// <summary>
 /// A team's progress. <c>Participants</c> is empty once the students' data has been erased after the session;
@@ -58,7 +61,6 @@ internal static class SessionDashboard
         var session = await TeacherSessionEndpoints.OwnSessions(db, teacherId)
             .Include(s => s.Teams).ThenInclude(t => t.Participants)
             .Include(s => s.Teams).ThenInclude(t => t.LockProgress)
-            .Include(s => s.Teams).ThenInclude(t => t.OpenedDoors)
             .AsSplitQuery()
             .SingleOrDefaultAsync(s => s.Id == id, cancellationToken);
         if (session is null)
@@ -81,7 +83,7 @@ internal static class SessionDashboard
         var scenes = room.Scenes.OrderBy(s => s.SortOrder).ToArray();
         var locks = scenes
             .SelectMany(s => s.Objects.OfType<Lock>().OrderBy(l => l.Id))
-            .Select(l => new DashboardLockDto(l.Id, l.SceneId, l.Question))
+            .Select(l => new DashboardLockDto(l.Id, l.SceneId, [.. l.Steps.Select(s => s.Question)]))
             .ToArray();
         var startSceneId = room.StartScene?.Id;
 
@@ -94,7 +96,7 @@ internal static class SessionDashboard
                 [.. t.SolvedLockIds],
                 t.EscapedAt,
                 t.FindCurrentLock() is { } current
-                    ? new DashboardCurrentLockDto(current.LockId, current.StuckSince, current.WrongAttempts)
+                    ? new DashboardCurrentLockDto(current.LockId, current.StuckSince, current.WrongAttempts, current.SolvedSteps)
                     : null,
                 t.ParticipantCount ?? t.Participants.Count,
                 [.. t.Participants

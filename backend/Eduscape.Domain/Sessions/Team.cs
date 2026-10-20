@@ -47,8 +47,6 @@ public sealed class Team
     public IReadOnlySet<Guid> SolvedLockIds =>
         _lockProgress.Where(p => p.IsSolved).Select(p => p.LockId).ToHashSet();
 
-    public IReadOnlySet<Guid> OpenedDoorIds => _openedDoors.Select(d => d.DoorId).ToHashSet();
-
     public Participant AddParticipant(string? nickname, string deviceTokenHash, DateTimeOffset joinedAt)
     {
         var participant = new Participant(Id, nickname, deviceTokenHash, joinedAt);
@@ -66,10 +64,10 @@ public sealed class Team
     }
 
     /// <summary>
-    /// Marks the lock as solved. Idempotent: returns false (and changes nothing) if the team already solved it,
-    /// e.g. when two students answer at the same time.
+    /// Marks the whole lock as solved, all steps included. Idempotent: returns false (and changes nothing) if the team
+    /// already solved it, e.g. when two students answer at the same time.
     /// </summary>
-    public bool TrySolveLock(Guid lockId, DateTimeOffset now)
+    public bool TrySolveLock(Guid lockId, DateTimeOffset now, int stepCount = 1)
     {
         var progress = GetOrAddProgress(lockId);
         if (progress.IsSolved)
@@ -77,16 +75,45 @@ public sealed class Team
             return false;
         }
 
+        progress.SolvedSteps = Math.Max(progress.SolvedSteps, stepCount);
         progress.SolvedAt = now;
         return true;
     }
 
+    /// <summary>
+    /// Records that the team answered the lock's current step correctly; after the last of <paramref name="stepCount"/>
+    /// steps the lock is solved. The next step starts afresh: no wrong attempts, no hint and no wait.
+    /// Returns true if this solved the whole lock.
+    /// </summary>
+    public bool SolveStep(Guid lockId, int stepCount, DateTimeOffset now)
+    {
+        var progress = GetOrAddProgress(lockId);
+        if (progress.IsSolved)
+        {
+            return false;
+        }
+
+        progress.SolvedSteps++;
+        progress.StepWrongAttempts = 0;
+        progress.FirstAttemptAt = null;
+        progress.LastAttemptAt = null;
+        if (progress.SolvedSteps >= stepCount)
+        {
+            progress.SolvedAt = now;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>A wrong answer on the lock's current step; it counts for the hint, the wait and the dashboard.</summary>
     public void RegisterWrongAttempt(Guid lockId, DateTimeOffset now)
     {
         var progress = GetOrAddProgress(lockId);
         if (!progress.IsSolved)
         {
             progress.WrongAttempts++;
+            progress.StepWrongAttempts++;
             progress.FirstAttemptAt ??= now;
             progress.LastAttemptAt = now;
         }
@@ -94,30 +121,35 @@ public sealed class Team
 
     public bool IsLockSolved(Guid lockId) => FindProgress(lockId)?.IsSolved ?? false;
 
+    /// <summary>How many of the lock's steps the team has answered; the index of the step it is on.</summary>
+    public int SolvedSteps(Guid lockId) => FindProgress(lockId)?.SolvedSteps ?? 0;
+
+    /// <summary>Wrong answers on the lock, over all its steps.</summary>
     public int WrongAttempts(Guid lockId) => FindProgress(lockId)?.WrongAttempts ?? 0;
 
-    public bool IsHintVisible(Guid lockId) => WrongAttempts(lockId) >= WrongAttemptsBeforeHint;
+    /// <summary>The current step's hint is shown after <see cref="WrongAttemptsBeforeHint"/> wrong answers on that step.</summary>
+    public bool IsHintVisible(Guid lockId) => (FindProgress(lockId)?.StepWrongAttempts ?? 0) >= WrongAttemptsBeforeHint;
 
-    /// <summary>Records that the team opened a door. Idempotent: returns false if it was already open.</summary>
-    public bool OpenDoor(Guid doorId, DateTimeOffset now)
+    /// <summary>
+    /// How long the lock stays locked after the team's last wrong answer, rounded up to whole seconds; zero when the
+    /// team may answer.
+    /// </summary>
+    public int CooldownRemainingSeconds(Guid lockId, int cooldownSeconds, DateTimeOffset now)
     {
-        if (_openedDoors.Any(d => d.DoorId == doorId))
+        if (cooldownSeconds <= 0 || FindProgress(lockId) is not { IsSolved: false, LastAttemptAt: { } lastWrong })
         {
-            return false;
+            return 0;
         }
 
-        _openedDoors.Add(new TeamOpenedDoor(Id, doorId, now));
-        return true;
+        var remaining = lastWrong.AddSeconds(cooldownSeconds) - now;
+        return remaining > TimeSpan.Zero ? (int)Math.Ceiling(remaining.TotalSeconds) : 0;
     }
 
     /// <summary>Records that the team escaped. Idempotent: the first time is kept.</summary>
     public void MarkEscaped(DateTimeOffset now) => EscapedAt ??= now;
 
-    /// <summary>When the team last solved a lock or opened a door; null before its first progress.</summary>
-    public DateTimeOffset? LastProgressAt =>
-        _lockProgress.Select(p => p.SolvedAt)
-            .Concat(_openedDoors.Select(d => (DateTimeOffset?)d.OpenedAt))
-            .Max();
+    /// <summary>When the team last solved a lock; null before its first progress. Doors open with the locks.</summary>
+    public DateTimeOffset? LastProgressAt => _lockProgress.Select(p => p.SolvedAt).Max();
 
     /// <summary>
     /// The unsolved lock the team tried last, for the teacher's dashboard: since when the team has been working on it
@@ -142,7 +174,7 @@ public sealed class Team
         var stuckSince = LastProgressAt is { } lastProgressAt && lastProgressAt > firstAttemptAt
             ? lastProgressAt
             : firstAttemptAt;
-        return new CurrentLock(current.LockId, stuckSince, current.WrongAttempts);
+        return new CurrentLock(current.LockId, stuckSince, current.WrongAttempts, current.SolvedSteps);
     }
 
     /// <summary>

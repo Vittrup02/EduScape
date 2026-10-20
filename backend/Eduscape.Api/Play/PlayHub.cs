@@ -10,11 +10,19 @@ namespace Eduscape.Api.Play;
 /// <summary>Events the server pushes to every device on a team. They carry ids only, never answers.</summary>
 public interface IPlayClient
 {
+    /// <summary>The team answered the lock's last step: the lock is open.</summary>
     Task LockSolved(Guid lockId);
 
-    /// <summary>The team has answered the lock wrong <see cref="Team.WrongAttemptsBeforeHint"/> times.</summary>
+    /// <summary>The team answered a step of the lock; the next one (index <paramref name="solvedSteps"/>) is up.</summary>
+    Task StepSolved(Guid lockId, int solvedSteps);
+
+    /// <summary>The team has answered the lock's current step wrong <see cref="Team.WrongAttemptsBeforeHint"/> times.</summary>
     Task HintRevealed(Guid lockId, string hint);
 
+    /// <summary>A wrong answer: the lock is locked for the team for this many seconds.</summary>
+    Task LockCooldown(Guid lockId, int seconds);
+
+    /// <summary>A door or exit door opened because the team met its condition; every device animates it.</summary>
     Task DoorOpened(Guid doorId);
 
     Task TeamEscaped();
@@ -82,7 +90,11 @@ public interface ITeamNotifier
 {
     Task LockSolvedAsync(Guid teamId, Guid lockId);
 
+    Task StepSolvedAsync(Guid teamId, Guid lockId, int solvedSteps);
+
     Task HintRevealedAsync(Guid teamId, Guid lockId, string hint);
+
+    Task LockCooldownAsync(Guid teamId, Guid lockId, int seconds);
 
     Task DoorOpenedAsync(Guid teamId, Guid doorId);
 
@@ -97,7 +109,11 @@ internal sealed class SignalRTeamNotifier(IHubContext<PlayHub, IPlayClient> hub)
 {
     public Task LockSolvedAsync(Guid teamId, Guid lockId) => Team(teamId).LockSolved(lockId);
 
+    public Task StepSolvedAsync(Guid teamId, Guid lockId, int solvedSteps) => Team(teamId).StepSolved(lockId, solvedSteps);
+
     public Task HintRevealedAsync(Guid teamId, Guid lockId, string hint) => Team(teamId).HintRevealed(lockId, hint);
+
+    public Task LockCooldownAsync(Guid teamId, Guid lockId, int seconds) => Team(teamId).LockCooldown(lockId, seconds);
 
     public Task DoorOpenedAsync(Guid teamId, Guid doorId) => Team(teamId).DoorOpened(doorId);
 

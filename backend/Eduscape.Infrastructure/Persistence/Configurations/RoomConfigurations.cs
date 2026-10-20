@@ -92,14 +92,28 @@ internal sealed class RoomObjectConfiguration : IEntityTypeConfiguration<RoomObj
     }
 }
 
+// The columns Question, AnswerType, CorrectAnswer, Tolerance, Hint and Options from before lock steps are still in the
+// table (nullable and unused), so a running older version keeps working during a deploy. A later release drops them.
 internal sealed class LockConfiguration : IEntityTypeConfiguration<Lock>
 {
     public void Configure(EntityTypeBuilder<Lock> builder)
     {
-        builder.Property(l => l.Question).HasMaxLength(TextLimits.Question);
-        builder.Property(l => l.CorrectAnswer).HasMaxLength(TextLimits.Answer);
-        builder.Property(l => l.Tolerance).HasPrecision(18, 6);
-        builder.Property(l => l.Hint).HasMaxLength(TextLimits.Hint);
+        builder.Ignore(l => l.Steps);
+        builder.Property<List<LockStep>>("_steps")
+            .HasColumnName("Steps")
+            .HasColumnType("jsonb")
+            .HasConversion(LockStepsJson.Converter, LockStepsJson.Comparer);
+    }
+}
+
+// Doors and exit doors share their open condition's columns (one table for all objects).
+internal sealed class DoorwayConfiguration : IEntityTypeConfiguration<Doorway>
+{
+    public void Configure(EntityTypeBuilder<Doorway> builder)
+    {
+        builder.Property(d => d.OpenCondition).HasColumnName("OpenCondition");
+        builder.Ignore(d => d.RequiredLockIds);
+        builder.Property<Guid[]>("_requiredLockIds").HasColumnName("RequiredLockIds");
     }
 }
 

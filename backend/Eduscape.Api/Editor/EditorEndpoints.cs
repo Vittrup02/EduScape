@@ -145,10 +145,19 @@ public static class EditorEndpoints
         await transaction.CommitAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Starts a preview of the room, from the beginning or from the scene the teacher is working on. The body is
+    /// optional; without a start scene the preview starts from the beginning.
+    /// </summary>
     private static async Task<IResult> StartPreviewAsync(
-        Guid id, ClaimsPrincipal user, SessionStarter starter, CancellationToken cancellationToken)
+        Guid id,
+        StartPreviewRequest? request,
+        ClaimsPrincipal user,
+        SessionStarter starter,
+        CancellationToken cancellationToken)
     {
-        var deviceToken = await starter.StartPreviewAsync(user.GetTeacherId(), id, cancellationToken);
+        var deviceToken = await starter.StartPreviewAsync(
+            user.GetTeacherId(), id, request?.StartSceneId, cancellationToken);
         return deviceToken is null ? TypedResults.NotFound() : TypedResults.Ok(new PreviewResponse(deviceToken));
     }
 
@@ -171,7 +180,7 @@ public static class EditorEndpoints
         TypedResults.Json(new ApiError(code), statusCode: StatusCodes.Status409Conflict);
 
     private static RoomValidationErrorDto[] ValidationErrors(EscapeRoom room) =>
-        [.. room.Validate().Select(e => new RoomValidationErrorDto(e.Code, e.ObjectId))];
+        [.. room.Validate().Select(e => new RoomValidationErrorDto(e.Code, e.ObjectId, e.StepIndex))];
 
     private static EditorRoomDto ToDto(EscapeRoom room, ImageUrls imageUrls, IImageStorage storage) => new(
         room.Id,
@@ -185,12 +194,13 @@ public static class EditorEndpoints
             scene.Name,
             scene.BackgroundImageKey,
             imageUrls.For(scene.BackgroundImageKey),
-            [.. scene.Objects.OrderBy(o => o.Id).Select(ToDto)],
+            [.. scene.Objects.OrderBy(o => o.Id).Select(o => ToDto(o, imageUrls))],
             scene.Narration))],
         ValidationErrors(room),
-        storage.IsConfigured);
+        storage.IsConfigured,
+        room.WrongAnswerCooldownSeconds);
 
-    private static EditorObjectDto ToDto(RoomObject roomObject)
+    private static EditorObjectDto ToDto(RoomObject roomObject, ImageUrls imageUrls)
     {
         var dto = new EditorObjectDto(
             roomObject.Id,
@@ -202,19 +212,30 @@ public static class EditorEndpoints
 
         return roomObject switch
         {
-            Lock @lock => dto with
-            {
-                Question = @lock.Question,
-                AnswerType = @lock.AnswerType,
-                CorrectAnswer = @lock.CorrectAnswer,
-                Tolerance = @lock.Tolerance,
-                Hint = @lock.Hint,
-                Options = @lock.Options,
-            },
+            Lock @lock => dto with { Steps = [.. @lock.Steps.Select(step => ToDto(step, imageUrls))] },
             Letter letter => dto with { Text = letter.Text },
             TextBox textBox => dto with { Text = textBox.Text },
-            Door door => dto with { TargetSceneId = door.TargetSceneId },
+            Door door => dto with
+            {
+                TargetSceneId = door.TargetSceneId,
+                OpenCondition = door.OpenCondition,
+                RequiredLockIds = [.. door.RequiredLockIds],
+            },
+            ExitDoor exit => dto with { OpenCondition = exit.OpenCondition, RequiredLockIds = [.. exit.RequiredLockIds] },
             _ => dto,
         };
     }
+
+    private static EditorStepDto ToDto(LockStep step, ImageUrls imageUrls) => new(
+        step.Id,
+        step.Question,
+        step.AnswerType,
+        step.CorrectAnswer,
+        step.Tolerance,
+        step.Hint,
+        [.. step.Options],
+        [.. step.AcceptedAnswers],
+        step.AcceptTypos,
+        [.. step.OrderItems.Select(item => new EditorOrderItemDto(
+            item.Id, item.Text, item.ImageKey, item.ImageKey is null ? null : imageUrls.For(item.ImageKey)))]);
 }

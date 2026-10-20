@@ -33,7 +33,7 @@ public class TeacherDashboardTests(EduscapeApiFactory factory) : IClassFixture<E
 
         Assert.Equal(session.Pin, dashboard.Pin);
         Assert.Equal(["First", "Second"], dashboard.Scenes.Select(s => s.Name));
-        Assert.Contains(dashboard.Locks, l => l.Id == room.CodeLock.Id && l.Question == "Which code?");
+        Assert.Contains(dashboard.Locks, l => l.Id == room.CodeLock.Id && l.Questions.SequenceEqual(["Which code?"]));
 
         var red = dashboard.Teams.Single(t => t.Id == session.Teams[0].Id);
         Assert.Equal([room.CodeLock.Id], red.SolvedLockIds);
@@ -158,8 +158,7 @@ public class TeacherDashboardTests(EduscapeApiFactory factory) : IClassFixture<E
 
         await SessionApi.AnsweredAsync(Student, ida.DeviceToken, room.CodeLock.Id, PlayTestRoom.CodeAnswer);
         await SessionApi.AnsweredAsync(Student, ida.DeviceToken, room.TextLock.Id, PlayTestRoom.TextAnswer);
-        (await SessionApi.OpenDoorAsync(Student, ida.DeviceToken, room.Door.Id)).EnsureSuccessStatusCode();
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < 2; i++)
         {
             await dashboard.NextEventAsync();
         }
