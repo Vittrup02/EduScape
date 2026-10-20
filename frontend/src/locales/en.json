@@ -18,6 +18,41 @@
     "newTeacher": "New teacher?",
     "createAccount": "Create a teacher account"
   },
+  "footer": {
+    "aboutData": "About data"
+  },
+  "privacy": {
+    "title": "About data",
+    "intro": "eduscape is built to store as little as possible about students and teachers. Here you can read what is stored and when it is deleted.",
+    "studentsTitle": "Students",
+    "students": {
+      "account": "Students have no account and never log in. They join with the PIN their teacher shows them.",
+      "nickname": "A student can enter a nickname, such as their first name or initials. It is optional. Apart from that, only the student's team and the scene they are in are stored, so the teacher can follow along.",
+      "token": "The student's browser gets a random key, so the student gets back to their team if the page is reloaded. The server only stores a fingerprint (hash) of the key, not the key itself.",
+      "answers": "What students type as answers is not stored. The server only stores whether the team has solved a lock and how many wrong answers the team has given.",
+      "noRanking": "There is no leaderboard. Time and progress are only shown to the teacher."
+    },
+    "deletionTitle": "When is students' data deleted?",
+    "deletion": {
+      "afterClose": "Nicknames, keys and scenes are deleted automatically about an hour after the teacher has closed the session. A session that is not closed closes by itself after 12 hours at most.",
+      "sleeping": "The deletion runs on the server every 10 minutes. If nobody has used eduscape for a while, the server is asleep, and the deletion happens the next time it wakes up.",
+      "results": "The team's result, that is how many locks the team solved and when it broke out, is kept without names, so the teacher can see how it went. The number of students on the team is kept too, but not who they were.",
+      "device": "The student's browser forgets the key when the student leaves the session or when the session is closed."
+    },
+    "teachersTitle": "Teachers",
+    "teachers": {
+      "account": "Teachers have an account with an e-mail address and a password. The password is only stored as a fingerprint (hash), never as text.",
+      "content": "The server stores the teacher's rooms, classes and an overview of past sessions. A class is only a name, such as “9.A”. Student lists are never stored.",
+      "images": "Images a teacher uploads get a new, random file name, and details such as location and camera are removed from the image.",
+      "kept": "A teacher's data is kept for as long as the account exists."
+    },
+    "whereTitle": "Where is the data?",
+    "where": {
+      "eu": "All data is stored on servers in the EU.",
+      "noTracking": "eduscape uses no tracking cookies, no analytics and no ads. IP addresses and students' answers are not written to the server's logs.",
+      "browser": "The browser only keeps what is needed: the language choice, the student's key and the teacher's login."
+    }
+  },
   "auth": {
     "loginTitle": "Log in",
     "registerTitle": "Create a teacher account",

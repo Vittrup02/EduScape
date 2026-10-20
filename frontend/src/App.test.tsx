@@ -55,11 +55,17 @@ describe('App', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('offers new teachers an account', () => {
+  it('offers new teachers an account and links to "About data" from every page', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
     render(<App />)
 
     expect(screen.getByRole('link', { name: 'Opret en lærerkonto' })).toHaveAttribute('href', '/register')
+
+    fireEvent.click(screen.getByRole('link', { name: 'Om data' }))
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Om data' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Hvornår slettes elevernes data?' })).toBeInTheDocument()
+    expect(screen.getByText(/Det, eleverne skriver som svar, gemmes ikke/)).toBeInTheDocument()
   })
 
   it('switches to English with the language switcher', () => {
@@ -70,6 +76,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
 
     expect(screen.getByRole('link', { name: 'Join with a PIN' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'About data' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'EN' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'DA' })).toHaveAttribute('aria-pressed', 'false')

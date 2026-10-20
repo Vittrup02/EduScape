@@ -18,6 +18,41 @@
     "newTeacher": "Ny lærer?",
     "createAccount": "Opret en lærerkonto"
   },
+  "footer": {
+    "aboutData": "Om data"
+  },
+  "privacy": {
+    "title": "Om data",
+    "intro": "eduscape er bygget til at gemme så lidt som muligt om elever og lærere. Her kan du læse, hvad der gemmes, og hvornår det bliver slettet.",
+    "studentsTitle": "Elever",
+    "students": {
+      "account": "Elever har ingen konto og logger aldrig ind. De deltager med den PIN-kode, læreren viser.",
+      "nickname": "Eleven kan skrive et kaldenavn, fx sit fornavn eller sine initialer. Det er frivilligt. Derudover gemmes kun, hvilket hold eleven er på, og hvilken scene eleven er i, så læreren kan følge med.",
+      "token": "Elevens browser får en tilfældig nøgle, så eleven kommer tilbage til sit hold, hvis siden bliver genindlæst. Serveren gemmer kun et fingeraftryk (hash) af nøglen, ikke selve nøglen.",
+      "answers": "Det, eleverne skriver som svar, gemmes ikke. Serveren gemmer kun, om holdet har løst en lås, og hvor mange forkerte svar holdet har givet.",
+      "noRanking": "Der er ingen rangliste. Tid og fremskridt vises kun for læreren."
+    },
+    "deletionTitle": "Hvornår slettes elevernes data?",
+    "deletion": {
+      "afterClose": "Kaldenavne, nøgler og scener slettes automatisk cirka en time efter, at læreren har lukket sessionen. En session, der ikke bliver lukket, lukker af sig selv efter højst 12 timer.",
+      "sleeping": "Sletningen kører på serveren hvert 10. minut. Har ingen brugt eduscape i et stykke tid, sover serveren, og så sker sletningen, næste gang den vågner.",
+      "results": "Holdets resultat, altså hvor mange låse holdet løste, og hvornår det brød ud, gemmes uden navne, så læreren kan se, hvordan det gik. Antallet af elever på holdet gemmes også, men ikke hvem de var.",
+      "device": "Elevens browser glemmer nøglen, når eleven forlader sessionen, eller når sessionen er lukket."
+    },
+    "teachersTitle": "Lærere",
+    "teachers": {
+      "account": "Lærere har en konto med e-mail og adgangskode. Adgangskoden gemmes kun som et fingeraftryk (hash), aldrig som tekst.",
+      "content": "Serveren gemmer lærerens rum, klasser og en oversigt over kørte sessioner. En klasse er kun et navn, fx „9.A“. Der gemmes aldrig elevlister.",
+      "images": "Billeder, læreren uploader, får et nyt, tilfældigt filnavn, og oplysninger som sted og kamera bliver fjernet fra billedet.",
+      "kept": "Lærerens data gemmes, så længe kontoen findes."
+    },
+    "whereTitle": "Hvor ligger data?",
+    "where": {
+      "eu": "Al data gemmes på servere i EU.",
+      "noTracking": "eduscape bruger ingen cookies til sporing, ingen analyseværktøjer og ingen reklamer. IP-adresser og elevernes svar bliver ikke skrevet i serverens logfiler.",
+      "browser": "Browseren gemmer kun det nødvendige: sprogvalget, elevens nøgle og lærerens login."
+    }
+  },
   "auth": {
     "loginTitle": "Log ind",
     "registerTitle": "Opret lærerkonto",

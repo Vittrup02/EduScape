@@ -12,14 +12,15 @@ import { HomePage } from './HomePage'
 import { LanguageSwitcher } from './i18n/LanguageSwitcher'
 import { JoinPage } from './play/JoinPage'
 import { PlayPage } from './play/PlayPage'
+import { PrivacyPage } from './PrivacyPage'
 import { SessionPage } from './teacher/SessionPage'
 import { StartSessionPage } from './teacher/StartSessionPage'
 import { TeacherHomePage } from './teacher/TeacherHomePage'
 import { WakeUpNotice } from './WakeUpNotice'
 
 /**
- * Around every page: the language switcher for everyone, logout for a signed-in teacher, and the "getting ready"
- * notice while the backend wakes up.
+ * Around every page: the language switcher for everyone, logout for a signed-in teacher, the "getting ready"
+ * notice while the backend wakes up, and the link to "About data".
  */
 function Layout() {
   const { t } = useTranslation()
@@ -54,6 +55,9 @@ function Layout() {
       </header>
       <WakeUpNotice />
       <Outlet />
+      <footer className="site-footer">
+        <Link to="/privacy">{t('footer.aboutData')}</Link>
+      </footer>
     </>
   )
 }
@@ -84,6 +88,7 @@ export function AppRoutes() {
         {/* Students never log in. */}
         <Route path="join" element={<JoinPage />} />
         <Route path="play" element={<PlayPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
