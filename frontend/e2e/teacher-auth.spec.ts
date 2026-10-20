@@ -15,6 +15,8 @@ test('teacher registers, stays signed in, logs out and logs in again', async ({ 
 
   // Register: signed in straight away and sent on to the page they wanted.
   await page.getByRole('link', { name: 'Opret en konto' }).click()
+  // The login page has an e-mail field too; fill in the form only once the register page has replaced it.
+  await expect(page.getByRole('heading', { name: 'Opret lærerkonto' })).toBeVisible()
   await page.getByLabel('E-mail').fill(email)
   await page.getByLabel('Adgangskode').fill(password)
   await page.getByRole('button', { name: 'Opret konto' }).click()
