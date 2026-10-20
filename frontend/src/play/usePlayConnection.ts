@@ -74,6 +74,9 @@ export function usePlayConnection(token: string | null, retryDelayMs: number) {
         setOffline()
         void hub.stop()
       },
+      sessionClosed: () => {
+        end('SESSION_CLOSED')
+      },
       reconnecting: setOffline,
       reconnected: () => void sync(),
       closed: () => {

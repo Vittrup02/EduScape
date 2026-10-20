@@ -307,12 +307,19 @@
     "back": "Tilbage"
   },
   "play": {
-    "connecting": "Forbinder... Har serveren sovet, kan det tage op til et minut.",
+    "connecting": "Forbinder...",
     "reconnecting": "Forbindelsen blev afbrudt. Forbinder igen...",
     "onTeam": "Du er på {{team}}",
     "individual": "Du spiller for dig selv",
     "nickname": "Du er med som {{nickname}}.",
     "leave": "Forlad sessionen",
+    "leaveConfirm": "Vil du forlade sessionen? Du kan komme med igen med PIN-koden.",
+    "leaveYes": "Ja, forlad sessionen",
+    "leaveNo": "Bliv",
+    "ended": {
+      "title": "Sessionen er slut",
+      "text": "Læreren har lukket sessionen. Tak fordi du var med!"
+    },
     "preview": "Prøveversion – kun du kan se den, og den tæller ikke med i din historik.",
     "narration": {
       "label": "Fortælling",

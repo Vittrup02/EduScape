@@ -307,12 +307,19 @@
     "back": "Back"
   },
   "play": {
-    "connecting": "Connecting... If the server has been asleep, this can take up to a minute.",
+    "connecting": "Connecting...",
     "reconnecting": "The connection was lost. Reconnecting...",
     "onTeam": "You are on {{team}}",
     "individual": "You are playing on your own",
     "nickname": "You are in as {{nickname}}.",
     "leave": "Leave the session",
+    "leaveConfirm": "Leave the session? You can join again with the PIN.",
+    "leaveYes": "Yes, leave the session",
+    "leaveNo": "Stay",
+    "ended": {
+      "title": "The session is over",
+      "text": "Your teacher has closed the session. Thanks for playing!"
+    },
     "preview": "Preview – only you can see it, and it isn't added to your history.",
     "narration": {
       "label": "Story",
