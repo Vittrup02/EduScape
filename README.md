@@ -88,7 +88,7 @@ Lærere opretter en konto med e-mail og adgangskode (mindst 10 tegn) på `/regis
 - **Bearer tokens, ikke cookies.** Frontend (`*.workers.dev`) og API (`*.onrender.com`) ligger på forskellige sites. En auth-cookie ville derfor være en tredjeparts-cookie, som bl.a. Safari blokerer. Backenden bruger ASP.NET Core Identitys bearer tokens: access tokens gælder 30 minutter, refresh tokens 7 dage. Frontenden gemmer dem i `localStorage` og fornyer dem automatisk.
 - **Log ud** tilbagekalder alle lærerens refresh tokens på alle enheder (godt på delte skole-PC'er).
 - **Beskyttelse:** login og registrering er rate-limited pr. IP (20 pr. minut, `RateLimiting__Auth__PermitLimit`), og en konto låses i 5 minutter efter 5 forkerte adgangskoder. Alt under `/api/teacher` kræver login. En test fejler, hvis et nyt lærer-endpoint mangler beskyttelsen.
-- **Data Protection-nøgler** (som beskytter tokens) gemmes i databasen (`DataProtectionKeys`), så lærere ikke logges ud, når Render genstarter efter dvale. Der skal ikke sættes nye environment variables.
+- **Data Protection-nøgler** (som beskytter tokens) gemmes i databasen (`DataProtectionKeys`), så lærere ikke logges ud, når Render genstarter efter dvale. Uden for Development er nøglerne krypteret med et certifikat, der kun findes på Render (se [Kryptering af Data Protection-nøgler](#kryptering-af-data-protection-nøgler)).
 - Endnu ikke: e-mailbekræftelse og nulstilling af adgangskode, da det kræver en mailtjeneste.
 
 ## Sessioner og PIN-koder
@@ -183,8 +183,60 @@ Backenden kører som Docker-container på Render. Imaget bygges fra [backend/Doc
 | `ConnectionStrings__Default` | Neons **pooled** endpoint (værtsnavn med `-pooler`) i Npgsql-format: `Host=<host>;Database=<db>;Username=<bruger>;Password=<kode>;SSL Mode=Require`. Neons `postgresql://`-URL virker ikke direkte i Npgsql. |
 | `Cors__AllowedOrigins` | Frontendens origin(s), kommasepareret, fx `https://eduscape.<konto>.workers.dev`. Uden afsluttende `/`. |
 | `PORT` | Sættes af Render selv. Appen lytter på `0.0.0.0:$PORT` (standard i imaget: 8080). |
+| `DataProtection__CertificatePath` | `/etc/secrets/dataprotection.pem` (en secret file, se [Kryptering af Data Protection-nøgler](#kryptering-af-data-protection-nøgler)). Uden den starter appen ikke. |
 
 `ASPNETCORE_ENVIRONMENT` skal ikke sættes. Containeren kører som Production, så demo-rummet ikke seedes og user-secrets ikke læses.
+
+### Kryptering af Data Protection-nøgler
+
+Nøglerne, der beskytter lærernes tokens, ligger i tabellen `DataProtectionKeys`. Uden for Development krypteres de med et RSA-certifikat, der kun findes som secret file på Render. En kopi af databasen (backup, Neon-branch, lækket connection string) er så ikke nok til at forfalske en lærers login.
+
+- **Lærere forbliver logget ind ved genstart.** Nøglerne ligger stadig i databasen. Ved opstart læser appen dem og dekrypterer dem med certifikatet fra secret filen.
+- **Mangler certifikatet, starter appen ikke.** Render-loggen viser `OptionsValidationException: The Data Protection keys in the database must be encrypted outside Development, …`. Er filen der, men forkert (ingen privat nøgle, ikke RSA, ikke læsbar), siger fejlen hvad der er galt.
+- **Lokalt kræves intet certifikat.** I Development gemmes nøglerne ukrypteret i den lokale database, og Data Protection logger en advarsel om det. Vil du prøve med certifikat lokalt: `dotnet user-secrets set "DataProtection:CertificatePath" "<sti>\dataprotection.pem" --project Eduscape.Api`.
+- **Ældre, ukrypterede nøgler** (fra før certifikatet blev sat op) krypteres automatisk i baggrunden ved første opstart med certifikatet. Det er de samme nøgler, så ingen logges ud. Loggen skriver `Encrypted N Data Protection keys that were stored unencrypted`.
+
+**1. Lav certifikatet** (Git Bash på Windows, macOS eller Linux):
+
+```bash
+MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:3072 -sha256 -days 3650 -nodes \
+  -subj "/CN=eduscape-dataprotection" -keyout key.pem -out certificate.pem
+cat certificate.pem key.pem > dataprotection.pem
+```
+
+- `MSYS_NO_PATHCONV=1` forhindrer Git Bash i at lave `/CN=…` om til en Windows-sti. Andre steder gør den ingenting.
+- Certifikatet skal være RSA, og den private nøgle må ikke have adgangskode (`-nodes`). Det er secret filen på Render, der beskytter den.
+- Data Protection tjekker ikke certifikatets udløbsdato. 10 år er fint, og du roterer, når du selv vil.
+- Lav ét certifikat pr. miljø (Render-servicen for `development` og for `main`). Del dem ikke.
+- Gem `dataprotection.pem` i en password manager, og slet de tre filer fra disken bagefter. `*.pem` er i `.gitignore`.
+
+**2. Installer det på Render**
+
+1. Servicen → **Environment → Secret Files → Add Secret File**. Filename: `dataprotection.pem`. Contents: hele indholdet af filen (både `BEGIN CERTIFICATE` og `BEGIN PRIVATE KEY`).
+2. Samme side, **Environment Variables**: `DataProtection__CertificatePath` = `/etc/secrets/dataprotection.pem`.
+3. **Save Changes**. Render deployer igen. Tjek i loggen, at appen starter uden fejl.
+
+Render kopierer også secret files ind i Docker-buildets rodmappe. De kommer ikke med i imaget: Dockerfilen kopierer kun projektmapperne, og `.dockerignore` udelader `*.pem`. Når containeren kører, kan filen i `/etc/secrets` kun læses af gruppe 1000. Dockerfilen tilføjer derfor appens bruger til gruppe 1000. CI tjekker begge dele: at imaget nægter at starte uden certifikat, og at det starter med en fil monteret som på Render.
+
+**3. Rotér certifikatet**
+
+Data Protection krypterer aldrig en gemt nøgle om. En nøgle forbliver krypteret med det certifikat, der var aktivt, da den blev lavet. Det gamle certifikat skal derfor blive, indtil dets nøgler ikke bruges længere.
+
+1. Lav et nyt certifikat (trin 1).
+2. **Secret Files:** tilføj `dataprotection-previous.pem` med det *nuværende* indhold af `dataprotection.pem`. Erstat derefter indholdet af `dataprotection.pem` med det nye certifikat.
+3. **Environment Variables:** `DataProtection__PreviousCertificatePaths` = `/etc/secrets/dataprotection-previous.pem` (flere filer kommasepareret).
+4. **Save Changes.** Nye nøgler krypteres med det nye certifikat, de gamle kan stadig læses, og ingen logges ud.
+5. Efter **97 dage** (en nøgle er aktiv i højst 90 dage, og refresh tokens gælder 7 dage): slet `dataprotection-previous.pem` og `DataProtection__PreviousCertificatePaths`. Slet evt. de udløbne nøgler i Neons SQL Editor:
+
+   ```sql
+   DELETE FROM "DataProtectionKeys"
+   WHERE (xpath('/key/expirationDate/text()', "Xml"::xml))[1]::text::timestamptz < now() - interval '7 days';
+   ```
+
+**Hvis certifikatet er tabt eller lækket**
+
+- **Tabt:** lav et nyt, og installer det uden `DataProtection__PreviousCertificatePaths`. Appen kan ikke læse de gamle nøgler og laver en ny. Alle lærere skal logge ind igen én gang. Ingen data går tabt, for nøglerne beskytter kun login-tokens.
+- **Lækket:** slet først alle nøgler (`DELETE FROM "DataProtectionKeys";` i Neons SQL Editor). Installer derefter et nyt certifikat uden det gamle som previous. Deployet genstarter appen, som laver en ny nøgle. Alle lærere skal logge ind igen.
 
 ### Frontend (Cloudflare Workers)
 
