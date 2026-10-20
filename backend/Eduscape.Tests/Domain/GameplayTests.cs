@@ -207,4 +207,32 @@ public class GameplayTests
         Assert.False(Gameplay.OpenExitDoor(_room, _team, _exit.Id, Now.AddMinutes(1)));
         Assert.Equal(Now, _team.EscapedAt);
     }
+
+    [Fact]
+    public void EnterScene_OnlyAcceptsScenesTheTeamHasUnlocked()
+    {
+        var participant = _team.AddParticipant("Ida", "token", Now);
+        var library = _room.Scenes[1];
+
+        var locked = Assert.Throws<DomainException>(() => Gameplay.EnterScene(_room, _team, participant, library.Id, Now));
+        Assert.Equal(DomainErrors.SceneLocked, locked.Code);
+
+        SolveUpToDoor();
+        Gameplay.OpenDoor(_room, _team, _door.Id, Now);
+        Gameplay.EnterScene(_room, _team, participant, library.Id, Now.AddMinutes(1));
+
+        Assert.Equal(library.Id, participant.CurrentSceneId);
+        Assert.Equal(Now.AddMinutes(1), participant.SceneEnteredAt);
+    }
+
+    [Fact]
+    public void EnterScene_OfAnotherRoom_IsNotFound()
+    {
+        var participant = _team.AddParticipant("Ida", "token", Now);
+
+        var error = Assert.Throws<DomainException>(() =>
+            Gameplay.EnterScene(_room, _team, participant, Guid.NewGuid(), Now));
+
+        Assert.Equal(DomainErrors.SceneNotFound, error.Code);
+    }
 }

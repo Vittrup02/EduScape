@@ -21,9 +21,17 @@ public sealed class TeamActions(EduscapeDbContext db, TimeProvider timeProvider)
     /// unknown; throws <see cref="DomainErrors.SessionClosed"/> once the session is closed or expired. A locked session
     /// can still be played by the students who are in.
     /// </summary>
-    public async Task<TeamActionResult<TResult>?> RunAsync<TResult>(
+    public Task<TeamActionResult<TResult>?> RunAsync<TResult>(
         string? deviceToken,
         Func<EscapeRoom, Team, DateTimeOffset, TResult> action,
+        CancellationToken cancellationToken) =>
+        RunAsync(deviceToken, (room, team, _, now) => action(room, team, now), cancellationToken);
+
+    /// <inheritdoc cref="RunAsync{TResult}(string?, Func{EscapeRoom, Team, DateTimeOffset, TResult}, CancellationToken)"/>
+    /// <remarks>For actions that also change the student's own <see cref="Participant"/>.</remarks>
+    public async Task<TeamActionResult<TResult>?> RunAsync<TResult>(
+        string? deviceToken,
+        Func<EscapeRoom, Team, Participant, DateTimeOffset, TResult> action,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(deviceToken))
@@ -58,7 +66,7 @@ public sealed class TeamActions(EduscapeDbContext db, TimeProvider timeProvider)
         var team = await LoadTeamAsync(db, participant.TeamId, cancellationToken);
         var room = await LoadRoomAsync(db, session.EscapeRoomId, cancellationToken);
 
-        var result = action(room, team, now);
+        var result = action(room, team, participant, now);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new TeamActionResult<TResult>(result, team, room);

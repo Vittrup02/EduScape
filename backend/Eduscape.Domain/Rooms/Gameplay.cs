@@ -73,6 +73,25 @@ public static class Gameplay
         return true;
     }
 
+    /// <summary>
+    /// Records the scene a student moved to, for the teacher's dashboard. Students move freely between the scenes
+    /// their team has unlocked, so only those can be reported.
+    /// </summary>
+    public static void EnterScene(EscapeRoom room, Team team, Participant participant, Guid sceneId, DateTimeOffset now)
+    {
+        if (room.Scenes.All(s => s.Id != sceneId))
+        {
+            throw new DomainException(DomainErrors.SceneNotFound);
+        }
+
+        if (!RoomProgress.For(room, team).IsSceneUnlocked(sceneId))
+        {
+            throw new DomainException(DomainErrors.SceneLocked);
+        }
+
+        participant.EnterScene(sceneId, now);
+    }
+
     private static T FindAvailable<T>(EscapeRoom room, Team team, Guid objectId)
         where T : RoomObject
     {

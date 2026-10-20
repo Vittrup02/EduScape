@@ -66,6 +66,8 @@ public sealed record OpenDoorRequest(string? DeviceToken, Guid DoorId);
 
 public sealed record OpenExitDoorRequest(string? DeviceToken, Guid ExitDoorId);
 
+public sealed record EnterSceneRequest(string? DeviceToken, Guid SceneId);
+
 /// <summary>The device token is returned only here; the server keeps just its hash.</summary>
 public sealed record JoinResponse(string DeviceToken, PlayStateDto State);
 
@@ -89,6 +91,9 @@ public static class PlayEndpoints
         play.MapPost("/answer", AnswerAsync);
         play.MapPost("/doors/open", OpenDoorAsync);
         play.MapPost("/exit", OpenExitDoorAsync);
+
+        // Which scene a student looks at is their own choice; it is reported only for the teacher's dashboard.
+        play.MapPost("/scene", EnterSceneAsync);
         return app;
     }
 
@@ -236,6 +241,20 @@ public static class PlayEndpoints
         }
 
         return TypedResults.NoContent();
+    }
+
+    private static async Task<IResult> EnterSceneAsync(
+        EnterSceneRequest request, TeamActions actions, CancellationToken cancellationToken)
+    {
+        var done = await actions.RunAsync(
+            request.DeviceToken,
+            (room, team, participant, now) =>
+            {
+                Gameplay.EnterScene(room, team, participant, request.SceneId, now);
+                return true;
+            },
+            cancellationToken);
+        return done is null ? DeviceNotRecognized() : TypedResults.NoContent();
     }
 
     /// <summary>
