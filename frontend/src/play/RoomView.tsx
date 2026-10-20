@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
 import { backgroundImage, objectAsset, objectStyle, textBoxStyle } from '../assets/sceneLayout'
 import { ApiError } from '../api/client'
-import { openDoor, openExitDoor, type PlayObject, type PlayState, type PlayTextBox } from '../api/play'
+import { openDoor, openExitDoor, reportScene, type PlayObject, type PlayState, type PlayTextBox } from '../api/play'
 import { errorKey } from '../i18n/errors'
 import { LockDialog } from './LockDialog'
 import { Modal } from './Modal'
@@ -12,6 +12,7 @@ import {
   findScene,
   isAvailable,
   isCompleted,
+  isSceneUnlocked,
   revealedHint,
   unlockedScenes,
   type TeamEvent,
@@ -35,13 +36,24 @@ interface RoomViewProps {
 export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps) {
   const { t } = useTranslation()
   const { room, team } = state
-  const [sceneId, setSceneId] = useState(room.startSceneId)
+  const [chosenSceneId, setSceneId] = useState(room.startSceneId)
+  // After the teacher moves the student to another team, that team may not have unlocked the scene yet.
+  const sceneId =
+    chosenSceneId !== null && isSceneUnlocked(room, team, chosenSceneId) ? chosenSceneId : room.startSceneId
   const [openObjectId, setOpenObjectId] = useState<string | null>(null)
   const [readLetterIds, setReadLetterIds] = useState<ReadonlySet<string>>(new Set())
   // Scenes whose story the student has read on this device; the story opens again on request.
   const [readNarrationIds, setReadNarrationIds] = useState<ReadonlySet<string>>(new Set())
   const [busy, setBusy] = useState(false)
   const [errorCode, setErrorCode] = useState<string | null>(null)
+
+  // The teacher's dashboard shows where each student is. Reported again after every reconnect and team change;
+  // a failed report only means the dashboard is a little behind.
+  useEffect(() => {
+    if (online && sceneId !== null) {
+      reportScene(deviceToken, sceneId).catch(() => undefined)
+    }
+  }, [deviceToken, sceneId, online, team.id])
 
   const scene = findScene(room, sceneId)
   if (scene === undefined) {

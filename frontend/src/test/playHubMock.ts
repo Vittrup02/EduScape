@@ -26,8 +26,12 @@ export class FakePlayHub implements PlayHub {
     return Promise.resolve()
   }
 
+  /** Like SignalR, stopping a started connection reports it closed. */
   stop(): Promise<void> {
-    this.connected = false
+    if (this.connected) {
+      this.connected = false
+      this.handlers.closed()
+    }
     return Promise.resolve()
   }
 

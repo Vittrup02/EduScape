@@ -134,7 +134,10 @@ describe('the play page', () => {
     let attempts = 0
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => {
+      vi.fn((url: RequestInfo | URL) => {
+        if (new URL(urlOf(url)).pathname !== '/api/play/reconnect') {
+          return Promise.resolve(new Response(null, { status: 204 }))
+        }
         attempts++
         return attempts < 3 ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve(json(stateFor(teams[0])))
       }),
