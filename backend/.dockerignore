@@ -12,5 +12,9 @@ dotnet-tools.json
 **/.env
 **/.env.*
 
+# Render copies secret files (e.g. dataprotection.pem) into the root of the build context; keep them out of the image
+*.pem
+**/*.pem
+
 Dockerfile
 .dockerignore

@@ -31,6 +31,11 @@ COPY --from=build /app/publish .
 ENV PORT=8080
 EXPOSE 8080
 
+# Render mounts secret files (the Data Protection certificate) at /etc/secrets, readable by group 1000.
+# The image's `app` user has its own group, so add it to group 1000 (created if the base image has none).
+RUN (getent group 1000 > /dev/null || groupadd --gid 1000 secrets) \
+    && usermod --append --groups 1000 app
+
 # Non-root user that ships with the .NET images
 USER $APP_UID
 

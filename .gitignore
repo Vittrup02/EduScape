@@ -25,6 +25,10 @@ obj/
 .env
 .env.*
 !.env.example
+# Certificates and private keys (e.g. the Data Protection certificate)
+*.pem
+*.pfx
+*.key
 
 # OS / editor
 .DS_Store

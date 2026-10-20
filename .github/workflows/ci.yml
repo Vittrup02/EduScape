@@ -66,10 +66,36 @@ jobs:
       - name: Build image
         run: docker build --tag eduscape-api:ci backend
 
+      # Production must never store the Data Protection keys unencrypted
+      - name: Refuses to start without the Data Protection certificate
+        run: |
+          if timeout 60 docker run --rm --env PORT=10000 eduscape-api:ci > no-certificate.log 2>&1; then
+            echo "::error::The container started without DataProtection__CertificatePath"
+            exit 1
+          fi
+          if ! grep --quiet "DataProtection__CertificatePath" no-certificate.log; then
+            echo "::error::The container did not explain that the Data Protection certificate is missing"
+            cat no-certificate.log
+            exit 1
+          fi
+
+      # Throw-away certificate, mounted like a Render secret file: /etc/secrets, readable by group 1000 only
+      - name: Create throw-away Data Protection certificate
+        run: |
+          mkdir "$RUNNER_TEMP/secrets"
+          openssl req -x509 -newkey rsa:3072 -sha256 -days 1 -nodes -subj "/CN=eduscape-ci" \
+            -keyout "$RUNNER_TEMP/key.pem" -out "$RUNNER_TEMP/certificate.pem"
+          cat "$RUNNER_TEMP/certificate.pem" "$RUNNER_TEMP/key.pem" > "$RUNNER_TEMP/secrets/dataprotection.pem"
+          sudo chown root:1000 "$RUNNER_TEMP/secrets/dataprotection.pem"
+          sudo chmod 640 "$RUNNER_TEMP/secrets/dataprotection.pem"
+
       # Like Render: PORT is injected and the app must answer on 0.0.0.0:$PORT (no database needed for /health)
       - name: Smoke test /health
         run: |
-          docker run --detach --name api --publish 10000:10000 --env PORT=10000 eduscape-api:ci
+          docker run --detach --name api --publish 10000:10000 --env PORT=10000 \
+            --volume "$RUNNER_TEMP/secrets:/etc/secrets:ro" \
+            --env DataProtection__CertificatePath=/etc/secrets/dataprotection.pem \
+            eduscape-api:ci
           for i in $(seq 1 30); do
             if curl --silent --fail http://localhost:10000/health; then
               echo " - container is healthy"
