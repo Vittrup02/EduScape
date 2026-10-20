@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
 import { logout } from './api/auth'
+import { checkHealth } from './api/client'
 import { LoginPage, RegisterPage } from './auth/AuthForm'
 import { RequireTeacher } from './auth/RequireTeacher'
 import { useTeacher } from './auth/useTeacher'
@@ -10,14 +12,28 @@ import { HomePage } from './HomePage'
 import { LanguageSwitcher } from './i18n/LanguageSwitcher'
 import { JoinPage } from './play/JoinPage'
 import { PlayPage } from './play/PlayPage'
+import { PrivacyPage } from './PrivacyPage'
 import { SessionPage } from './teacher/SessionPage'
 import { StartSessionPage } from './teacher/StartSessionPage'
 import { TeacherHomePage } from './teacher/TeacherHomePage'
+import { WakeUpNotice } from './WakeUpNotice'
 
-/** Header on every page: the language switcher for everyone, and logout for a signed-in teacher. */
+/**
+ * Around every page: the language switcher for everyone, logout for a signed-in teacher, the "getting ready"
+ * notice while the backend wakes up, and the link to "About data".
+ */
 function Layout() {
   const { t } = useTranslation()
   const teacher = useTeacher()
+
+  // Wakes the backend (Render free tier) as soon as anyone opens the app, whichever page they land on.
+  useEffect(() => {
+    const controller = new AbortController()
+    void checkHealth(controller.signal)
+    return () => {
+      controller.abort()
+    }
+  }, [])
 
   return (
     <>
@@ -37,7 +53,11 @@ function Layout() {
           <LanguageSwitcher />
         </div>
       </header>
+      <WakeUpNotice />
       <Outlet />
+      <footer className="site-footer">
+        <Link to="/privacy">{t('footer.aboutData')}</Link>
+      </footer>
     </>
   )
 }
@@ -68,6 +88,7 @@ export function AppRoutes() {
         {/* Students never log in. */}
         <Route path="join" element={<JoinPage />} />
         <Route path="play" element={<PlayPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

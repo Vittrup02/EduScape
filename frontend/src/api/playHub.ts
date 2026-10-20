@@ -9,6 +9,8 @@ export interface PlayHubEvents {
   teamEscaped(): void
   /** Sent to this student only: the teacher moved them to another team, whose state must be fetched. */
   teamChanged(): void
+  /** The teacher closed the session; the room cannot be played any more. */
+  sessionClosed(): void
 }
 
 export interface PlayHubHandlers extends PlayHubEvents {
@@ -58,6 +60,9 @@ export function createPlayHub(handlers: PlayHubHandlers): PlayHub {
   })
   connection.on('TeamChanged', () => {
     handlers.teamChanged()
+  })
+  connection.on('SessionClosed', () => {
+    handlers.sessionClosed()
   })
   connection.onreconnecting(() => {
     handlers.reconnecting()

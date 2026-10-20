@@ -205,6 +205,17 @@ describe('the room editor', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Døren fører ikke til nogen scene/ }))
 
     expect(within(screen.getByRole('complementary')).getByLabelText('Døren fører til')).toBeInTheDocument()
+    // A room with problems can't be started yet, so the editor doesn't offer it.
+    expect(screen.queryByRole('button', { name: 'Start session' })).not.toBeInTheDocument()
+  })
+
+  it('goes straight on to starting a session once nothing is missing', async () => {
+    mockEditor()
+    renderEditor()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Start session' }))
+
+    expect(await screen.findByRole('heading', { name: 'Start en session' })).toBeInTheDocument()
   })
 
   it('lists each unfinished object once, with all its problems', async () => {

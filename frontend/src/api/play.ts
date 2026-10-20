@@ -1,4 +1,4 @@
-import { apiBaseUrl, toApiError } from './client'
+import { backendFetch, toApiError } from './client'
 import type { SessionMode, SessionStatus, TeamColor } from './sessions'
 
 /**
@@ -125,7 +125,7 @@ export interface AnswerResult {
 
 /** PINs and tokens go in the body, never in the URL, so they stay out of logs. */
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await backendFetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

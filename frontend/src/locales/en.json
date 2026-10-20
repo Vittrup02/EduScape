@@ -7,15 +7,51 @@
     "name": "English",
     "switcherLabel": "Language"
   },
-  "health": {
-    "checking": "Connecting to the server...",
-    "online": "The server is responding",
-    "offline": "The server isn't responding right now"
+  "backend": {
+    "waking": "Getting ready … this can take up to a minute the first time."
   },
   "home": {
+    "tagline": "Escape rooms for the classroom. The teacher builds the room, and the students solve the puzzles together to break out.",
     "teacherLogin": "Log in as a teacher",
     "teacherHome": "Go to my rooms",
-    "joinAsStudent": "Join with a PIN"
+    "joinAsStudent": "Join with a PIN",
+    "newTeacher": "New teacher?",
+    "createAccount": "Create a teacher account"
+  },
+  "footer": {
+    "aboutData": "About data"
+  },
+  "privacy": {
+    "title": "About data",
+    "intro": "eduscape is built to store as little as possible about students and teachers. Here you can read what is stored and when it is deleted.",
+    "studentsTitle": "Students",
+    "students": {
+      "account": "Students have no account and never log in. They join with the PIN their teacher shows them.",
+      "nickname": "A student can enter a nickname, such as their first name or initials. It is optional. Apart from that, only the student's team and the scene they are in are stored, so the teacher can follow along.",
+      "token": "The student's browser gets a random key, so the student gets back to their team if the page is reloaded. The server only stores a fingerprint (hash) of the key, not the key itself.",
+      "answers": "What students type as answers is not stored. The server only stores whether the team has solved a lock and how many wrong answers the team has given.",
+      "noRanking": "There is no leaderboard. Time and progress are only shown to the teacher."
+    },
+    "deletionTitle": "When is students' data deleted?",
+    "deletion": {
+      "afterClose": "Nicknames, keys and scenes are deleted automatically about an hour after the teacher has closed the session. A session that is not closed closes by itself after 12 hours at most.",
+      "sleeping": "The deletion runs on the server every 10 minutes. If nobody has used eduscape for a while, the server is asleep, and the deletion happens the next time it wakes up.",
+      "results": "The team's result, that is how many locks the team solved and when it broke out, is kept without names, so the teacher can see how it went. The number of students on the team is kept too, but not who they were.",
+      "device": "The student's browser forgets the key when the student leaves the session or when the session is closed."
+    },
+    "teachersTitle": "Teachers",
+    "teachers": {
+      "account": "Teachers have an account with an e-mail address and a password. The password is only stored as a fingerprint (hash), never as text.",
+      "content": "The server stores the teacher's rooms, classes and an overview of past sessions. A class is only a name, such as “9.A”. Student lists are never stored.",
+      "images": "Images a teacher uploads get a new, random file name, and details such as location and camera are removed from the image.",
+      "kept": "A teacher's data is kept for as long as the account exists."
+    },
+    "whereTitle": "Where is the data?",
+    "where": {
+      "eu": "All data is stored on servers in the EU.",
+      "noTracking": "eduscape uses no tracking cookies, no analytics and no ads. IP addresses and students' answers are not written to the server's logs.",
+      "browser": "The browser only keeps what is needed: the language choice, the student's key and the teacher's login."
+    }
   },
   "auth": {
     "loginTitle": "Log in",
@@ -36,7 +72,7 @@
   },
   "teacher": {
     "roomsTitle": "My rooms",
-    "loadingRooms": "Loading your rooms... If the server has been asleep, this can take up to a minute.",
+    "loadingRooms": "Loading your rooms...",
     "noRooms": "You don't have any rooms yet.",
     "roomDetails": "{{subject}} · {{gradeLevel}}",
     "activeSessionsTitle": "Running sessions",
@@ -80,7 +116,7 @@
     "closeConfirm": "Close the session? Students cannot keep playing, and this cannot be undone.",
     "closeConfirmYes": "Yes, close the session",
     "closeConfirmNo": "Cancel",
-    "connecting": "Connecting to the live overview... If the server has been asleep, this can take up to a minute.",
+    "connecting": "Connecting to the live overview...",
     "showPin": "Show the PIN on the board",
     "hidePin": "Close",
     "teamsTitle": "Teams",
@@ -101,7 +137,7 @@
     "backToRooms": "Back to my rooms"
   },
   "editor": {
-    "loading": "Loading the room... If the server has been asleep, this can take up to a minute.",
+    "loading": "Loading the room...",
     "back": "Back to my rooms",
     "title": "Title",
     "titlePlaceholder": "E.g. The secret of fractions",
@@ -271,12 +307,19 @@
     "back": "Back"
   },
   "play": {
-    "connecting": "Connecting... If the server has been asleep, this can take up to a minute.",
+    "connecting": "Connecting...",
     "reconnecting": "The connection was lost. Reconnecting...",
     "onTeam": "You are on {{team}}",
     "individual": "You are playing on your own",
     "nickname": "You are in as {{nickname}}.",
     "leave": "Leave the session",
+    "leaveConfirm": "Leave the session? You can join again with the PIN.",
+    "leaveYes": "Yes, leave the session",
+    "leaveNo": "Stay",
+    "ended": {
+      "title": "The session is over",
+      "text": "Your teacher has closed the session. Thanks for playing!"
+    },
     "preview": "Preview – only you can see it, and it isn't added to your history.",
     "narration": {
       "label": "Story",
@@ -433,6 +476,9 @@
     "LOCK_ANSWER_MISSING": "The lock needs the correct answer.",
     "LETTER_TEXT_MISSING": "The letter is empty.",
     "TEXT_BOX_TEXT_MISSING": "The text box is empty.",
+    "EXIT_DOOR_MISSING": "The room has no exit door, so students can't break out. Drag an exit door onto the picture.",
+    "OBJECT_UNREACHABLE": "Students can never get here. No door leads to its scene, or it waits for something that can only be solved later.",
+    "SERVER_UNAVAILABLE": "The server isn't responding right now. Please try again in a moment.",
     "LAST_SCENE": "The room needs at least one scene.",
     "IMAGE_KEY_INVALID": "The image doesn't exist. Choose another one.",
     "ROOM_INVALID": "The room isn't finished yet. Fix the items in the editor first.",

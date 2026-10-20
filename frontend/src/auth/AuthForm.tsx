@@ -1,8 +1,8 @@
-import { useEffect, useId, useState, type SubmitEvent } from 'react'
+import { useId, useState, type SubmitEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation } from 'react-router'
 import { login, register } from '../api/auth'
-import { ApiError, checkHealth } from '../api/client'
+import { ApiError } from '../api/client'
 import { errorKey } from '../i18n/errors'
 import type { LoginRedirectState } from './RequireTeacher'
 import { useTeacher } from './useTeacher'
@@ -18,15 +18,6 @@ function AuthForm({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-
-  // Wakes the backend (Render free tier) while the teacher is typing.
-  useEffect(() => {
-    const controller = new AbortController()
-    void checkHealth(controller.signal)
-    return () => {
-      controller.abort()
-    }
-  }, [])
 
   const redirectState = location.state as LoginRedirectState | null
   if (teacher) {

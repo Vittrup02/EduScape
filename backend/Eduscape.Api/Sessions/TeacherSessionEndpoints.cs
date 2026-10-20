@@ -142,16 +142,29 @@ public static class TeacherSessionEndpoints
 
     /// <summary>
     /// Ends the session: the PIN stops working at once and is released for other sessions. The students' data is
-    /// erased shortly after (see <see cref="StudentDataCleanup"/>); the teams' results stay without names.
+    /// erased shortly after (see <see cref="StudentDataCleanup"/>); the teams' results stay without names. The
+    /// students' devices are told, so they stop showing the room.
     /// </summary>
-    private static Task<Results<NoContent, NotFound>> CloseAsync(
+    private static async Task<Results<NoContent, NotFound>> CloseAsync(
         Guid id,
         ClaimsPrincipal user,
         EduscapeDbContext db,
         TimeProvider timeProvider,
         IDashboardNotifier dashboard,
-        CancellationToken cancellationToken) =>
-        ChangeAsync(id, user, db, timeProvider, dashboard, (session, now) => session.Close(now), cancellationToken);
+        ITeamNotifier teams,
+        CancellationToken cancellationToken)
+    {
+        var result = await ChangeAsync(
+            id, user, db, timeProvider, dashboard, (session, now) => session.Close(now), cancellationToken);
+        if (result.Result is NoContent)
+        {
+            // Once saved, the students must hear of it, even if the request is cancelled.
+            var teamIds = await db.Teams.Where(t => t.SessionId == id).Select(t => t.Id).ToArrayAsync(CancellationToken.None);
+            await teams.SessionClosedAsync(teamIds);
+        }
+
+        return result;
+    }
 
     /// <summary>The live dashboard's state. Also works after the session closed, as its results.</summary>
     private static async Task<Results<Ok<SessionDashboardDto>, NotFound>> GetDashboardAsync(

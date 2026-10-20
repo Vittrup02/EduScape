@@ -40,8 +40,10 @@ test('teacher starts a session, a student joins with the PIN and stays on the te
   await teacher.getByRole('button', { name: 'Ja, luk sessionen' }).click()
   await expect(teacher.getByText('Sessionen er lukket. PIN-koden virker ikke længere.')).toBeVisible()
 
+  // The student's device hears of it straight away, without a reload, and also after one.
+  await expect(student.getByRole('heading', { name: 'Sessionen er slut' })).toBeVisible()
   await student.reload()
-  await expect(student.getByRole('alert')).toHaveText('Sessionen er lukket.')
+  await expect(student.getByRole('heading', { name: 'Deltag i et escape room' })).toBeVisible()
 
   const latecomer = await newPage(browser)
   await joinWithPin(latecomer, pin)

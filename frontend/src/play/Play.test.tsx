@@ -1,10 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadDeviceToken, saveDeviceToken } from '../api/deviceStorage'
 import type { PlayState } from '../api/play'
 import { json, mockFetch, urlOf } from '../test/fetchMock'
-import { configureNextHub } from '../test/playHubMock'
+import { configureNextHub, latestHub } from '../test/playHubMock'
 import { playState } from '../test/playRoom'
 import { JoinPage } from './JoinPage'
 import { PlayPage } from './PlayPage'
@@ -154,7 +154,9 @@ describe('the play page', () => {
     mockFetch({ '/api/play/reconnect': () => json({ code: 'SESSION_CLOSED' }, 400) })
     renderAt('/play')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Sessionen er lukket.')
+    // The normal end of a lesson, so a friendly message rather than an error.
+    expect(await screen.findByRole('heading', { name: 'Sessionen er slut' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(loadDeviceToken()).toBeNull()
 
     fireEvent.click(screen.getByRole('link', { name: 'Deltag i en ny session' }))
@@ -186,17 +188,40 @@ describe('the play page', () => {
     const fetchMock = mockFetch({ '/api/play/reconnect': () => json(stateFor(teams[0])) })
     renderAt('/play')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Sessionen er lukket.')
+    expect(await screen.findByRole('heading', { name: 'Sessionen er slut' })).toBeInTheDocument()
     expect(loadDeviceToken()).toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('lets the student leave, e.g. on a shared tablet', async () => {
+  it('ends as soon as the teacher closes the session while the student is playing', async () => {
+    saveDeviceToken('token-1')
+    mockFetch({ '/api/play/reconnect': () => json(stateFor(teams[0])) })
+    renderAt('/play')
+    expect(await screen.findByRole('heading', { name: 'Du er på Hold Rød' })).toBeInTheDocument()
+
+    act(() => {
+      latestHub().handlers.sessionClosed()
+    })
+
+    expect(screen.getByRole('heading', { name: 'Sessionen er slut' })).toBeInTheDocument()
+    expect(screen.getByText('Læreren har lukket sessionen. Tak fordi du var med!')).toBeInTheDocument()
+    expect(loadDeviceToken()).toBeNull()
+  })
+
+  it('lets the student leave, e.g. on a shared tablet, after confirming', async () => {
     saveDeviceToken('token-1')
     mockFetch({ '/api/play/reconnect': () => json(stateFor(teams[0])) })
     renderAt('/play')
 
+    // A stray tap is undone with "Bliv".
     fireEvent.click(await screen.findByRole('button', { name: 'Forlad sessionen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bliv' }))
+    expect(screen.getByRole('heading', { name: 'Du er på Hold Rød' })).toBeInTheDocument()
+    expect(loadDeviceToken()).toBe('token-1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forlad sessionen' }))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Du kan komme med igen med PIN-koden.')
+    fireEvent.click(screen.getByRole('button', { name: 'Ja, forlad sessionen' }))
 
     expect(screen.getByRole('heading', { name: 'Deltag i et escape room' })).toBeInTheDocument()
     expect(loadDeviceToken()).toBeNull()

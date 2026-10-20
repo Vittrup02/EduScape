@@ -126,6 +126,8 @@ public class RoomEditingTests
         door.SetUnlockedBy(mathLock);
         library.AddObject(new Letter(Center, "builtin:letter", "Side 42"));
         library.AddObject(new ExitDoor(Center, "builtin:exit-door", null)).SetUnlockedBy(door);
+        // Students start in the library, so they need a way into the hall.
+        library.AddObject(new Door(Center, "builtin:door", null, hall.Id));
         var teacherId = Guid.NewGuid();
 
         var copy = template.CopyFor(teacherId);

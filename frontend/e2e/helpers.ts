@@ -1,10 +1,37 @@
 import { randomUUID } from 'node:crypto'
-import { expect, type Browser, type Page } from '@playwright/test'
+import { expect, type Browser, type BrowserContextOptions, type Locator, type Page } from '@playwright/test'
 
-/** A separate context, so the teacher and each student have their own browser storage, like separate devices. */
-export async function newPage(browser: Browser): Promise<Page> {
-  const context = await browser.newContext({ locale: 'da-DK' })
+/**
+ * A separate context, so the teacher and each student have their own browser storage, like separate devices.
+ * `device` is e.g. `devices['iPhone 13']`, to play on a phone or a tablet.
+ */
+export async function newPage(browser: Browser, device: BrowserContextOptions = {}): Promise<Page> {
+  const context = await browser.newContext({ ...device, locale: 'da-DK' })
   return context.newPage()
+}
+
+/** Drags with the mouse from the middle of `from` to a point on `to`, given in percent of its size. */
+export async function dragTo(page: Page, from: Locator, to: Locator, xPercent: number, yPercent: number) {
+  const source = await from.boundingBox()
+  const target = await to.boundingBox()
+  if (source === null || target === null) {
+    throw new Error('Nothing to drag from or to')
+  }
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2)
+  await page.mouse.down()
+  const x = target.x + (target.width * xPercent) / 100
+  const y = target.y + (target.height * yPercent) / 100
+  await page.mouse.move(x, y, { steps: 12 })
+  await page.mouse.up()
+}
+
+/** Nothing on the page is wider than the screen, so it never scrolls sideways on a phone or tablet. */
+export async function expectNoSidewaysScroll(page: Page) {
+  // A string, because the E2E code is compiled without the browser's DOM types.
+  const overflow = await page.evaluate<number>(
+    'document.documentElement.scrollWidth - document.documentElement.clientWidth',
+  )
+  expect(overflow).toBeLessThanOrEqual(0)
 }
 
 /** Registers a new teacher; the CI database is thrown away afterwards. */

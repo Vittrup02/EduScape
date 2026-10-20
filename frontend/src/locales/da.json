@@ -7,15 +7,51 @@
     "name": "Dansk",
     "switcherLabel": "Sprog"
   },
-  "health": {
-    "checking": "Forbinder til serveren...",
-    "online": "Serveren svarer",
-    "offline": "Serveren svarer ikke lige nu"
+  "backend": {
+    "waking": "Gør klar … det tager op til et minut første gang."
   },
   "home": {
+    "tagline": "Escape rooms til undervisningen. Læreren bygger rummet, og eleverne løser gåderne sammen for at bryde ud.",
     "teacherLogin": "Log ind som lærer",
     "teacherHome": "Gå til mine rum",
-    "joinAsStudent": "Deltag med PIN-kode"
+    "joinAsStudent": "Deltag med PIN-kode",
+    "newTeacher": "Ny lærer?",
+    "createAccount": "Opret en lærerkonto"
+  },
+  "footer": {
+    "aboutData": "Om data"
+  },
+  "privacy": {
+    "title": "Om data",
+    "intro": "eduscape er bygget til at gemme så lidt som muligt om elever og lærere. Her kan du læse, hvad der gemmes, og hvornår det bliver slettet.",
+    "studentsTitle": "Elever",
+    "students": {
+      "account": "Elever har ingen konto og logger aldrig ind. De deltager med den PIN-kode, læreren viser.",
+      "nickname": "Eleven kan skrive et kaldenavn, fx sit fornavn eller sine initialer. Det er frivilligt. Derudover gemmes kun, hvilket hold eleven er på, og hvilken scene eleven er i, så læreren kan følge med.",
+      "token": "Elevens browser får en tilfældig nøgle, så eleven kommer tilbage til sit hold, hvis siden bliver genindlæst. Serveren gemmer kun et fingeraftryk (hash) af nøglen, ikke selve nøglen.",
+      "answers": "Det, eleverne skriver som svar, gemmes ikke. Serveren gemmer kun, om holdet har løst en lås, og hvor mange forkerte svar holdet har givet.",
+      "noRanking": "Der er ingen rangliste. Tid og fremskridt vises kun for læreren."
+    },
+    "deletionTitle": "Hvornår slettes elevernes data?",
+    "deletion": {
+      "afterClose": "Kaldenavne, nøgler og scener slettes automatisk cirka en time efter, at læreren har lukket sessionen. En session, der ikke bliver lukket, lukker af sig selv efter højst 12 timer.",
+      "sleeping": "Sletningen kører på serveren hvert 10. minut. Har ingen brugt eduscape i et stykke tid, sover serveren, og så sker sletningen, næste gang den vågner.",
+      "results": "Holdets resultat, altså hvor mange låse holdet løste, og hvornår det brød ud, gemmes uden navne, så læreren kan se, hvordan det gik. Antallet af elever på holdet gemmes også, men ikke hvem de var.",
+      "device": "Elevens browser glemmer nøglen, når eleven forlader sessionen, eller når sessionen er lukket."
+    },
+    "teachersTitle": "Lærere",
+    "teachers": {
+      "account": "Lærere har en konto med e-mail og adgangskode. Adgangskoden gemmes kun som et fingeraftryk (hash), aldrig som tekst.",
+      "content": "Serveren gemmer lærerens rum, klasser og en oversigt over kørte sessioner. En klasse er kun et navn, fx „9.A“. Der gemmes aldrig elevlister.",
+      "images": "Billeder, læreren uploader, får et nyt, tilfældigt filnavn, og oplysninger som sted og kamera bliver fjernet fra billedet.",
+      "kept": "Lærerens data gemmes, så længe kontoen findes."
+    },
+    "whereTitle": "Hvor ligger data?",
+    "where": {
+      "eu": "Al data gemmes på servere i EU.",
+      "noTracking": "eduscape bruger ingen cookies til sporing, ingen analyseværktøjer og ingen reklamer. IP-adresser og elevernes svar bliver ikke skrevet i serverens logfiler.",
+      "browser": "Browseren gemmer kun det nødvendige: sprogvalget, elevens nøgle og lærerens login."
+    }
   },
   "auth": {
     "loginTitle": "Log ind",
@@ -36,7 +72,7 @@
   },
   "teacher": {
     "roomsTitle": "Mine rum",
-    "loadingRooms": "Henter dine rum... Har serveren sovet, kan det tage op til et minut.",
+    "loadingRooms": "Henter dine rum...",
     "noRooms": "Du har ingen rum endnu.",
     "roomDetails": "{{subject}} · {{gradeLevel}}",
     "activeSessionsTitle": "Igangværende sessioner",
@@ -80,7 +116,7 @@
     "closeConfirm": "Vil du lukke sessionen? Eleverne kan ikke spille videre, og det kan ikke fortrydes.",
     "closeConfirmYes": "Ja, luk sessionen",
     "closeConfirmNo": "Fortryd",
-    "connecting": "Forbinder til live-overblikket... Har serveren sovet, kan det tage op til et minut.",
+    "connecting": "Forbinder til live-overblikket...",
     "showPin": "Vis PIN-koden på tavlen",
     "hidePin": "Luk",
     "teamsTitle": "Hold",
@@ -101,7 +137,7 @@
     "backToRooms": "Tilbage til mine rum"
   },
   "editor": {
-    "loading": "Henter rummet... Har serveren sovet, kan det tage op til et minut.",
+    "loading": "Henter rummet...",
     "back": "Tilbage til mine rum",
     "title": "Titel",
     "titlePlaceholder": "Fx Brøkernes hemmelighed",
@@ -271,12 +307,19 @@
     "back": "Tilbage"
   },
   "play": {
-    "connecting": "Forbinder... Har serveren sovet, kan det tage op til et minut.",
+    "connecting": "Forbinder...",
     "reconnecting": "Forbindelsen blev afbrudt. Forbinder igen...",
     "onTeam": "Du er på {{team}}",
     "individual": "Du spiller for dig selv",
     "nickname": "Du er med som {{nickname}}.",
     "leave": "Forlad sessionen",
+    "leaveConfirm": "Vil du forlade sessionen? Du kan komme med igen med PIN-koden.",
+    "leaveYes": "Ja, forlad sessionen",
+    "leaveNo": "Bliv",
+    "ended": {
+      "title": "Sessionen er slut",
+      "text": "Læreren har lukket sessionen. Tak fordi du var med!"
+    },
     "preview": "Prøveversion – kun du kan se den, og den tæller ikke med i din historik.",
     "narration": {
       "label": "Fortælling",
@@ -433,6 +476,9 @@
     "LOCK_ANSWER_MISSING": "Låsen mangler det rigtige svar.",
     "LETTER_TEXT_MISSING": "Brevet er tomt.",
     "TEXT_BOX_TEXT_MISSING": "Tekstfeltet er tomt.",
+    "EXIT_DOOR_MISSING": "Rummet har ingen slutdør, så eleverne kan ikke bryde ud. Træk en slutdør ind på billedet.",
+    "OBJECT_UNREACHABLE": "Eleverne kan aldrig nå hertil. Ingen dør fører til scenen, eller den venter på noget, der først kan løses bagefter.",
+    "SERVER_UNAVAILABLE": "Serveren svarer ikke lige nu. Prøv igen om lidt.",
     "LAST_SCENE": "Rummet skal have mindst én scene.",
     "IMAGE_KEY_INVALID": "Billedet findes ikke. Vælg et andet.",
     "ROOM_INVALID": "Rummet er ikke færdigt endnu. Ret punkterne i editoren først.",

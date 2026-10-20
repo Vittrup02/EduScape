@@ -31,6 +31,16 @@ eduscape er designet til dataminimering:
 - Elevdata slettes automatisk, når sessionen er afsluttet.
 - Al hosting og lagring ligger i EU.
 
+Siden **Om data** (`/privacy`, linket i bunden af alle sider) forklarer i klart sprog, på dansk og engelsk, hvad der gemmes om elever og lærere, og hvornår det slettes. Ændres det, der gemmes, eller hvornår det slettes, skal teksten (`privacy.*` i sprogfilerne) rettes samtidig.
+
+## Når backenden sover
+
+Render free tier lægger backenden i dvale efter ca. 15 minutter uden trafik, og det tager op til et minut at vække den. Det skal ligne en kort ventetid, ikke en fejl:
+
+- Appen sender `GET /health` som wake-up-kald, så snart den åbnes, uanset hvilken side man lander på.
+- Alle kald til backenden går gennem `backendFetch` ([frontend/src/api/client.ts](frontend/src/api/client.ts)). Kan backenden ikke nås, eller svarer Renders proxy 502/503/504, prøves kaldet igen hvert 2. sekund i op til 2 minutter. Først derefter fejler det med `SERVER_UNAVAILABLE`. Appens egne fejlsvar (4xx, 500) returneres med det samme.
+- Imens viser alle sider, for både lærere og elever, "Gør klar … det tager op til et minut første gang." under headeren. Det samme sker, hvis et kald hænger i mere end 2,5 sekunder, og backenden ikke har svaret de seneste 10 minutter. En backend, der lige har svaret, er vågen og bare travl.
+
 ## Tech stack
 
 | Del | Teknologi | Hosting |
@@ -100,7 +110,8 @@ Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i 
 - **PIN-koder** trækkes med `RandomNumberGenerator` og er unikke blandt sessioner, der ikke er lukket (unikt indeks `IX_Sessions_Pin_Active`). En PIN-kode virker, indtil læreren lukker sessionen, og højst 12 timer (`Sessions__Lifetime`, fx `04:00:00`). Udløbne sessioner lukkes, og deres PIN-koder frigives.
 - **Rate limiting:** opslag af PIN og join er begrænset til 100 forsøg pr. IP pr. minut (`RateLimiting__Join__PermitLimit`). Grænsen er høj, fordi en hel skole deler én offentlig IP, og hver elev bruger to kald. Gætteri begrænses yderligere af, at læreren kan låse sessionen, og at PIN-koder udløber. Reconnect er ikke omfattet, da et 256-bit token ikke kan gættes.
 - **Enheds-token:** kun dets SHA-256-hash gemmes i databasen. PIN og token sendes altid i request body, aldrig i URL'en, så de ikke havner i logs.
-- **Låst session:** nye elever afvises, men elever, der allerede er med, kan spille videre. **Lukket session:** PIN-koden virker ikke længere, og elevernes enheder får besked om, at sessionen er lukket.
+- **Låst session:** nye elever afvises, men elever, der allerede er med, kan spille videre. **Lukket session:** PIN-koden virker ikke længere. Elevernes enheder får `SessionClosed()` med det samme, glemmer deres token og viser "Sessionen er slut".
+- **Forlad sessionen** kræver en bekræftelse, så et forkert tryk ikke smider eleven ud af holdet.
 
 ## Spilvisning og realtid
 
@@ -108,8 +119,9 @@ Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i 
 
 - **Svar valideres kun på serveren.** Klienten får spørgsmål og svarmuligheder, men aldrig det rigtige svar eller tolerancen. Et hint sendes først, når holdet har svaret forkert 3 gange.
 - **Handlinger går via REST** med enheds-tokenet i body: `POST /api/play/answer`, `/api/play/doors/open` og `/api/play/exit`. Hvert kald låser holdets række i databasen (`SELECT … FOR UPDATE`), så samtidige svar på samme lås håndteres ét ad gangen. Låsen bliver løst én gang, og den anden elev får `AlreadySolved`. Der kommer ingen fejl og ingen dobbelt registrering.
-- **Push via SignalR** (`/hubs/play`): hvert hold er en gruppe. Efter en gemt ændring får gruppen `LockSolved(lockId)`, `HintRevealed(lockId, hint)`, `DoorOpened(doorId)` eller `TeamEscaped()`. Hubben har kun metoden `Subscribe(deviceToken)`, og tokenet sendes som besked, ikke i URL'en. Render kører én instans, så der er ingen backplane.
+- **Push via SignalR** (`/hubs/play`): hvert hold er en gruppe. Efter en gemt ændring får gruppen `LockSolved(lockId)`, `HintRevealed(lockId, hint)`, `DoorOpened(doorId)` eller `TeamEscaped()`. Når læreren lukker sessionen, får alle holdene `SessionClosed()`. Hubben har kun metoden `Subscribe(deviceToken)`, og tokenet sendes som besked, ikke i URL'en. Render kører én instans, så der er ingen backplane.
 - **Reconnect:** klienten forbinder til hubben, kalder `Subscribe` og henter *derefter* hele holdets tilstand med `POST /api/play/reconnect`. Så går ingen events tabt imellem. SignalR genforbinder automatisk, og imens viser rummet "Forbindelsen blev afbrudt. Forbinder igen...". Efter hver genforbindelse gentages `Subscribe` og tilstandskaldet.
+- **Tablet og mobil:** scenen holder 16:9 og fylder bredden, men på en tablet på langs eller en bærbar begrænses bredden, så hele scenen kan ses uden at scrolle. På en telefon er en lås kun ca. 25 px bred, så hvert objekt har et usynligt trykområde på mindst 44 × 44 px.
 - **Scene:** elevens enhed melder sin scene med `POST /api/play/scene` ved hvert sceneskift, hver genforbindelse og hvert holdskift. Kun scener, holdet har låst op, accepteres (`SCENE_LOCKED`). Det bruges kun til lærerens dashboard.
 
 ## Lærerens live-dashboard
@@ -130,6 +142,8 @@ Læreren bygger rum på `/teacher/rooms/:id/edit`. Et nyt rum kræver kun titel,
 - **Fortryd/gentag** (også Ctrl+Z / Ctrl+Y) går gennem hele versioner af rummet. Et træk eller én omgang skrivning i et felt er ét skridt.
 - **Autosave:** editoren sender hele rummet med `PUT /api/teacher/rooms/{id}/editor` kort efter hver ændring. Scener og objekter får id'er i klienten (UUID v7), så fortryd kan genskabe dem præcis. Hver gemning bærer rummets `revision`; en ældre revision afvises med `ROOM_CHANGED`, så to faner ikke overskriver hinanden.
 - **Kladder er tilladt:** en lås uden spørgsmål eller en dør uden mål kan gemmes. Serveren returnerer problemerne (`EscapeRoom.Validate()`), og editoren viser dem med et link til objektet. Et rum med problemer kan ikke startes eller prøves (`ROOM_INVALID`).
+- **Rummet skal kunne løses:** et rum uden slutdør giver `EXIT_DOOR_MISSING`. `Validate()` spiller desuden rummet igennem som et hold, der løser alle låse og åbner alle døre, det kan se. Låse og slutdøre, der stadig ikke kan nås, får `OBJECT_UNREACHABLE`, fx når ingen dør fører til deres scene, eller når en dør venter på en lås bag sig selv.
+- **Start session** står i editoren, så snart rummet ikke mangler noget. Knappen gemmer først den sidste ændring.
 - **Tekstfelter** trækkes ind som de andre objekter og viser lærerens tekst direkte på billedet, fx "Vagten er gået til frokost". De klikkes ikke, men kan vente på en lås via `unlockedBy`.
 - **Fortællertekst:** hver scene kan have en tekst (scenepanelet), som vises stort oven på billedet, når eleven kommer ind i scenen. Eleven trykker "Videre" og kan læse den igen. Den bruges til at fortælle historien og sætte stemningen, fx i en indledningsscene.
 - **Kortet** viser scenerne og dørene imellem dem fra startscenen og frem. Scener, ingen dør fører til, er stiplede.
@@ -165,6 +179,8 @@ cd frontend && npm run test:e2e   # End-to-end (Playwright)
 ```
 
 Backendens database-tests opretter og sletter deres egen midlertidige database på den server, `ConnectionStrings:Default` peger på. Uden connection string springes de over lokalt; i CI kører de altid mod en PostgreSQL-service.
+
+Playwright starter selv backend og frontend. Kører de allerede lokalt på port 5115 og 5173, genbruges de, så stop dem fra andre checkouts først. [e2e/full-flow.spec.ts](frontend/e2e/full-flow.spec.ts) går hele forløbet igennem: en ny lærer opretter en konto, bygger et rum med to scener og starter en session. To elever på samme hold (én på tablet, én på telefon) løser rummet, og læreren lukker sessionen. [e2e/wake-up.spec.ts](frontend/e2e/wake-up.spec.ts) tjekker, at lærer og elev ser "Gør klar …" i stedet for en fejl, mens backenden vågner. Fordi hver test opretter sin egen lærer fra samme IP, hæver Playwright login-grænsen for den backend, testene kører mod.
 
 GitHub Actions bygger projektet og kører alle tests på hver pull request. CI bygger også backendens Docker-image og tjekker, at containeren svarer på `/health`, så en ødelagt Dockerfile fanges før deploy. Ved push til `development` og `main` kører CI derefter migrationerne mod Neon (se [Migrationer mod Neon](#migrationer-mod-neon)).
 

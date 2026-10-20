@@ -22,6 +22,9 @@ export default defineConfig({
       reuseExistingServer: !isCI,
       timeout: 180_000,
       stdout: 'pipe',
+      // Every test registers its own teacher from the same IP, which the per-IP login limit (20 a minute) would
+      // soon refuse. The limit itself is covered by the backend's tests.
+      env: { RateLimiting__Auth__PermitLimit: '1000' },
     },
     {
       command: 'npm run dev -- --port 5173 --strictPort',

@@ -1,4 +1,4 @@
-import { apiBaseUrl, ApiError, toApiError } from './client'
+import { ApiError, backendFetch, toApiError } from './client'
 import { authStorageKey, loadAuth, parseAuth, readRawAuth, saveAuth, type StoredAuth } from './tokenStorage'
 
 /**
@@ -67,7 +67,7 @@ async function readTokens(response: Response): Promise<Pick<StoredAuth, 'accessT
 }
 
 async function signIn(path: string, email: string, password: string): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await backendFetch(path, {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({ email, password }),
@@ -110,7 +110,7 @@ function refreshTokens(): Promise<RefreshResult> {
       return 'rejected'
     }
     try {
-      const response = await fetch(`${apiBaseUrl}/api/auth/refresh`, {
+      const response = await backendFetch('/api/auth/refresh', {
         method: 'POST',
         headers: jsonHeaders,
         body: JSON.stringify({ refreshToken: auth.refreshToken }),
@@ -156,7 +156,7 @@ export async function teacherFetch(path: string, init: RequestInit = {}): Promis
     if (auth) {
       headers.set('Authorization', `Bearer ${auth.accessToken}`)
     }
-    return fetch(`${apiBaseUrl}${path}`, { ...init, headers })
+    return backendFetch(path, { ...init, headers })
   }
 
   let response = await send()

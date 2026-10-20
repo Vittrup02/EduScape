@@ -25,7 +25,8 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         Assert.Equal(("Scene 1", EditorEndpoints.DefaultBackground), (scene.Name, scene.BackgroundImageKey));
         Assert.Equal(scene.Id, room.StartSceneId);
         Assert.Null(scene.BackgroundImageUrl);
-        Assert.Empty(room.ValidationErrors);
+        // The editor tells the teacher straight away what an escape room needs.
+        Assert.Equal([new RoomValidationErrorDto(DomainErrors.ExitDoorMissing, null)], room.ValidationErrors);
         Assert.False(room.UploadsEnabled);
     }
 
@@ -92,10 +93,11 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         var room = await GetRoomAsync(teacher.Client, (await CreateRoomAsync(teacher.Client)).Id);
         var textBox = new EditorObjectDto(
             Guid.CreateVersion7(), RoomObjectType.TextBox, 25, 15, "builtin:text-box", null, Text: "Vagten er gået til frokost.");
-        var request = ToRequest(room) with { Scenes = [ToRequest(room).Scenes[0] with { Objects = [textBox] }] };
+        var exit = NewExitDoor();
+        var request = ToRequest(room) with { Scenes = [ToRequest(room).Scenes[0] with { Objects = [textBox, exit] }] };
 
         var saved = await SavedAsync(teacher.Client, room.Id, request);
-        var loaded = Assert.Single((await GetRoomAsync(teacher.Client, room.Id)).Scenes[0].Objects);
+        var loaded = (await GetRoomAsync(teacher.Client, room.Id)).Scenes[0].Objects.Single(o => o.Id == textBox.Id);
         Assert.Empty(saved.ValidationErrors);
         Assert.Equal(
             (RoomObjectType.TextBox, 25d, 15d, "Vagten er gået til frokost."),
@@ -105,13 +107,13 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         await SavedAsync(teacher.Client, room.Id, request with
         {
             Revision = saved.Revision,
-            Scenes = [request.Scenes[0] with { Objects = [textBox with { X = 60, Text = "Vagten er tilbage!" }] }],
+            Scenes = [request.Scenes[0] with { Objects = [textBox with { X = 60, Text = "Vagten er tilbage!" }, exit] }],
         });
 
         var preview = await ReadAsync<PreviewResponse>(await PreviewAsync(teacher.Client, room.Id));
         var state = await SessionApi.ReadAsync<Eduscape.Api.Play.PlayStateDto>(
             await SessionApi.ReconnectAsync(factory.CreateClient(), preview.DeviceToken));
-        var played = Assert.Single(Assert.Single(state.Room.Scenes).Objects);
+        var played = Assert.Single(state.Room.Scenes).Objects.Single(o => o.Id == textBox.Id);
         Assert.Equal((RoomObjectType.TextBox, 60d, "Vagten er tilbage!"), (played.Type, played.X, played.Text));
     }
 
@@ -146,7 +148,12 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         var reloaded = await GetRoomAsync(teacher.Client, room.Id);
 
         Assert.Equal(2, saved.Revision);
-        Assert.Equal([new RoomValidationErrorDto(DomainErrors.DoorTargetMissing, door.Id)], saved.ValidationErrors);
+        Assert.Equal(
+            [
+                new RoomValidationErrorDto(DomainErrors.ExitDoorMissing, null),
+                new RoomValidationErrorDto(DomainErrors.DoorTargetMissing, door.Id),
+            ],
+            saved.ValidationErrors);
         Assert.Equal(saved.ValidationErrors, reloaded.ValidationErrors);
         var scene = Assert.Single(reloaded.Scenes);
         var movedLock = scene.Objects.Single(o => o.Id == lockA.Id);
@@ -190,7 +197,7 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         var letter = NewLetter(text: "");
         var request = ToRequest(room) with
         {
-            Scenes = [new SaveSceneRequest(room.Scenes[0].Id, room.Scenes[0].Name, "builtin:classroom", [draft, letter])],
+            Scenes = [new SaveSceneRequest(room.Scenes[0].Id, room.Scenes[0].Name, "builtin:classroom", [draft, letter, NewExitDoor()])],
         };
 
         var saved = await SavedAsync(teacher.Client, room.Id, request);

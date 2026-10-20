@@ -198,6 +198,75 @@ main {
   color: var(--error);
 }
 
+.tagline {
+  font-size: 1.15rem;
+}
+
+/* While the backend wakes up (Render free tier): a calm notice under the header on every page, never an error. */
+.wake-up-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 40rem;
+  margin: 1rem auto 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: #fff3c4;
+  color: #5c4400;
+  font-weight: 600;
+}
+
+/* The header's side padding, so the notice lines up on narrow screens too. */
+@media (max-width: 42rem) {
+  .wake-up-notice {
+    margin-inline: 1rem;
+  }
+}
+
+.wake-up-spinner {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 3px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: wake-up-spin 900ms linear infinite;
+}
+
+@keyframes wake-up-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wake-up-spinner {
+    animation: none;
+  }
+}
+
+.site-footer {
+  padding: 1rem 1rem 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.site-footer a {
+  color: var(--muted);
+}
+
+.privacy-list {
+  padding-left: 1.25rem;
+}
+
+.privacy-list li + li {
+  margin-top: 0.5rem;
+}
+
+.session-ended h1 {
+  margin-top: 0;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -610,6 +679,13 @@ main.play {
   -webkit-user-select: none;
 }
 
+/* On a landscape tablet or laptop the whole scene should fit below the header and the scene buttons without
+   scrolling. Capping the width keeps the 16:9 shape, so objects stay where the teacher put them. */
+main.play .scene {
+  max-width: max(28rem, calc((100dvh - 15rem) * 16 / 9));
+  margin-inline: auto;
+}
+
 .scene-background {
   position: absolute;
   inset: 0;
@@ -627,6 +703,18 @@ main.play {
   border-radius: 0.5rem;
   transform: translate(-50%, -50%);
   touch-action: manipulation;
+}
+
+/* On a phone the scene is small and a lock only ~25px wide. An invisible area of at least 44px around the centre
+   keeps it easy to tap, without changing the size of the graphic the teacher placed. */
+.room-object::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }
 
 .room-object .object-graphic {
