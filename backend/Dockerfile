@@ -27,7 +27,7 @@ COPY --from=build /app/publish .
 
 # Render overrides PORT; the app listens on 0.0.0.0:$PORT (see Hosting/ListenUrl.cs).
 # ASPNETCORE_ENVIRONMENT is left unset, so it defaults to Production (no demo seeding, no user-secrets).
-# EF migrations are never run here; see README "Deploy".
+# EF migrations are never run here; the CI job `migrate` applies them (see README "Migrationer mod Neon").
 ENV PORT=8080
 EXPOSE 8080
 

@@ -6,10 +6,11 @@ on:
   push:
     branches: [development, main]
 
-# Cancel older runs on the same branch when new commits are pushed
+# Cancel older pull request runs when new commits are pushed. Pushes to development/main queue up instead,
+# so a running database migration is never cancelled halfway.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -178,3 +179,51 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 7
+
+  migrate:
+    name: Migrate database (Neon)
+    # Only for pushes to development/main (see `on:`), never for pull requests, and only when everything else is green
+    if: github.event_name == 'push'
+    needs: [backend, docker, frontend, e2e]
+    runs-on: ubuntu-latest
+    # development → Neon dev database, main → production. Each environment holds its own NEON_CONNECTION_STRING.
+    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    env:
+      TARGET_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Restore NuGet packages
+        run: dotnet restore
+
+      - name: Build migration bundle
+        run: dotnet ef migrations bundle --project Eduscape.Infrastructure --startup-project Eduscape.Api --configuration Release --output efbundle --force
+
+      # The connection string only exists in this step's environment. It is passed to the bundle as an environment
+      # variable (never via --connection, never echoed), and GitHub masks the secret in the log as well.
+      - name: Apply migrations
+        env:
+          NEON_CONNECTION_STRING: ${{ secrets.NEON_CONNECTION_STRING }}
+          # EF tools default to Development, which would seed the demo room into Neon
+          ASPNETCORE_ENVIRONMENT: Production
+        run: |
+          if [ -z "$NEON_CONNECTION_STRING" ]; then
+            echo "::error title=Missing secret::NEON_CONNECTION_STRING is not set in the GitHub environment '$TARGET_ENVIRONMENT'. See README, 'Migrationer'."
+            exit 1
+          fi
+          export ConnectionStrings__Default="$NEON_CONNECTION_STRING"
+          if ! ./efbundle; then
+            echo "::error title=Database migration failed::Migrations against the '$TARGET_ENVIRONMENT' database failed. The log above shows which migrations were applied before the error."
+            exit 1
+          fi
+          echo "Migrations applied to the '$TARGET_ENVIRONMENT' database." >> "$GITHUB_STEP_SUMMARY"

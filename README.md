@@ -156,7 +156,7 @@ cd frontend && npm run test:e2e   # End-to-end (Playwright)
 
 Backendens database-tests opretter og sletter deres egen midlertidige database på den server, `ConnectionStrings:Default` peger på. Uden connection string springes de over lokalt; i CI kører de altid mod en PostgreSQL-service.
 
-GitHub Actions bygger projektet og kører alle tests på hver pull request. CI bygger også backendens Docker-image og tjekker, at containeren svarer på `/health`, så en ødelagt Dockerfile fanges før deploy.
+GitHub Actions bygger projektet og kører alle tests på hver pull request. CI bygger også backendens Docker-image og tjekker, at containeren svarer på `/health`, så en ødelagt Dockerfile fanges før deploy. Ved push til `development` og `main` kører CI derefter migrationerne mod Neon (se [Migrationer mod Neon](#migrationer-mod-neon)).
 
 ## Deploy (Render + Neon + Cloudflare)
 
@@ -209,9 +209,37 @@ npx wrangler dev   # http://localhost:8787
 
 ### Migrationer mod Neon
 
-Migrationer køres **aldrig automatisk** ved opstart. Kør dem manuelt fra din egen maskine, når en release indeholder nye migrationer. Kør dem **før** deploy, hvis migrationen er bagudkompatibel med den kørende version.
+Migrationer køres **aldrig** ved opstart af appen. GitHub Actions kører dem automatisk i jobbet `migrate` i [.github/workflows/ci.yml](.github/workflows/ci.yml):
 
-Brug Neons **direkte** endpoint (uden `-pooler`) til migrationer. Sæt connection string som environment variable i stedet for `--connection`, så koden ikke havner i shell-historikken (PowerShell, fra `backend/`):
+- **Kun ved push** til `development` og `main`, aldrig på pull requests, og først når build, Docker-tjek, unit tests og E2E-tests er grønne.
+- Jobbet bygger et migration bundle (`dotnet ef migrations bundle`) og kører det mod databasen. Bundlet anvender kun de migrationer, der mangler. Er databasen opdateret, sker der ingenting.
+- Push til `development` bruger GitHub-environmentet **`development`** (Neons dev-database), push til `main` bruger **`production`**.
+- Bundlet kører som `Production`, så demo-rummet aldrig seedes i Neon.
+- Fejler en migration, eller mangler secret'en, fejler jobbet med en rød fejlmeddelelse øverst i workflow-kørslen. Hver migration kører i sin egen transaktion, så en fejlet migration rulles tilbage, men de foregående i samme kørsel bliver stående. Loggen viser, hvilke der nåede at blive anvendt.
+- Pushes til samme branch afbryder ikke hinanden, de stilles i kø, så en migration aldrig stoppes halvvejs.
+
+**Opsætning af secrets (én gang)**
+
+1. GitHub → repoet → **Settings → Environments → New environment**. Opret `development` og `production` (navnene skal staves præcis sådan).
+2. Under hvert environment: **Deployment branches and tags → Selected branches and tags**. Tillad kun `development` i `development` og kun `main` i `production`, så ingen anden branch kan læse secret'en.
+3. Under hvert environment: **Environment secrets → Add secret** med navnet `NEON_CONNECTION_STRING`. Værdien er den pågældende Neon-databases **direkte** endpoint (værtsnavn *uden* `-pooler`; migrationer og Neons connection pooler passer ikke sammen) i Npgsql-format:
+   `Host=<direkte host>;Database=<db>;Username=<bruger>;Password=<kode>;SSL Mode=Require`
+   Neons `postgresql://`-URL virker ikke direkte.
+
+Connection string'en logges aldrig. Den findes kun i det trin, der kører bundlet, og gives videre som environment variable (`ConnectionStrings__Default`), ikke som kommandolinje-argument. GitHub maskerer desuden secret'en, hvis den skulle dukke op i loggen.
+
+**Rækkefølge med Render.** Sæt Render-servicens **Auto-Deploy** til **"After CI Checks Pass"** (Settings → Build & Deploy). Så deployer Render først den nye version, når CI inklusive `migrate` er grøn. Rækkefølgen bliver: migration → ny version.
+
+**Migrationer skal være bagudkompatible.** Lige efter migrationen kører Render stadig den gamle version et øjeblik, indtil den nye er bygget og startet. Fejler deployet, bliver den gamle version kørende på det nye skema. Den gamle kode skal derfor kunne køre mod det nye skema:
+
+- Nye kolonner skal være nullable eller have en default-værdi.
+- Nye tabeller og indekser er fine.
+- Omdøb eller slet aldrig en kolonne eller tabel i samme release som den kode, der holder op med at bruge den. Gør det i to trin (expand/contract): 1) tilføj det nye, og deploy kode, der bruger det nye. 2) Fjern det gamle i en senere release, når ingen kørende version bruger det.
+- Gør ikke en eksisterende kolonne `NOT NULL`, før al kode skriver en værdi i den.
+
+#### Manuelt (kun i nødstilfælde)
+
+Skal en migration køres uden om CI, så kør den fra din egen maskine mod Neons **direkte** endpoint (uden `-pooler`). Sæt connection string som environment variable i stedet for `--connection`, så koden ikke havner i shell-historikken (PowerShell, fra `backend/`):
 
 ```powershell
 # Vigtigt: dotnet ef kører som Development som standard og ville så seede demo-rummet i produktion
