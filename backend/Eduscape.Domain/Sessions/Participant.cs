@@ -32,4 +32,21 @@ public sealed class Participant
     public string DeviceTokenHash { get; private set; }
 
     public DateTimeOffset JoinedAt { get; private set; }
+
+    /// <summary>The scene the student is looking at, as reported by their device; shown on the teacher's dashboard.</summary>
+    public Guid? CurrentSceneId { get; private set; }
+
+    public DateTimeOffset? SceneEnteredAt { get; private set; }
+
+    /// <summary>Records that the student moved to a scene. Reporting the same scene again keeps the time of arrival.</summary>
+    public void EnterScene(Guid sceneId, DateTimeOffset now)
+    {
+        if (CurrentSceneId == sceneId)
+        {
+            return;
+        }
+
+        CurrentSceneId = sceneId;
+        SceneEnteredAt = now;
+    }
 }

@@ -176,6 +176,9 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CurrentSceneId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("DeviceTokenHash")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -187,6 +190,9 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.Property<string>("Nickname")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("SceneEnteredAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("TeamId")
                         .HasColumnType("uuid");
@@ -272,6 +278,9 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("EscapedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("ParticipantCount")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("SessionId")
                         .HasColumnType("uuid");
 
@@ -289,6 +298,12 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("LockId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("FirstAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("SolvedAt")
                         .HasColumnType("timestamp with time zone");

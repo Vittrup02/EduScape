@@ -41,7 +41,7 @@ public static class Gameplay
         }
 
         var hintWasVisible = team.IsHintVisible(@lock.Id);
-        team.RegisterWrongAttempt(@lock.Id);
+        team.RegisterWrongAttempt(@lock.Id, now);
         var hintRevealedNow = @lock.Hint is not null && !hintWasVisible && team.IsHintVisible(@lock.Id);
         return new AnswerResult(AnswerOutcome.Wrong, hintRevealedNow);
     }
