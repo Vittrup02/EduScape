@@ -93,7 +93,7 @@ Lærere opretter en konto med e-mail og adgangskode (mindst 10 tegn) på `/regis
 
 ## Sessioner og PIN-koder
 
-Læreren starter en session fra et af sine egne rum eller en skabelon, skriver klassen (fx "9.A"; findes klassen allerede, genbruges den), vælger **på hold** eller **hver for sig** og, kun på hold, antallet af hold (2–8). Sessionssiden viser PIN-koden med stor skrift og holdene med deres elever. Læreren kan låse sessionen for nye elever og lukke den.
+Læreren starter en session fra et af sine egne rum eller en skabelon, skriver klassen (fx "9.A"; findes klassen allerede, genbruges den), vælger **på hold** eller **hver for sig** og, kun på hold, antallet af hold (2–8). Læreren lander på sessionens live-dashboard (se nedenfor) og kan låse sessionen for nye elever og lukke den.
 
 Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i individuel tilstand) og evt. et kaldenavn. Serveren udsteder et tilfældigt enheds-token, som browseren gemmer. Ved genindlæsning eller afbrudt forbindelse sender `/play` det til `POST /api/play/reconnect` og får hele holdets tilstand i ét kald.
 
@@ -110,6 +110,16 @@ Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i 
 - **Handlinger går via REST** med enheds-tokenet i body: `POST /api/play/answer`, `/api/play/doors/open` og `/api/play/exit`. Hvert kald låser holdets række i databasen (`SELECT … FOR UPDATE`), så samtidige svar på samme lås håndteres ét ad gangen. Låsen bliver løst én gang, og den anden elev får `AlreadySolved`. Der kommer ingen fejl og ingen dobbelt registrering.
 - **Push via SignalR** (`/hubs/play`): hvert hold er en gruppe. Efter en gemt ændring får gruppen `LockSolved(lockId)`, `HintRevealed(lockId, hint)`, `DoorOpened(doorId)` eller `TeamEscaped()`. Hubben har kun metoden `Subscribe(deviceToken)`, og tokenet sendes som besked, ikke i URL'en. Render kører én instans, så der er ingen backplane.
 - **Reconnect:** klienten forbinder til hubben, kalder `Subscribe` og henter *derefter* hele holdets tilstand med `POST /api/play/reconnect`. Så går ingen events tabt imellem. SignalR genforbinder automatisk, og imens viser rummet "Forbindelsen blev afbrudt. Forbinder igen...". Efter hver genforbindelse gentages `Subscribe` og tilstandskaldet.
+- **Scene:** elevens enhed melder sin scene med `POST /api/play/scene` ved hvert sceneskift, hver genforbindelse og hvert holdskift. Kun scener, holdet har låst op, accepteres (`SCENE_LOCKED`). Det bruges kun til lærerens dashboard.
+
+## Lærerens live-dashboard
+
+`/teacher/sessions/:id` viser PIN-koden stort (knappen **Vis PIN-koden på tavlen** viser den i fuld skærm til projektoren) og ét kort pr. hold (pr. elev i individuel tilstand): løste låse, hvilken lås holdet arbejder på, og hvor hver elev er. Har holdet ikke gjort fremskridt på sin aktuelle lås i 5 minutter, står der "Har siddet fast på …" med antal forkerte svar. Tid og fremskridt vises kun for læreren, aldrig for eleverne. Siden sender `GET /health` som wake-up-kald, så snart den åbnes.
+
+- **Aktuel lås** er den uløste lås, holdet senest har svaret forkert på. "Siddet fast siden" er holdets første forsøg på låsen eller holdets seneste fremskridt (løst lås, åbnet dør), hvis det kom senere. Tidspunkterne gemmes på `TeamLockProgress` (`FirstAttemptAt`, `LastAttemptAt`).
+- **Realtid:** dashboardet forbinder til `/hubs/teacher` med lærerens access token (i query-strengen for WebSockets, kun accepteret på denne hub) og kalder `Watch(sessionId)`, som kun virker for lærerens egne sessioner. Ved hver ændring (join, svar, dør, scene, flytning, lås/luk) sendes `DashboardChanged()`, og dashboardet henter hele tilstanden med `GET /api/teacher/sessions/{id}/dashboard`. Svar og hints sendes aldrig. Mens forbindelsen genoprettes, vises "Forbinder til live-overblikket...".
+- **Flyt elev** (kun på hold): `POST /api/teacher/sessions/{id}/participants/{participantId}/move`. Elevens enheder får `TeamChanged()` på deres egen SignalR-gruppe, starter en ny forbindelse og henter det nye holds tilstand. Har det nye hold ikke låst elevens scene op, går eleven til startscenen.
+- **Sletning af elevdata:** en baggrundsjob (hvert 10. minut, `Sessions__CleanupInterval`) lukker udløbne sessioner og sletter elevdata (kaldenavne, enheds-tokens, scener) 1 time efter, at en session er lukket (`Sessions__StudentDataRetention`). Holdenes resultater (løste låse, åbnede døre, tidspunkt for udbrud) og antallet af elever (`Teams.ParticipantCount`) bevares uden navne til lærerens historik. På Render free tier kører jobbet, når instansen er vågen.
 
 ## Editoren
 
