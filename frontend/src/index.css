@@ -402,10 +402,33 @@ main {
   gap: 0.5rem;
 }
 
+/* Styled by hand: with accent-color, Chrome darkens the track for light team colours (yellow, green). */
 .team-progress progress {
   flex: 1 1 6rem;
   height: 0.75rem;
-  accent-color: var(--team, var(--ok));
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 25%, transparent);
+  appearance: none;
+}
+
+.team-progress progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.team-progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--team, var(--ok));
+}
+
+.team-progress progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--team, var(--ok));
+}
+
+.pin-card button {
+  margin-top: 0.75rem;
 }
 
 .team-escaped {
