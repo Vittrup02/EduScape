@@ -1,22 +1,7 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
-import { registerTeacher } from './helpers.ts'
+import { expect, test, type Locator } from '@playwright/test'
+import { dragTo, registerTeacher } from './helpers.ts'
 
 test.use({ locale: 'da-DK' })
-
-/** Drags with the mouse from the middle of `from` to a point on `to`, given in percent of its size. */
-async function dragTo(page: Page, from: Locator, to: Locator, xPercent: number, yPercent: number) {
-  const source = await from.boundingBox()
-  const target = await to.boundingBox()
-  if (source === null || target === null) {
-    throw new Error('Nothing to drag from or to')
-  }
-  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2)
-  await page.mouse.down()
-  const x = target.x + (target.width * xPercent) / 100
-  const y = target.y + (target.height * yPercent) / 100
-  await page.mouse.move(x, y, { steps: 12 })
-  await page.mouse.up()
-}
 
 /** The object's position on the scene, e.g. "30%", as the editor stores it. */
 async function leftOf(object: Locator): Promise<string> {
