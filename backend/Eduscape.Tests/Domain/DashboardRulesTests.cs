@@ -4,7 +4,7 @@ using Eduscape.Domain.Sessions;
 namespace Eduscape.Tests.Domain;
 
 /// <summary>The domain rules behind the teacher's live dashboard: who is stuck where, moving students, cleanup.</summary>
-public class TeacherDashboardTests
+public class DashboardRulesTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 19, 9, 0, 0, TimeSpan.Zero);
 

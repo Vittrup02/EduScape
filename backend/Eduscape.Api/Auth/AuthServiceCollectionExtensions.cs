@@ -1,3 +1,4 @@
+using Eduscape.Api.Sessions;
 using Eduscape.Infrastructure.Identity;
 using Eduscape.Infrastructure.Persistence;
 using Microsoft.AspNetCore.DataProtection;
@@ -47,6 +48,20 @@ public static class AuthServiceCollectionExtensions
             {
                 options.BearerTokenExpiration = TimeSpan.FromMinutes(30);
                 options.RefreshTokenExpiration = TimeSpan.FromDays(7);
+
+                // Browsers cannot set headers on WebSockets, so SignalR sends the token in the query string.
+                // It is accepted there for the teacher hub only; request URLs are not logged (Microsoft.AspNetCore
+                // logs at Warning).
+                options.Events.OnMessageReceived = context =>
+                {
+                    if (context.Request.Path.StartsWithSegments(TeacherHub.Path)
+                        && context.Request.Query["access_token"] is [{ Length: > 0 } token])
+                    {
+                        context.Token = token;
+                    }
+
+                    return Task.CompletedTask;
+                };
             });
         services.AddAuthorization();
 

@@ -16,6 +16,7 @@ public static class SessionServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IPinGenerator, RandomPinGenerator>();
         services.AddScoped<SessionStarter>();
+        services.AddSingleton<IDashboardNotifier, SignalRDashboardNotifier>();
         return services;
     }
 }

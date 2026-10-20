@@ -38,15 +38,19 @@ public sealed class Participant
 
     public DateTimeOffset? SceneEnteredAt { get; private set; }
 
-    /// <summary>Records that the student moved to a scene. Reporting the same scene again keeps the time of arrival.</summary>
-    public void EnterScene(Guid sceneId, DateTimeOffset now)
+    /// <summary>
+    /// Records that the student moved to a scene. Reporting the same scene again keeps the time of arrival and returns
+    /// false.
+    /// </summary>
+    public bool EnterScene(Guid sceneId, DateTimeOffset now)
     {
         if (CurrentSceneId == sceneId)
         {
-            return;
+            return false;
         }
 
         CurrentSceneId = sceneId;
         SceneEnteredAt = now;
+        return true;
     }
 }

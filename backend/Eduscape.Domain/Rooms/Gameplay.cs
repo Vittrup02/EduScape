@@ -75,9 +75,9 @@ public static class Gameplay
 
     /// <summary>
     /// Records the scene a student moved to, for the teacher's dashboard. Students move freely between the scenes
-    /// their team has unlocked, so only those can be reported.
+    /// their team has unlocked, so only those can be reported. Returns false if the student was already there.
     /// </summary>
-    public static void EnterScene(EscapeRoom room, Team team, Participant participant, Guid sceneId, DateTimeOffset now)
+    public static bool EnterScene(EscapeRoom room, Team team, Participant participant, Guid sceneId, DateTimeOffset now)
     {
         if (room.Scenes.All(s => s.Id != sceneId))
         {
@@ -89,7 +89,7 @@ public static class Gameplay
             throw new DomainException(DomainErrors.SceneLocked);
         }
 
-        participant.EnterScene(sceneId, now);
+        return participant.EnterScene(sceneId, now);
     }
 
     private static T FindAvailable<T>(EscapeRoom room, Team team, Guid objectId)

@@ -69,6 +69,13 @@ internal static class SessionApi
     public static Task<HttpResponseMessage> EnterSceneAsync(HttpClient student, string? deviceToken, Guid sceneId) =>
         student.PostAsJsonAsync("/api/play/scene", new EnterSceneRequest(deviceToken, sceneId), Json);
 
+    public static async Task<SessionDashboardDto> GetDashboardAsync(HttpClient teacher, Guid sessionId) =>
+        await ReadAsync<SessionDashboardDto>(await teacher.GetAsync($"/api/teacher/sessions/{sessionId}/dashboard"));
+
+    public static Task<HttpResponseMessage> MoveAsync(HttpClient teacher, Guid sessionId, Guid participantId, Guid teamId) =>
+        teacher.PostAsJsonAsync(
+            $"/api/teacher/sessions/{sessionId}/participants/{participantId}/move", new MoveParticipantRequest(teamId), Json);
+
     public static async Task<T> ReadAsync<T>(HttpResponseMessage response)
     {
         Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
