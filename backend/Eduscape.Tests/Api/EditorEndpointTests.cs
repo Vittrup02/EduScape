@@ -95,7 +95,7 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         Assert.True(steps[0].AcceptTypos);
         Assert.Equal(["Paris", "Rom"], steps[1].Options!);
         Assert.Equal(["Afvej", "Opløs", "Filtrér"], steps[2].OrderItems!.Select(i => i.Text));
-        Assert.Equal(reaction.Steps[2].OrderItems!.Select(i => i.Id), steps[2].OrderItems!.Select(i => i.Id));
+        Assert.Equal(reaction.Steps![2].OrderItems!.Select(i => i.Id), steps[2].OrderItems!.Select(i => i.Id));
         Assert.Equal((library.Id, DoorOpenCondition.SelectedLocks), (objects[door.Id].TargetSceneId, objects[door.Id].OpenCondition));
         Assert.Equal([mathLock.Id], objects[door.Id].RequiredLockIds!);
         Assert.Null(objects[door.Id].UnlockedById);

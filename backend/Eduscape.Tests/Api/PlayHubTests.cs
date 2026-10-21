@@ -87,8 +87,10 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
         Assert.Equal($"LockSolved {room.TextLock.Id}", await boDevice.NextEventAsync());
 
         // The scene's last lock opens its door, and the exit door behind it (whose scene has no locks) with it.
+        // In either order: ids made in the same millisecond don't sort by when they were made.
         string[] opened = [await boDevice.NextEventAsync(), await boDevice.NextEventAsync()];
-        Assert.Equal([$"DoorOpened {room.Door.Id}", $"DoorOpened {room.ExitDoor.Id}"], opened.Order());
+        string[] expected = [$"DoorOpened {room.Door.Id}", $"DoorOpened {room.ExitDoor.Id}"];
+        Assert.Equal(expected.Order(), opened.Order());
 
         await SessionApi.OpenExitDoorAsync(Student, ida, room.ExitDoor.Id);
         Assert.Equal("TeamEscaped", await boDevice.NextEventAsync());
