@@ -54,7 +54,7 @@ test("the teacher's dashboard follows a student's progress live", async ({ page:
   await ida.getByRole('button', { name: secondLock }).click()
   await answer(ida, '3,33')
   await expect(red).toContainText('2 af 3 låse løst')
-  await ida.getByRole('button', { name: 'Dør til Biblioteket' }).click()
+  await ida.getByRole('button', { name: 'Åben dør til Biblioteket' }).click()
   await expect(ida.getByRole('region', { name: 'Biblioteket' })).toBeVisible()
   await expect(red.getByText('i Biblioteket')).toBeVisible()
 

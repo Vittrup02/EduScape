@@ -49,5 +49,6 @@ test('two students on the same team: one solves a lock and the other sees it ope
   await bo.getByLabel('Dit svar').fill('3.33')
   await bo.getByRole('button', { name: 'Prøv' }).click()
   await expect(ida.getByRole('button', { name: /^Åben lås: Hvad er 10 \/ 3\?/ })).toBeVisible()
-  await expect(ida.getByRole('button', { name: 'Dør til Biblioteket' })).toBeVisible()
+  // The classroom's locks are solved, so its door opens by itself on every device of the team.
+  await expect(ida.getByRole('button', { name: 'Åben dør til Biblioteket' })).toBeVisible()
 })

@@ -54,12 +54,15 @@ test('a new teacher builds a room with two scenes, two students solve it togethe
   await expect(teacher.getByText(/Rummet har ingen slutdør/)).toBeVisible()
 
   // Scene 1: a padlock with a hint.
-  await dragTo(teacher, teacher.getByRole('button', { name: 'Tilføj Hængelås' }), classroom, 30, 60)
+  await dragTo(teacher, teacher.getByRole('button', { name: 'Tilføj Lås' }), classroom, 30, 60)
   const panel = teacher.getByRole('complementary')
+  await panel.getByRole('button', { name: /^Skriv svaret/ }).click()
   await panel.getByLabel('Spørgsmål').fill(firstQuestion)
   await panel.getByLabel('Det rigtige svar').fill('0,75')
   await panel.getByRole('button', { name: 'Tilføj et hint' }).click()
   await panel.getByLabel('Hint').fill('Fire fjerdedele er en hel.')
+  // The class should be able to guess a few times in a row, so no wait after a wrong answer.
+  await panel.getByLabel('Ventetid efter forkert svar').selectOption({ label: 'Ingen ventetid' })
   await done(teacher)
 
   // Scene 2, the laboratory, with a story, a code lock and the exit door.
@@ -67,9 +70,11 @@ test('a new teacher builds a room with two scenes, two students solve it togethe
   await panel.getByLabel('Navn').fill('Laboratoriet')
   await panel.getByLabel('Fortællertekst').fill('Døren smækker i bag jer. Find vej ud!')
   const laboratory = teacher.getByRole('region', { name: 'Scenen Laboratoriet' })
-  await dragTo(teacher, teacher.getByRole('button', { name: 'Tilføj Kodelås' }), laboratory, 30, 60)
+  await dragTo(teacher, teacher.getByRole('button', { name: 'Tilføj Lås' }), laboratory, 30, 60)
+  await panel.getByRole('radio', { name: 'Kodelås' }).check()
+  await panel.getByRole('button', { name: /^Skriv svaret/ }).click()
   await panel.getByLabel('Spørgsmål').fill(secondQuestion)
-  await panel.getByRole('radio', { name: /^Kode / }).check()
+  await panel.getByRole('checkbox', { name: 'Præcis kode' }).check()
   await panel.getByLabel('Det rigtige svar').fill('250')
   await done(teacher)
   await dragTo(teacher, teacher.getByRole('button', { name: 'Tilføj Slutdør' }), laboratory, 80, 55)
@@ -77,12 +82,12 @@ test('a new teacher builds a room with two scenes, two students solve it togethe
   // No door leads to the laboratory yet, so the students could never get out.
   await expect(teacher.getByText(/Eleverne kan aldrig nå hertil/).first()).toBeVisible()
 
-  // Back in scene 1: a door to the laboratory that appears once the padlock is solved.
+  // Back in scene 1: a door to the laboratory that opens once the padlock is solved.
   await teacher.getByRole('navigation', { name: 'Scener' }).getByRole('button', { name: /^Scene 1/ }).click()
   await dragTo(teacher, teacher.getByRole('button', { name: 'Tilføj Dør' }), classroom, 80, 55)
   await expect(panel.getByLabel('Døren fører til')).toHaveValue(/.+/)
   await expect(panel.getByRole('heading', { name: 'Døren til Laboratoriet' })).toBeVisible()
-  await panel.getByLabel('Hvornår kan eleverne se den?').selectOption({ label: `Vises når Låsen „${firstQuestion}“ er løst` })
+  await expect(panel.getByRole('radio', { name: 'Når alle gåder i scenen er løst' })).toBeChecked()
   await done(teacher)
   await expect(teacher.getByText('Scene 1 fører til Laboratoriet')).toBeVisible()
   await expect(teacher.getByText('Rummet er klar til at blive prøvet.')).toBeVisible()
@@ -114,8 +119,8 @@ test('a new teacher builds a room with two scenes, two students solve it togethe
     await student.getByRole('button', { name: 'Deltag' }).click()
     await expect(student.getByRole('heading', { name: 'Du er på Hold Rød' })).toBeVisible()
     await expect(student.getByRole('button', { name: `Lås: ${firstQuestion}` })).toBeVisible()
-    // The door waits for the padlock.
-    await expect(student.getByRole('button', { name: /^Dør til/ })).toHaveCount(0)
+    // The door is there, shut until the padlock is solved.
+    await expect(student.getByRole('button', { name: 'Dør til Laboratoriet' })).toBeVisible()
     await expectNoSidewaysScroll(student)
   }
 
@@ -139,19 +144,20 @@ test('a new teacher builds a room with two scenes, two students solve it togethe
   await expectNoSidewaysScroll(bo)
   await answer(bo, '0.75')
 
-  // Ida sees the lock open and the door appear without reloading; the teacher sees the progress.
+  // Ida sees the lock and the door open without reloading; the teacher sees the progress.
   await expect(ida.getByRole('button', { name: `Åben lås: ${firstQuestion}` })).toBeVisible()
+  await expect(ida.getByRole('button', { name: 'Åben dør til Laboratoriet' })).toBeVisible()
   await expect(redTeam.getByText('1 af 2 låse løst')).toBeVisible()
 
   // Ida goes through the door; the laboratory opens with the teacher's story.
-  await ida.getByRole('button', { name: 'Dør til Laboratoriet' }).click()
+  await ida.getByRole('button', { name: 'Åben dør til Laboratoriet' }).click()
   const story = ida.getByRole('region', { name: 'Fortælling' })
   await expect(story).toHaveText(/Døren smækker i bag jer/)
   await story.getByRole('button', { name: 'Videre' }).click()
 
   // The exit door stays shut while a lock is unsolved.
   await ida.getByRole('button', { name: 'Slutdør' }).click()
-  await expect(ida.getByRole('alert')).toHaveText('Slutdøren er stadig låst. Løs alle låse i rummet først.')
+  await expect(ida.getByRole('status')).toHaveText('Døren er lukket. Løs gåderne for at åbne den.')
 
   // Bo follows through the door the team has opened and solves the code lock.
   await bo.getByRole('button', { name: 'Åben dør til Laboratoriet' }).click()
@@ -160,10 +166,10 @@ test('a new teacher builds a room with two scenes, two students solve it togethe
   await answer(bo, '250')
   await expect(ida.getByRole('button', { name: `Åben lås: ${secondQuestion}` })).toBeVisible()
 
-  // Ida opens the exit door, and the whole team has escaped.
-  await ida.getByRole('button', { name: 'Slutdør' }).click()
+  // The exit door opens for Ida too; she walks out, and the whole team has escaped.
+  await ida.getByRole('button', { name: 'Åben slutdør' }).click()
   for (const student of [ida, bo]) {
-    await expect(student.getByRole('heading', { name: 'I er brudt ud!' })).toBeVisible()
+    await expect(student.getByRole('heading', { name: 'I slap ud!' })).toBeVisible()
     await expectNoSidewaysScroll(student)
   }
   await expect(redTeam.getByText('2 af 2 låse løst')).toBeVisible()
