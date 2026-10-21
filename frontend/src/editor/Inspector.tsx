@@ -1,20 +1,29 @@
-import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { EditorDoor, EditorLetter, EditorLock, EditorObject, EditorTextBox, RoomDocument } from '../api/editor'
-import type { AnswerType } from '../api/play'
+import type {
+  DoorOpenCondition,
+  EditorDoor,
+  EditorDoorway,
+  EditorLetter,
+  EditorLock,
+  EditorObject,
+  EditorTextBox,
+  RoomDocument,
+} from '../api/editor'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
 import { assetsOfType } from '../assets/registry'
-import { unlockedByChoices } from './editorDocument'
+import { findObject, lockChoices, unlockedByChoices } from './editorDocument'
+import { Field, type ObjectChange } from './Field'
 import { objectLabel } from './objectLabel'
-
-/** A change to the selected object; `field` groups typing in one field into one undo step. */
-export type ObjectChange = <T extends EditorObject>(update: (object: T) => T, field?: string) => void
+import { PuzzleEditor } from './PuzzleEditor'
 
 interface InspectorProps {
   document: RoomDocument
   object: EditorObject
   sceneId: string
+  uploadsEnabled: boolean
   onChange: ObjectChange
+  /** Changes how long every lock in the room waits after a wrong answer. */
+  onCooldownChange: (seconds: number) => void
   /** Ends the current undo step, e.g. when a field loses focus. */
   onSeal: () => void
   onRemove: () => void
@@ -23,32 +32,24 @@ interface InspectorProps {
   onAddScene: () => string
 }
 
-/** "3,5" and "3.5" both mean 3.5, like the answers students type. */
-function parseNumber(text: string): number | null {
-  const trimmed = text.trim().replace(',', '.')
-  if (trimmed === '' || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(trimmed)) {
-    return null
-  }
-  return Number(trimmed)
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: (id: string) => ReactNode }) {
-  const id = useId()
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      {children(id)}
-      {hint !== undefined && <p className="field-hint">{hint}</p>}
-    </div>
-  )
-}
-
 /**
- * The small panel for the selected object. It shows only what matters for the object's type: a lock's question and
- * answer, a letter's text or where a door leads; tolerance and answer options only for the answer types they apply to.
+ * The small panel for the selected object. It shows only what matters for the object's type: a lock's graphic and
+ * puzzle, a letter's text, where a door leads and when it opens.
  */
-export function Inspector({ document, object, sceneId, onChange, onSeal, onRemove, onClose, onAddScene }: InspectorProps) {
+export function Inspector({
+  document,
+  object,
+  sceneId,
+  uploadsEnabled,
+  onChange,
+  onCooldownChange,
+  onSeal,
+  onRemove,
+  onClose,
+  onAddScene,
+}: InspectorProps) {
   const { t } = useTranslation()
+  const isDoorway = object.type === 'Door' || object.type === 'ExitDoor'
 
   return (
     <section className="inspector" aria-labelledby="inspector-title">
@@ -59,15 +60,24 @@ export function Inspector({ document, object, sceneId, onChange, onSeal, onRemov
         </button>
       </div>
 
-      {object.type === 'Lock' && <LockFields lock={object} onChange={onChange} onSeal={onSeal} />}
+      {object.type === 'Lock' && (
+        <>
+          <LookChooser lock={object} onChange={onChange} />
+          <PuzzleEditor lock={object} uploadsEnabled={uploadsEnabled} onChange={onChange} onSeal={onSeal} />
+          {object.steps.length > 0 && (
+            <CooldownSelect seconds={document.wrongAnswerCooldownSeconds} onChange={onCooldownChange} />
+          )}
+        </>
+      )}
       {object.type === 'Letter' && <LetterFields letter={object} onChange={onChange} onSeal={onSeal} />}
       {object.type === 'Door' && (
         <DoorFields document={document} door={object} sceneId={sceneId} onChange={onChange} onAddScene={onAddScene} />
       )}
       {object.type === 'ExitDoor' && <p className="field-hint">{t('editor.exitDoor.explanation')}</p>}
+      {isDoorway && <OpenConditionFields document={document} doorway={object} sceneId={sceneId} onChange={onChange} />}
       {object.type === 'TextBox' && <TextBoxFields textBox={object} onChange={onChange} onSeal={onSeal} />}
 
-      <UnlockedBySelect document={document} object={object} onChange={onChange} />
+      {!isDoorway && <UnlockedBySelect document={document} object={object} onChange={onChange} />}
 
       <button type="button" className="danger" onClick={onRemove}>
         {t(`editor.inspector.remove${object.type}`)}
@@ -76,230 +86,57 @@ export function Inspector({ document, object, sceneId, onChange, onSeal, onRemov
   )
 }
 
-const answerTypes: AnswerType[] = ['Code', 'Text', 'MultipleChoice']
-
-function LockFields({ lock, onChange, onSeal }: { lock: EditorLock; onChange: ObjectChange; onSeal: () => void }) {
+/** The lock's graphic, from the asset library. Changing it never touches the puzzle. */
+function LookChooser({ lock, onChange }: { lock: EditorLock; onChange: ObjectChange }) {
   const { t } = useTranslation()
-  const lockAssets = assetsOfType('Lock')
-  const [showHint, setShowHint] = useState(lock.hint !== null)
-  const [toleranceText, setToleranceText] = useState(lock.tolerance === null ? '' : String(lock.tolerance))
-  const [shownTolerance, setShownTolerance] = useState(lock.tolerance)
-
-  // Undo and redo change the tolerance from outside; show their value unless it is what the teacher is typing.
-  if (lock.tolerance !== shownTolerance) {
-    setShownTolerance(lock.tolerance)
-    if (parseNumber(toleranceText) !== lock.tolerance) {
-      setToleranceText(lock.tolerance === null ? '' : String(lock.tolerance))
-    }
-  }
-
-  const update = (changes: Partial<EditorLock>, field?: string) => {
-    onChange<EditorLock>((l) => ({ ...l, ...changes }), field)
-  }
-
-  const chooseAnswerType = (answerType: AnswerType) => {
-    if (answerType === lock.answerType) {
-      return
-    }
-    // Multiple choice starts with the current answer as the first option, so nothing typed is lost.
-    const options = answerType === 'MultipleChoice' && lock.options.length < 2 ? [lock.correctAnswer, ''] : lock.options
-    update({ answerType, options })
-  }
-
-  const numericAnswer = parseNumber(lock.correctAnswer) !== null
-
   return (
-    <>
-      <fieldset>
-        <legend>{t('editor.lock.look')}</legend>
-        <div className="look-choices">
-          {lockAssets.map((asset) => (
-            <label key={asset.key} className="look-choice">
-              <input
-                type="radio"
-                name={`look-${lock.id}`}
-                checked={lock.graphicKey === asset.key}
-                onChange={() => {
-                  update({ graphicKey: asset.key })
-                }}
-              />
-              <ObjectGraphic asset={asset} open={false} />
-              <span>{t(asset.nameKey)}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <Field label={t('editor.lock.question')} hint={t('editor.lock.questionHint')}>
-        {(id) => (
-          <textarea
-            id={id}
-            rows={3}
-            value={lock.question}
-            onChange={(event) => {
-              update({ question: event.target.value }, 'question')
-            }}
-            onBlur={onSeal}
-          />
-        )}
-      </Field>
-
-      <fieldset className="answer-types">
-        <legend>{t('editor.lock.answerType')}</legend>
-        {answerTypes.map((answerType) => (
-          <label key={answerType} className="answer-type">
+    <fieldset>
+      <legend>{t('editor.lock.look')}</legend>
+      <div className="look-choices">
+        {assetsOfType('Lock').map((asset) => (
+          <label key={asset.key} className="look-choice">
             <input
               type="radio"
-              name={`answer-type-${lock.id}`}
-              checked={lock.answerType === answerType}
+              name={`look-${lock.id}`}
+              checked={lock.graphicKey === asset.key}
               onChange={() => {
-                chooseAnswerType(answerType)
+                onChange<EditorLock>((l) => ({ ...l, graphicKey: asset.key }))
               }}
             />
-            <span className="answer-type-name">{t(`editor.lock.answerTypes.${answerType}`)}</span>
-            <span className="answer-type-description">{t(`editor.lock.answerTypeDescriptions.${answerType}`)}</span>
+            <ObjectGraphic asset={asset} open={false} />
+            <span>{t(asset.nameKey)}</span>
           </label>
         ))}
-      </fieldset>
-
-      {lock.answerType === 'MultipleChoice' ? (
-        <OptionsEditor lock={lock} onChange={onChange} onSeal={onSeal} />
-      ) : (
-        <Field label={t('editor.lock.correctAnswer')}>
-          {(id) => (
-            <input
-              id={id}
-              value={lock.correctAnswer}
-              autoComplete="off"
-              onChange={(event) => {
-                update({ correctAnswer: event.target.value }, 'answer')
-              }}
-              onBlur={onSeal}
-            />
-          )}
-        </Field>
-      )}
-
-      {lock.answerType === 'Text' && numericAnswer && (
-        <Field label={t('editor.lock.tolerance')} hint={t('editor.lock.toleranceHint')}>
-          {(id) => (
-            <input
-              id={id}
-              inputMode="decimal"
-              className="short-input"
-              value={toleranceText}
-              onChange={(event) => {
-                setToleranceText(event.target.value)
-                const value = parseNumber(event.target.value)
-                update({ tolerance: value !== null && value >= 0 ? value : null }, 'tolerance')
-              }}
-              onBlur={onSeal}
-            />
-          )}
-        </Field>
-      )}
-
-      {showHint ? (
-        <>
-          <Field label={t('editor.lock.hint')} hint={t('editor.lock.hintHint')}>
-            {(id) => (
-              <textarea
-                id={id}
-                rows={2}
-                value={lock.hint ?? ''}
-                onChange={(event) => {
-                  update({ hint: event.target.value }, 'hint')
-                }}
-                onBlur={onSeal}
-              />
-            )}
-          </Field>
-          <button
-            type="button"
-            className="quiet add"
-            onClick={() => {
-              setShowHint(false)
-              update({ hint: null })
-            }}
-          >
-            {t('editor.lock.removeHint')}
-          </button>
-        </>
-      ) : (
-        <button
-          type="button"
-          className="quiet add"
-          onClick={() => {
-            setShowHint(true)
-          }}
-        >
-          {t('editor.lock.addHint')}
-        </button>
-      )}
-    </>
+      </div>
+    </fieldset>
   )
 }
 
-function OptionsEditor({ lock, onChange, onSeal }: { lock: EditorLock; onChange: ObjectChange; onSeal: () => void }) {
-  const { t } = useTranslation()
-  const update = (changes: Partial<EditorLock>, field?: string) => {
-    onChange<EditorLock>((l) => ({ ...l, ...changes }), field)
-  }
+/** The usual choices for the wait after a wrong answer, in seconds; 0 turns it off. */
+const cooldownChoices = [0, 5, 10, 15, 30, 60]
 
+/** How long a lock stays locked for the team after a wrong answer. It is the same for every lock in the room. */
+function CooldownSelect({ seconds, onChange }: { seconds: number; onChange: (seconds: number) => void }) {
+  const { t } = useTranslation()
+  const choices = cooldownChoices.includes(seconds) ? cooldownChoices : [...cooldownChoices, seconds].sort((a, b) => a - b)
   return (
-    <fieldset className="options">
-      <legend>{t('editor.lock.options')}</legend>
-      <p className="field-hint">{t('editor.lock.optionsHint')}</p>
-      {lock.options.map((option, index) => {
-        const correct = option !== '' && option === lock.correctAnswer
-        return (
-          // Options have no ids of their own; the position is what the teacher edits.
-          <div key={index} className="option-row">
-            <input
-              type="radio"
-              name={`correct-${lock.id}`}
-              checked={correct}
-              aria-label={t('editor.lock.markCorrect', { n: index + 1 })}
-              onChange={() => {
-                update({ correctAnswer: option })
-              }}
-            />
-            <input
-              value={option}
-              aria-label={t('editor.lock.option', { n: index + 1 })}
-              onChange={(event) => {
-                const options = lock.options.map((o, i) => (i === index ? event.target.value : o))
-                update({ options, correctAnswer: correct ? event.target.value : lock.correctAnswer }, `option:${String(index)}`)
-              }}
-              onBlur={onSeal}
-            />
-            <button
-              type="button"
-              className="quiet"
-              aria-label={t('editor.lock.removeOption', { n: index + 1 })}
-              disabled={lock.options.length <= 2}
-              onClick={() => {
-                update({
-                  options: lock.options.filter((_, i) => i !== index),
-                  correctAnswer: correct ? '' : lock.correctAnswer,
-                })
-              }}
-            >
-              {t('editor.lock.removeOptionShort')}
-            </button>
-          </div>
-        )
-      })}
-      <button
-        type="button"
-        className="quiet add"
-        onClick={() => {
-          update({ options: [...lock.options, ''] })
-        }}
-      >
-        {t('editor.lock.addOption')}
-      </button>
-    </fieldset>
+    <Field label={t('editor.cooldown.label')} hint={t('editor.cooldown.hint')}>
+      {(id) => (
+        <select
+          id={id}
+          value={seconds}
+          onChange={(event) => {
+            onChange(Number(event.target.value))
+          }}
+        >
+          {choices.map((choice) => (
+            <option key={choice} value={choice}>
+              {choice === 0 ? t('editor.cooldown.off') : t('editor.cooldown.seconds', { count: choice })}
+            </option>
+          ))}
+        </select>
+      )}
+    </Field>
   )
 }
 
@@ -383,6 +220,79 @@ function DoorFields({
         </select>
       )}
     </Field>
+  )
+}
+
+const openConditions: DoorOpenCondition[] = ['AllInScene', 'SelectedLocks']
+
+/**
+ * When a door (or the exit door) opens by itself for the team: once every puzzle in its scene is solved (the default),
+ * or once the locks the teacher ticks are solved.
+ */
+function OpenConditionFields({
+  document,
+  doorway,
+  sceneId,
+  onChange,
+}: {
+  document: RoomDocument
+  doorway: EditorDoorway
+  sceneId: string
+  onChange: ObjectChange
+}) {
+  const { t } = useTranslation()
+  const locks = lockChoices(document, sceneId)
+
+  const lockName = (lock: EditorLock) => {
+    const name = objectLabel(t, document, lock)
+    const scene = findObject(document, lock.id)?.scene
+    return scene === undefined || scene.id === sceneId ? name : t('editor.doorway.inScene', { name, scene: scene.name })
+  }
+
+  return (
+    <fieldset className="open-condition">
+      <legend>{t(doorway.type === 'ExitDoor' ? 'editor.doorway.exitCondition' : 'editor.doorway.condition')}</legend>
+      {openConditions.map((condition) => (
+        <label key={condition} className="answer-type">
+          <input
+            type="radio"
+            name={`open-${doorway.id}`}
+            checked={doorway.openCondition === condition}
+            onChange={() => {
+              onChange<EditorDoorway>((d) => ({ ...d, openCondition: condition }))
+            }}
+          />
+          <span className="answer-type-name">{t(`editor.doorway.conditions.${condition}`)}</span>
+        </label>
+      ))}
+      {doorway.openCondition === 'SelectedLocks' &&
+        (locks.length === 0 ? (
+          <p className="field-hint">{t('editor.doorway.noLocks')}</p>
+        ) : (
+          <fieldset className="required-locks">
+            <legend>{t('editor.doorway.locks')}</legend>
+            {locks.map((lock) => (
+              <label key={lock.id} className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={doorway.requiredLockIds.includes(lock.id)}
+                  onChange={(event) => {
+                    const checked = event.target.checked
+                    onChange<EditorDoorway>((d) => ({
+                      ...d,
+                      requiredLockIds: checked
+                        ? [...d.requiredLockIds.filter((id) => id !== lock.id), lock.id]
+                        : d.requiredLockIds.filter((id) => id !== lock.id),
+                    }))
+                  }}
+                />
+                {lockName(lock)}
+              </label>
+            ))}
+          </fieldset>
+        ))}
+      <p className="field-hint">{t('editor.doorway.hint')}</p>
+    </fieldset>
   )
 }
 

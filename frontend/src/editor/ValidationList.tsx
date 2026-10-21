@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import type { RoomDocument, ValidationError } from '../api/editor'
 import { errorKey } from '../i18n/errors'
@@ -10,15 +11,28 @@ interface ValidationListProps {
   onShow: (objectId: string) => void
 }
 
+/** A problem in words; in a lock with several steps, it says which step it is in. */
+function problemText(t: TFunction, document: RoomDocument, error: ValidationError): string {
+  const problem = t(errorKey(error.code))
+  const found = error.objectId === null ? undefined : findObject(document, error.objectId)
+  const severalSteps = found?.object.type === 'Lock' && found.object.steps.length > 1
+  return error.stepIndex !== null && severalSteps ? t('editor.validation.step', { n: error.stepIndex + 1, problem }) : problem
+}
+
 /** The problems grouped by object, in the order the server reported them; room-wide problems have no object. */
-function groupByObject(errors: ValidationError[]): { objectId: string | null; codes: string[] }[] {
-  const groups: { objectId: string | null; codes: string[] }[] = []
+function groupByObject(
+  t: TFunction,
+  document: RoomDocument,
+  errors: ValidationError[],
+): { objectId: string | null; problems: string[] }[] {
+  const groups: { objectId: string | null; problems: string[] }[] = []
   for (const error of errors) {
+    const problem = problemText(t, document, error)
     const group = groups.find((g) => g.objectId === error.objectId)
     if (group === undefined) {
-      groups.push({ objectId: error.objectId, codes: [error.code] })
-    } else if (!group.codes.includes(error.code)) {
-      group.codes.push(error.code)
+      groups.push({ objectId: error.objectId, problems: [problem] })
+    } else if (!group.problems.includes(problem)) {
+      group.problems.push(problem)
     }
   }
   return groups
@@ -42,13 +56,13 @@ export function ValidationList({ document, errors, onShow }: ValidationListProps
         {t('editor.validation.title')}
       </h2>
       <ul>
-        {groupByObject(errors).map(({ objectId, codes }) => {
+        {groupByObject(t, document, errors).map(({ objectId, problems }) => {
           const found = objectId === null ? undefined : findObject(document, objectId)
-          const problems = codes.map((code) => t(errorKey(code))).join(' ')
+          const text = problems.join(' ')
           return (
-            <li key={objectId ?? codes.join()}>
+            <li key={objectId ?? text}>
               {found === undefined ? (
-                problems
+                text
               ) : (
                 <button
                   type="button"
@@ -58,7 +72,7 @@ export function ValidationList({ document, errors, onShow }: ValidationListProps
                   }}
                 >
                   <span className="validation-object">{objectLabel(t, document, found.object)}</span>
-                  <span>{problems}</span>
+                  <span>{text}</span>
                 </button>
               )}
             </li>

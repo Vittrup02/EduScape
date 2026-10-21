@@ -10,6 +10,15 @@
   "backend": {
     "waking": "Gør klar … det tager op til et minut første gang."
   },
+  "sortable": {
+    "roleDescription": "kan trækkes",
+    "instructions": "Træk for at flytte, eller brug pil op og pil ned.",
+    "instructionsHorizontal": "Træk for at flytte, eller brug pil venstre og pil højre.",
+    "moved": "{{item}} er nu nummer {{position}} af {{count}}.",
+    "moveUp": "Flyt {{item}} op",
+    "moveDown": "Flyt {{item}} ned",
+    "grip": "Flyt {{item}}"
+  },
   "home": {
     "tagline": "Escape rooms til undervisningen. Læreren bygger rummet, og eleverne løser gåderne sammen for at bryde ud.",
     "teacherLogin": "Log ind som lærer",
@@ -126,6 +135,7 @@
     "locksSolved": "{{solved}} af {{total}} låse løst",
     "escaped": "Brudt ud efter {{duration}}",
     "workingOn": "Arbejder på „{{question}}“",
+    "step": "(trin {{n}} af {{count}})",
     "stuck": "Har siddet fast på „{{question}}“ i {{duration}}",
     "wrongAttempts_one": "{{count}} forkert svar",
     "wrongAttempts_other": "{{count}} forkerte svar",
@@ -171,7 +181,8 @@
       "title": "Til rummet",
       "hint": "Træk ind på billedet – eller klik for at sætte midt på.",
       "add": "Tilføj {{name}}",
-      "textBox": "Tekstfelt"
+      "textBox": "Tekstfelt",
+      "lock": "Lås"
     },
     "stage": {
       "label": "Scenen {{scene}}",
@@ -202,25 +213,13 @@
       "question": "Spørgsmål",
       "questionHint": "Det, eleverne ser, når de klikker på låsen.",
       "answerType": "Hvordan svarer eleverne?",
-      "answerTypes": {
-        "Code": "Kode",
-        "Text": "Tekst eller tal",
-        "MultipleChoice": "Vælg mellem svar"
-      },
-      "answerTypeDescriptions": {
-        "Code": "Skal passe tegn for tegn, fx 0427.",
-        "Text": "Store og små bogstaver er ligegyldige, og 3,5 er det samme som 3.5.",
-        "MultipleChoice": "Eleverne vælger ét af dine svar."
-      },
       "correctAnswer": "Det rigtige svar",
-      "tolerance": "Godkend også svar inden for ±",
-      "toleranceHint": "Fx 0,01, så afrundede resultater også godkendes.",
       "hint": "Hint",
       "hintHint": "Vises automatisk, når holdet har svaret forkert 3 gange.",
       "removeHint": "Fjern hint",
       "addHint": "Tilføj et hint",
       "options": "Svarmuligheder",
-      "optionsHint": "Markér det rigtige svar.",
+      "optionsHint": "Markér det rigtige svar. Træk i ⠿ for at ændre rækkefølgen.",
       "markCorrect": "Svarmulighed {{n}} er det rigtige svar",
       "option": "Svarmulighed {{n}}",
       "removeOption": "Fjern svarmulighed {{n}}",
@@ -237,7 +236,7 @@
       "newScene": "En ny scene"
     },
     "exitDoor": {
-      "explanation": "Slutdøren åbner, når alle låse i rummet er løst. Så er eleverne brudt ud."
+      "explanation": "Når eleverne går gennem den åbne slutdør, er de sluppet ud."
     },
     "textBox": {
       "text": "Tekst",
@@ -284,12 +283,78 @@
     },
     "validation": {
       "ready": "Rummet er klar til at blive prøvet.",
-      "title": "Det mangler, før rummet kan spilles"
+      "title": "Det mangler, før rummet kan spilles",
+      "step": "Trin {{n}}: {{problem}}"
     },
     "preview": {
       "button": "Prøv rummet",
       "opening": "Åbner...",
-      "notSaved": "Rummet kunne ikke gemmes. Tjek titlen og scenernes navne, og prøv igen."
+      "notSaved": "Rummet kunne ikke gemmes. Tjek titlen og scenernes navne, og prøv igen.",
+      "fromStart": "Start forfra",
+      "startsIn": "Starter i {{scene}}. Låsene i scenerne før er løst."
+    },
+    "untitledRoom": "Unavngivet rum",
+    "puzzle": {
+      "choose": "Hvilken slags gåde skal låsen have?",
+      "kinds": {
+        "MultipleChoice": "Multiple choice",
+        "Typed": "Skriv svaret",
+        "Order": "Træk i rækkefølge",
+        "Steps": "Flere trin"
+      },
+      "kindDescriptions": {
+        "MultipleChoice": "Eleverne vælger ét af dine svar.",
+        "Typed": "Eleverne skriver et ord, et tal eller en kode. Tal kan godkendes inden for ± en tolerance.",
+        "Order": "Eleverne trækker kort i den rigtige rækkefølge, fx trinnene i en reaktion.",
+        "Steps": "Flere spørgsmål efter hinanden i samme lås. Låsen åbner efter det sidste."
+      },
+      "step": "Trin {{n}}",
+      "steps": "Trin",
+      "stepsHint": "Eleverne ser ét trin ad gangen i denne rækkefølge, og låsen åbner efter det sidste. Træk i ⠿ for at ændre rækkefølgen.",
+      "addStep": "Tilføj et trin",
+      "removeStep": "Slet trin {{n}}",
+      "noQuestion": "intet spørgsmål endnu",
+      "exactCode": "Præcis kode",
+      "exactCodeHint": "Skal skrives tegn for tegn, fx 0427. Ingen stavefejl eller tolerance.",
+      "textHint": "Store og små bogstaver er ligegyldige, og 3,5 er det samme som 3.5.",
+      "tolerance": "Godkend også svar inden for",
+      "toleranceHint": "Fx {{example}}, så afrundede resultater også godkendes. Du kan skrive komma eller punktum.",
+      "toleranceRange": "Svar fra {{from}} til {{to}} godkendes.",
+      "acceptedAnswers": "Andre rigtige svar",
+      "acceptedAnswersHint": "Fx et synonym eller en anden stavemåde.",
+      "acceptedAnswer": "Andet rigtigt svar {{n}}",
+      "addAcceptedAnswer": "Tilføj et andet rigtigt svar",
+      "removeAcceptedAnswer": "Fjern andet rigtigt svar {{n}}",
+      "acceptTypos": "Accepter små stavefejl",
+      "acceptTyposHint": "1 fejl i svar på 5–9 tegn og 2 fejl fra 10 tegn. Svar under 5 tegn, fx „Na“, skal altid staves rigtigt.",
+      "orderItems": "Elementer i den rigtige rækkefølge",
+      "orderItemsHint": "Træk i ⠿ for at lægge elementerne i den rigtige rækkefølge – det øverste er det første. Eleverne ser dem blandet.",
+      "orderItem": "Element {{n}}",
+      "addOrderItem": "Tilføj et element",
+      "removeOrderItem": "Fjern element {{n}}",
+      "addImage": "Tilføj billede til element {{n}}",
+      "addImageShort": "Tilføj billede",
+      "removeImage": "Fjern billedet fra element {{n}}",
+      "removeImageShort": "Fjern billede"
+    },
+    "cooldown": {
+      "label": "Ventetid efter forkert svar",
+      "hint": "Gælder alle låse i rummet. Efter et forkert svar er låsen låst for holdet så længe, og eleverne ser en nedtælling.",
+      "off": "Ingen ventetid",
+      "seconds_one": "{{count}} sekund",
+      "seconds_other": "{{count}} sekunder"
+    },
+    "doorway": {
+      "condition": "Hvornår åbner døren?",
+      "exitCondition": "Hvornår åbner slutdøren?",
+      "conditions": {
+        "AllInScene": "Når alle gåder i scenen er løst",
+        "SelectedLocks": "Når udvalgte låse er løst"
+      },
+      "locks": "Låse, der skal løses",
+      "noLocks": "Der er ingen låse i rummet endnu.",
+      "inScene": "{{name}} ({{scene}})",
+      "hint": "Døren åbner af sig selv for hele holdet. Eleverne klikker på den åbne dør for at gå videre."
     }
   },
   "join": {
@@ -336,7 +401,8 @@
       "letter": "Brev",
       "door": "Dør til {{scene}}",
       "doorOpen": "Åben dør til {{scene}}",
-      "exitDoor": "Slutdør"
+      "exitDoor": "Slutdør",
+      "exitDoorOpen": "Åben slutdør"
     },
     "lock": {
       "title": "Lås",
@@ -345,14 +411,26 @@
       "options": "Vælg et svar",
       "wrong": "Forkert svar. Prøv igen.",
       "solved": "Låsen er åbnet.",
-      "hint": "Hint:"
+      "hint": "Hint:",
+      "step": "Trin {{n}} af {{count}}",
+      "stepSolved": "Trinnet er løst. Her er det næste.",
+      "cooldown_one": "Låsen er låst i {{count}} sekund efter det forkerte svar.",
+      "cooldown_other": "Låsen er låst i {{count}} sekunder efter det forkerte svar."
+    },
+    "order": {
+      "label": "Elementerne i jeres rækkefølge",
+      "instructions": "Træk kortene i den rigtige rækkefølge, og tryk så på Prøv.",
+      "submit": "Prøv"
+    },
+    "door": {
+      "closed": "Døren er lukket. Løs gåderne for at åbne den."
     },
     "letter": {
       "title": "Brev"
     },
     "escaped": {
-      "team": "I er brudt ud!",
-      "individual": "Du er brudt ud!",
+      "team": "I slap ud!",
+      "individual": "Du slap ud!",
       "text": "Godt klaret! Sig det til din lærer."
     }
   },
@@ -429,7 +507,9 @@
     "classroom": "Klasseværelse",
     "laboratory": "Laboratorium",
     "library": "Bibliotek",
-    "basement": "Kælder"
+    "basement": "Kælder",
+    "chest": "Kiste",
+    "safe": "Pengeskab"
   },
   "errors": {
     "UNKNOWN": "Noget gik galt. Prøv igen.",
@@ -464,7 +544,7 @@
     "PARTICIPANT_MOVE_NOT_ALLOWED": "Elever kan kun flyttes, når der spilles på hold.",
     "OBJECT_NOT_FOUND": "Objektet findes ikke i rummet.",
     "OBJECT_NOT_AVAILABLE": "Det kan I ikke bruge endnu. Løs noget andet først.",
-    "EXIT_DOOR_LOCKED": "Slutdøren er stadig låst. Løs alle låse i rummet først.",
+    "EXIT_DOOR_LOCKED": "Slutdøren er stadig lukket. Løs gåderne for at åbne den.",
     "SCENE_LOCKED": "Den scene har jeres hold ikke låst op endnu.",
     "START_SCENE_MISSING": "Rummet mangler en startscene.",
     "UNLOCKED_BY_NOT_FOUND": "Objektet venter på noget, der ikke længere findes i rummet.",

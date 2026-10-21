@@ -15,15 +15,17 @@ function numberOf(document: RoomDocument, object: EditorObject): number {
 }
 
 /**
- * How the editor names an object to the teacher: a lock by its question, a door by where it leads. Unfinished
+ * How the editor names an object to the teacher: a lock by its (first) question, a door by where it leads. Unfinished
  * objects get a number instead, so two of them can still be told apart.
  */
 export function objectLabel(t: TFunction, document: RoomDocument, object: EditorObject): string {
   switch (object.type) {
-    case 'Lock':
-      return object.question.trim() === ''
+    case 'Lock': {
+      const question = object.steps[0]?.question.trim() ?? ''
+      return question === ''
         ? t('editor.object.lockNumbered', { n: numberOf(document, object) })
-        : t('editor.object.lock', { question: shorten(object.question) })
+        : t('editor.object.lock', { question: shorten(question) })
+    }
     case 'Letter':
       return object.text.trim() === ''
         ? t('editor.object.letterNumbered', { n: numberOf(document, object) })

@@ -1,6 +1,15 @@
-import { textBoxKey, type EditorDoor, type EditorObject, type EditorScene, type EditorTextBox, type RoomDocument } from '../api/editor'
+import {
+  textBoxKey,
+  type EditorDoor,
+  type EditorLock,
+  type EditorObject,
+  type EditorScene,
+  type EditorTextBox,
+  type RoomDocument,
+} from '../api/editor'
 import { assetsOfType, type ObjectAsset } from '../assets/registry'
 import { newId } from './ids'
+import { moveItem } from './puzzle'
 
 /**
  * Changes to the room document. Each returns a new document (or the same one when nothing changes), so the history
@@ -49,8 +58,9 @@ function mapObjects(document: RoomDocument, map: (object: EditorObject) => Edito
 }
 
 /**
- * A new object from the asset library at the given position. A new door leads to another scene if there is one,
- * so that a room with two scenes needs no extra step.
+ * A new object from the asset library at the given position. A lock starts without a puzzle: the teacher picks the
+ * kind next. A door opens once every lock in its scene is solved, and leads to another scene if there is one, so that
+ * a room with two scenes needs no extra step.
  */
 export function createObject(
   asset: ObjectAsset,
@@ -60,24 +70,16 @@ export function createObject(
   sceneId: string,
 ): EditorObject {
   const base = { id: newId(), x: clampPosition(x), y: clampPosition(y), graphicKey: asset.key, unlockedById: null }
+  const doorway = { openCondition: 'AllInScene' as const, requiredLockIds: [] }
   switch (asset.type) {
     case 'Lock':
-      return {
-        ...base,
-        type: 'Lock',
-        question: '',
-        answerType: asset.key === 'builtin:code-lock' ? 'Code' : 'Text',
-        correctAnswer: '',
-        tolerance: null,
-        hint: null,
-        options: [],
-      }
+      return { ...base, type: 'Lock', steps: [] }
     case 'Letter':
       return { ...base, type: 'Letter', text: '' }
     case 'Door':
-      return { ...base, type: 'Door', targetSceneId: document.scenes.find((s) => s.id !== sceneId)?.id ?? null }
+      return { ...base, ...doorway, type: 'Door', targetSceneId: document.scenes.find((s) => s.id !== sceneId)?.id ?? null }
     case 'ExitDoor':
-      return { ...base, type: 'ExitDoor' }
+      return { ...base, ...doorway, type: 'ExitDoor' }
   }
 }
 
@@ -107,27 +109,61 @@ export function moveObject(document: RoomDocument, objectId: string, x: number, 
   )
 }
 
-/** Removes the object; whatever waited for it becomes visible from start, as on the server. */
+/**
+ * Clears references to removed objects, as the server does: whatever waited for one becomes visible from start, and a
+ * door no longer waits for a removed lock.
+ */
+function forgetObjects(document: RoomDocument, removed: ReadonlySet<string>): RoomDocument {
+  return mapObjects(document, (object) => {
+    let next = object
+    if (next.unlockedById !== null && removed.has(next.unlockedById)) {
+      next = { ...next, unlockedById: null }
+    }
+    if ((next.type === 'Door' || next.type === 'ExitDoor') && next.requiredLockIds.some((id) => removed.has(id))) {
+      next = { ...next, requiredLockIds: next.requiredLockIds.filter((id) => !removed.has(id)) }
+    }
+    return next
+  })
+}
+
+/** Removes the object, and every reference to it. */
 export function removeObject(document: RoomDocument, objectId: string): RoomDocument {
   const without = mapScenes(document, (scene) =>
     scene.objects.some((o) => o.id === objectId)
       ? { ...scene, objects: scene.objects.filter((o) => o.id !== objectId) }
       : scene,
   )
-  return mapObjects(without, (object) => (object.unlockedById === objectId ? { ...object, unlockedById: null } : object))
+  return forgetObjects(without, new Set([objectId]))
 }
 
 const backgrounds = assetsOfType('Background')
 
-/** A new scene with a built-in background the room doesn't use yet, so scenes look different from the start. */
-export function createScene(document: RoomDocument, name: string): EditorScene {
+/**
+ * A new scene with a readable name, "Scene 3" in the teacher's language (`nameFor` gives the name for a number), and a
+ * built-in background the room doesn't use yet, so scenes look different from the start. The number counts the scenes,
+ * skipping names the room already has.
+ */
+export function createScene(document: RoomDocument, nameFor: (n: number) => string): EditorScene {
+  const usedNames = new Set(document.scenes.map((s) => s.name.trim()))
+  let n = document.scenes.length + 1
+  while (usedNames.has(nameFor(n))) {
+    n++
+  }
   const used = new Set(document.scenes.map((s) => s.backgroundImageKey))
   const background = backgrounds.find((b) => !used.has(b.key)) ?? backgrounds[0]
-  return { id: newId(), name, backgroundImageKey: background.key, backgroundImageUrl: null, narration: '', objects: [] }
+  return { id: newId(), name: nameFor(n), backgroundImageKey: background.key, backgroundImageUrl: null, narration: '', objects: [] }
 }
 
 export function addScene(document: RoomDocument, scene: EditorScene): RoomDocument {
   return { ...document, scenes: [...document.scenes, scene] }
+}
+
+/** Moves a scene in the room's order, which is the order students see the scenes in. */
+export function moveScene(document: RoomDocument, from: number, to: number): RoomDocument {
+  if (from === to || to < 0 || to >= document.scenes.length) {
+    return document
+  }
+  return { ...document, scenes: moveItem(document.scenes, from, to) }
 }
 
 export function updateScene(
@@ -148,23 +184,18 @@ export function removeScene(document: RoomDocument, sceneId: string): RoomDocume
     return document
   }
 
-  const removedObjects = new Set(removed.objects.map((o) => o.id))
   const scenes = document.scenes.filter((s) => s.id !== sceneId)
   const without: RoomDocument = {
     ...document,
     scenes,
     startSceneId: document.startSceneId === sceneId ? scenes[0].id : document.startSceneId,
   }
-  return mapObjects(without, (object) => {
-    let next = object
-    if (next.unlockedById !== null && removedObjects.has(next.unlockedById)) {
-      next = { ...next, unlockedById: null }
-    }
-    if (next.type === 'Door' && next.targetSceneId === sceneId) {
-      next = { ...next, targetSceneId: null } satisfies EditorDoor
-    }
-    return next
-  })
+  const forgotten = forgetObjects(without, new Set(removed.objects.map((o) => o.id)))
+  return mapObjects(forgotten, (object) =>
+    object.type === 'Door' && object.targetSceneId === sceneId
+      ? ({ ...object, targetSceneId: null } satisfies EditorDoor)
+      : object,
+  )
 }
 
 export function setStartScene(document: RoomDocument, sceneId: string): RoomDocument {
@@ -173,33 +204,64 @@ export function setStartScene(document: RoomDocument, sceneId: string): RoomDocu
 
 export function setRoomDetails(
   document: RoomDocument,
-  changes: Partial<Pick<RoomDocument, 'title' | 'subject' | 'gradeLevel'>>,
+  changes: Partial<Pick<RoomDocument, 'title' | 'subject' | 'gradeLevel' | 'wrongAnswerCooldownSeconds'>>,
 ): RoomDocument {
   return { ...document, ...changes }
 }
 
+/** The room's locks, for a door that opens when chosen locks are solved: those in the door's scene first. */
+export function lockChoices(document: RoomDocument, sceneId: string): EditorLock[] {
+  const locks = (scene: EditorScene) => scene.objects.filter((o): o is EditorLock => o.type === 'Lock')
+  const own = findScene(document, sceneId)
+  return [...(own === undefined ? [] : locks(own)), ...document.scenes.filter((s) => s.id !== sceneId).flatMap(locks)]
+}
+
+/**
+ * What an object needs before students can complete it: what it waits for with unlockedBy, and for a door the locks
+ * that open it (every lock in its scene, or the chosen ones).
+ */
+function dependencies(document: RoomDocument, sceneId: string, object: EditorObject): string[] {
+  const needs = object.unlockedById === null ? [] : [object.unlockedById]
+  if (object.type !== 'Door' && object.type !== 'ExitDoor') {
+    return needs
+  }
+  const opensWith =
+    object.openCondition === 'AllInScene'
+      ? (findScene(document, sceneId)?.objects.filter((o) => o.type === 'Lock').map((o) => o.id) ?? [])
+      : object.requiredLockIds
+  return [...needs, ...opensWith]
+}
+
 /**
  * The objects that `objectId` can wait for: locks and doors anywhere in the room, except itself and any object that
- * already (directly or further down its chain) waits for it, which would make the two wait for each other forever.
+ * already needs it, directly or further down the line (e.g. a door that opens with a lock that waits for it), which
+ * would make them wait for each other forever. Doors never wait for anything: they open by their own condition.
  */
 export function unlockedByChoices(document: RoomDocument, objectId: string): EditorObject[] {
-  const objects = allObjects(document)
-  const byId = new Map(objects.map((o) => [o.id, o]))
+  const self = findObject(document, objectId)?.object
+  if (self?.type === 'Door' || self?.type === 'ExitDoor') {
+    return []
+  }
 
-  const waitsFor = (candidate: EditorObject): boolean => {
+  const needsSelf = (candidateId: string): boolean => {
     const seen = new Set<string>()
-    let current: EditorObject | undefined = candidate
-    while (current?.unlockedById != null && !seen.has(current.id)) {
-      if (current.unlockedById === objectId) {
+    const pending = [candidateId]
+    for (let id = pending.pop(); id !== undefined; id = pending.pop()) {
+      if (id === objectId) {
         return true
       }
-      seen.add(current.id)
-      current = byId.get(current.unlockedById)
+      const found = seen.has(id) ? undefined : findObject(document, id)
+      if (found !== undefined) {
+        seen.add(id)
+        pending.push(...dependencies(document, found.scene.id, found.object))
+      }
     }
     return false
   }
 
-  return objects.filter((o) => o.id !== objectId && (o.type === 'Lock' || o.type === 'Door') && !waitsFor(o))
+  return allObjects(document).filter(
+    (o) => o.id !== objectId && (o.type === 'Lock' || o.type === 'Door') && !needsSelf(o.id),
+  )
 }
 
 /** A title and scene names are required; the editor waits with saving until they are filled in. */

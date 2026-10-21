@@ -325,7 +325,12 @@ function TeamCard({ team, session, serverNowMs, canMove, onMove }: TeamCardProps
   const solved = team.solvedLockIds.length
   const total = session.locks.length
   const current = team.currentLock
-  const currentQuestion = session.locks.find((l) => l.id === current?.lockId)?.question ?? ''
+  // The step the team is on, and "step 2 of 3" when the lock has more than one.
+  const currentLock = session.locks.find((l) => l.id === current?.lockId)
+  const stepCount = currentLock?.questions.length ?? 0
+  const stepIndex = Math.min(current?.solvedSteps ?? 0, Math.max(stepCount - 1, 0))
+  const currentQuestion = currentLock?.questions[stepIndex] ?? ''
+  const stepNote = stepCount > 1 ? ` ${t('session.step', { n: stepIndex + 1, count: stepCount })}` : ''
   const stuckMinutes = current === null ? 0 : minutesBetween(current.stuckSince, serverNowMs)
   const isStuck = current !== null && stuckMinutes >= stuckAfterMinutes
   const otherTeams = session.teams.filter((other) => other.id !== team.id)
@@ -346,7 +351,8 @@ function TeamCard({ team, session, serverNowMs, canMove, onMove }: TeamCardProps
         <p className={isStuck ? 'team-stuck' : 'team-working'} data-stuck={isStuck || undefined}>
           {isStuck
             ? t('session.stuck', { question: currentQuestion, duration: minutes(stuckMinutes) })
-            : t('session.workingOn', { question: currentQuestion })}{' '}
+            : t('session.workingOn', { question: currentQuestion })}
+          {stepNote}{' '}
           · {t('session.wrongAttempts', { count: current.wrongAttempts })}
         </p>
       )}

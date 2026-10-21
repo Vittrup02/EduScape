@@ -1768,3 +1768,393 @@ button.validation-item {
     width: auto;
   }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Lists sorted by dragging (steps, options, items, scenes, the students' order puzzles). The order of the list is
+   what counts. A drag works with the mouse and a finger alike, so the drag handles take the touch themselves
+   (touch-action: none) instead of letting it scroll the page.
+   --------------------------------------------------------------------------------------------------------------- */
+
+.sortable {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sortable-horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.sortable-item {
+  position: relative;
+  min-width: 0;
+}
+
+/* The dragged item follows the pointer above the others; a yellow bar shows where it will land. */
+.sortable-item[data-dragging] {
+  z-index: 2;
+  opacity: 0.9;
+  filter: drop-shadow(0 0.5rem 0.5rem rgb(29 43 58 / 30%));
+}
+
+.sortable[data-dragging] .sortable-item:not([data-dragging]) {
+  transition: transform 120ms ease-out;
+}
+
+.sortable-item[data-drop-before]::before,
+.sortable-item[data-drop-after]::after {
+  position: absolute;
+  inset-inline: 0;
+  height: 0.3rem;
+  border-radius: 0.15rem;
+  background: #e3a21a;
+  content: '';
+}
+
+.sortable-item[data-drop-before]::before {
+  top: -0.4rem;
+}
+
+.sortable-item[data-drop-after]::after {
+  bottom: -0.4rem;
+}
+
+.sortable-horizontal .sortable-item[data-drop-before]::before,
+.sortable-horizontal .sortable-item[data-drop-after]::after {
+  inset-block: 0;
+  width: 0.3rem;
+  height: auto;
+}
+
+.sortable-horizontal .sortable-item[data-drop-before]::before {
+  top: 0;
+  left: -0.65rem;
+}
+
+.sortable-horizontal .sortable-item[data-drop-after]::after {
+  right: -0.65rem;
+  bottom: 0;
+  left: auto;
+}
+
+.grip,
+.order-card {
+  touch-action: none;
+  user-select: none;
+}
+
+/* Scenes are sorted sideways; a finger moving up or down still scrolls the page. */
+.scene-tab {
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.grip {
+  min-width: 2.75rem;
+  padding: 0;
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 1.4rem;
+  cursor: grab;
+}
+
+.grip:hover {
+  border-color: var(--muted);
+}
+
+.sortable[data-dragging],
+.sortable[data-dragging] * {
+  cursor: grabbing;
+}
+
+.sortable-move {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sortable[data-dragging] .sortable-item:not([data-dragging]) {
+    transition: none;
+  }
+}
+
+/* The scene strip is a sortable list itself. */
+.scene-strip .sortable {
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.scene-strip-item[data-dragging] .scene-tab-remove {
+  visibility: hidden;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   A lock's puzzle in the editor: four big cards for a new lock, then the step (or steps) to fill in.
+   --------------------------------------------------------------------------------------------------------------- */
+
+.inspector h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.puzzle-cards ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.puzzle-card {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  width: 100%;
+  height: 100%;
+  min-height: 7rem;
+  padding: 0.85rem;
+  border-color: var(--ink);
+  border-radius: 0.75rem;
+  text-align: left;
+}
+
+.puzzle-card:hover,
+.puzzle-card:focus-visible {
+  box-shadow: inset 0.35rem 0 0 var(--signal);
+}
+
+.puzzle-card-name {
+  font-size: 1.05rem;
+}
+
+.puzzle-card-description {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.6rem;
+  background: var(--paper);
+}
+
+.step-card[data-open] {
+  border-color: var(--ink);
+}
+
+.step-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.step-toggle {
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border-color: transparent;
+  text-align: left;
+}
+
+.step-summary {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 0.5rem 0.5rem;
+}
+
+.step-card-body > .danger {
+  align-self: flex-start;
+}
+
+.option-row:has(.grip) {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+
+.order-item-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.order-item-row input:not([type='file']) {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.order-item-image {
+  display: flex;
+  grid-column: 3 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-item-image img {
+  width: 4rem;
+  height: 3rem;
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+
+.order-item-row .error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.order-number {
+  display: inline-grid;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffe27a;
+  color: #1d2b3a;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.tolerance-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+label.checkbox input {
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0;
+}
+
+.panel .required-locks {
+  padding-left: 0.75rem;
+  border-left: 0.35rem solid var(--signal);
+}
+
+.required-locks label.checkbox {
+  font-weight: 400;
+}
+
+.preview-from {
+  max-width: 20rem;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Playing: the steps of a lock, the wait after a wrong answer, the order puzzle and shut doors.
+   --------------------------------------------------------------------------------------------------------------- */
+
+.lock-step {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.lock-step-solved {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+/* Not an error: a calm countdown in the yellow of the hints. */
+.lock-cooldown {
+  padding: 0.5rem 0.75rem;
+  border-left: 0.5rem solid #ffe27a;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-puzzle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.order-puzzle > button {
+  align-self: flex-start;
+}
+
+.order-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--text);
+  border-radius: 0.6rem;
+  background: var(--bg);
+  font-size: 1.1rem;
+  cursor: grab;
+}
+
+.order-card:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+.order-card img {
+  width: 4.5rem;
+  height: 3.25rem;
+  border-radius: 0.3rem;
+  object-fit: cover;
+}
+
+.door-closed {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 0.35rem solid var(--muted);
+}
+
+/* Four graphics side by side in a narrow panel: a little tighter, so "Pengeskab" fits. */
+.look-choice {
+  column-gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.preview-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}

@@ -1,9 +1,9 @@
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiError } from '../api/client'
-import { maxUploadBytes, uploadContentTypes, uploadImage, type EditorScene } from '../api/editor'
+import { uploadContentTypes, type EditorScene } from '../api/editor'
 import { assetsOfType } from '../assets/registry'
 import { errorKey } from '../i18n/errors'
+import { useImageUpload } from './useImageUpload'
 
 const backgrounds = assetsOfType('Background')
 
@@ -37,30 +37,10 @@ export function ScenePanel({
   const nameId = useId()
   const narrationId = useId()
   const uploadId = useId()
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
+  const { upload, uploading, errorCode: uploadError } = useImageUpload((image) => {
+    onBackground(image.imageKey, image.imageUrl)
+  })
   const isUploaded = backgrounds.every((b) => b.key !== scene.backgroundImageKey)
-
-  const upload = async (file: File) => {
-    setUploadError(null)
-    if (!(uploadContentTypes as readonly string[]).includes(file.type)) {
-      setUploadError('IMAGE_TYPE_NOT_ALLOWED')
-      return
-    }
-    if (file.size > maxUploadBytes) {
-      setUploadError('IMAGE_TOO_LARGE')
-      return
-    }
-    setUploading(true)
-    try {
-      const image = await uploadImage(file)
-      onBackground(image.imageKey, image.imageUrl)
-    } catch (error) {
-      setUploadError(error instanceof ApiError ? error.code : 'UNKNOWN')
-    } finally {
-      setUploading(false)
-    }
-  }
 
   return (
     <section className="scene-panel" aria-labelledby="scene-panel-title">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from '../api/client'
 import { saveDeviceToken } from '../api/deviceStorage'
-import { reconnect, type PlayState } from '../api/play'
+import { cooldownUntil, reconnect, type PlayState } from '../api/play'
 import { createPlayHub } from '../api/playHub'
 import { applyTeamEvent, type TeamEvent } from './progress'
 
@@ -60,8 +60,14 @@ export function usePlayConnection(token: string | null, retryDelayMs: number) {
       lockSolved: (lockId) => {
         apply({ type: 'lockSolved', lockId })
       },
+      stepSolved: (lockId, solvedSteps) => {
+        apply({ type: 'stepSolved', lockId, solvedSteps })
+      },
       hintRevealed: (lockId, hint) => {
         apply({ type: 'hintRevealed', lockId, hint })
+      },
+      lockCooldown: (lockId, seconds) => {
+        apply({ type: 'lockCooldown', lockId, until: cooldownUntil(seconds) })
       },
       doorOpened: (doorId) => {
         apply({ type: 'doorOpened', doorId })
