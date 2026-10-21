@@ -28,6 +28,7 @@ public static class RoomDocumentApplier
 
         room.Rename(request.Title);
         room.Categorize(request.Subject, request.GradeLevel);
+        room.SetWrongAnswerCooldown(request.WrongAnswerCooldownSeconds);
 
         // New scenes first, so that removing the old ones never removes the last scene.
         var existingScenes = room.Scenes.Select(s => s.Id).ToHashSet();
@@ -42,6 +43,7 @@ public static class RoomDocumentApplier
             room.RemoveScene(removed);
         }
 
+        room.ReorderScenes([.. request.Scenes.Select(s => s.Id)]);
         room.SetStartScene(request.StartSceneId);
 
         var objects = room.Objects.ToDictionary(o => o.Id);
@@ -74,7 +76,12 @@ public static class RoomDocumentApplier
         // References last, once every object they may point to exists.
         foreach (var document in request.Scenes.SelectMany(s => s.Objects))
         {
-            objects[document.Id].SetUnlockedBy(document.UnlockedById);
+            var roomObject = objects[document.Id];
+            roomObject.SetUnlockedBy(document.UnlockedById);
+            if (roomObject is Doorway doorway)
+            {
+                doorway.SetOpenCondition(document.OpenCondition ?? DoorOpenCondition.AllInScene, document.RequiredLockIds);
+            }
         }
 
         room.MarkEdited();
@@ -100,6 +107,7 @@ public static class RoomDocumentApplier
 
         var sceneIds = request.Scenes.Select(s => s.Id).ToHashSet();
         var objectIds = request.Scenes.SelectMany(s => s.Objects).Select(o => o.Id).ToHashSet();
+        var lockIds = request.Scenes.SelectMany(s => s.Objects).Where(o => o.Type == RoomObjectType.Lock).Select(o => o.Id).ToHashSet();
         if (!sceneIds.Contains(request.StartSceneId))
         {
             throw Invalid();
@@ -112,12 +120,16 @@ public static class RoomDocumentApplier
             foreach (var document in scene.Objects)
             {
                 RequireImageKey(document.GraphicKey);
+                var isDoorway = document.Type is RoomObjectType.Door or RoomObjectType.ExitDoor;
 
-                // References must stay inside the document; the database enforces them as foreign keys.
-                var validReferences = (document.UnlockedById is not { } source || objectIds.Contains(source))
-                    && (document.TargetSceneId is not { } target || sceneIds.Contains(target));
+                // References must stay inside the document; the database enforces most of them as foreign keys. Doors
+                // never wait with unlockedBy, and open only with locks.
+                var validReferences = (document.UnlockedById is not { } source || (objectIds.Contains(source) && !isDoorway))
+                    && (document.TargetSceneId is not { } target || sceneIds.Contains(target))
+                    && (document.RequiredLockIds ?? []).All(lockIds.Contains);
                 var validShape = Enum.IsDefined(document.Type)
-                    && (document.Type != RoomObjectType.Lock || document.AnswerType is { } answerType && Enum.IsDefined(answerType));
+                    && (document.Type != RoomObjectType.Lock || ValidSteps(document.Steps))
+                    && (document.OpenCondition is not { } condition || Enum.IsDefined(condition));
 
                 // An object keeps its type and scene; the editor never changes either.
                 var sameAsBefore = !existing.TryGetValue(document.Id, out var before)
@@ -131,22 +143,23 @@ public static class RoomDocumentApplier
         }
     }
 
+    /// <summary>
+    /// Steps need a known answer type. The items of an order step need random (version 4) ids: ids that grow with
+    /// time, like the editor's other ids, would give the correct order away to students.
+    /// </summary>
+    private static bool ValidSteps(EditorStepDto[]? steps) =>
+        steps is not null
+        && steps.All(step => step is not null
+            && Enum.IsDefined(step.AnswerType)
+            && (step.AnswerType != AnswerType.Order
+                || (step.OrderItems ?? []).All(item => item is not null && item.Id.Version == 4)));
+
     private static RoomObject Create(EditorObjectDto document)
     {
         var position = new Position(document.X, document.Y);
         return document.Type switch
         {
-            RoomObjectType.Lock => new Lock(
-                position,
-                document.GraphicKey,
-                unlockedGraphicKey: null,
-                document.Question ?? string.Empty,
-                document.AnswerType!.Value,
-                document.CorrectAnswer ?? string.Empty,
-                ToleranceFor(document),
-                document.Hint,
-                OptionsFor(document),
-                document.Id),
+            RoomObjectType.Lock => new Lock(position, document.GraphicKey, unlockedGraphicKey: null, StepsFor(document), document.Id),
             RoomObjectType.Letter => new Letter(position, document.GraphicKey, document.Text ?? string.Empty, document.Id),
             RoomObjectType.Door => new Door(position, document.GraphicKey, null, document.TargetSceneId, document.Id),
             RoomObjectType.ExitDoor => new ExitDoor(position, document.GraphicKey, null, document.Id),
@@ -158,7 +171,8 @@ public static class RoomDocumentApplier
     private static void Update(RoomObject roomObject, EditorObjectDto document)
     {
         roomObject.MoveTo(new Position(document.X, document.Y));
-        // A text box always has the same look; for the others the teacher picks a graphic.
+        // A text box always has the same look; for the others the teacher picks a graphic. A lock's graphic changes
+        // independently of its puzzle.
         if (roomObject is not TextBox)
         {
             roomObject.SetGraphic(document.GraphicKey, unlockedGraphicKey: null);
@@ -170,9 +184,7 @@ public static class RoomDocumentApplier
                 textBox.SetText(document.Text ?? string.Empty);
                 break;
             case Lock @lock:
-                @lock.SetQuestion(document.Question ?? string.Empty, document.Hint);
-                @lock.SetAnswer(
-                    document.AnswerType!.Value, document.CorrectAnswer ?? string.Empty, ToleranceFor(document), OptionsFor(document));
+                @lock.SetSteps(StepsFor(document));
                 break;
             case Letter letter:
                 letter.SetText(document.Text ?? string.Empty);
@@ -183,13 +195,26 @@ public static class RoomDocumentApplier
         }
     }
 
-    // The editor keeps a lock's options and tolerance while the teacher switches answer type, so a switch back
-    // restores them; only the ones that apply to the chosen type are stored.
-    private static decimal? ToleranceFor(EditorObjectDto document) =>
-        document.AnswerType == AnswerType.Text ? document.Tolerance : null;
+    private static IEnumerable<LockStep> StepsFor(EditorObjectDto document) => (document.Steps ?? []).Select(ToStep);
 
-    private static string[]? OptionsFor(EditorObjectDto document) =>
-        document.AnswerType == AnswerType.MultipleChoice ? document.Options : null;
+    // The editor keeps a step's options, alternatives and items while the teacher switches answer type, so a switch
+    // back restores them; only the ones that apply to the chosen type are stored.
+    private static LockStep ToStep(EditorStepDto step)
+    {
+        var type = step.AnswerType;
+        var isText = type == AnswerType.Text;
+        return new LockStep(
+            step.Question ?? string.Empty,
+            type,
+            step.CorrectAnswer ?? string.Empty,
+            isText ? step.Tolerance : null,
+            step.Hint,
+            type == AnswerType.MultipleChoice ? step.Options : null,
+            isText ? step.AcceptedAnswers : null,
+            isText && step.AcceptTypos,
+            type == AnswerType.Order ? (step.OrderItems ?? []).Select(i => new OrderItem(i.Id, i.Text, i.ImageKey)) : null,
+            step.Id);
+    }
 
     private static IEnumerable<Guid> AllIds(SaveRoomRequest request) =>
         (request.Scenes ?? []).Select(s => s.Id).Concat((request.Scenes ?? []).SelectMany(s => s.Objects ?? []).Select(o => o.Id));

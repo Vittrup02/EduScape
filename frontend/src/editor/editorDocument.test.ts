@@ -10,14 +10,17 @@ import {
   createScene,
   createTextBox,
   findObject,
+  lockChoices,
   missingRequiredText,
   moveObject,
+  moveScene,
   removeObject,
   removeScene,
   unlockedByChoices,
   updateObject,
+  updateScene,
 } from './editorDocument'
-import { newId } from './ids'
+import { newId, randomId } from './ids'
 
 function asset(key: string): ObjectAsset {
   const found = findAsset(key)
@@ -47,25 +50,65 @@ describe('editor document', () => {
   it('creates objects from the asset library with sensible defaults', () => {
     const document = editorDocument()
 
-    const codeLock = createObject(asset('builtin:code-lock'), 10, 20, document, 'hall') as EditorLock
-    expect(codeLock).toMatchObject({ type: 'Lock', answerType: 'Code', question: '', graphicKey: 'builtin:code-lock' })
-    expect((createObject(asset('builtin:padlock'), 10, 20, document, 'hall') as EditorLock).answerType).toBe('Text')
+    // A lock is its graphic; the teacher picks the kind of puzzle next.
+    const chest = createObject(asset('builtin:chest'), 10, 20, document, 'hall') as EditorLock
+    expect(chest).toMatchObject({ type: 'Lock', steps: [], graphicKey: 'builtin:chest' })
 
-    // A new door leads to another scene straight away.
+    // A new door leads to another scene straight away, and opens once the scene's puzzles are solved.
     const door = createObject(asset('builtin:door'), 10, 20, document, 'hall') as EditorDoor
-    expect(door.targetSceneId).toBe('library')
+    expect(door).toMatchObject({ targetSceneId: 'library', openCondition: 'AllInScene', requiredLockIds: [] })
+    expect(createObject(asset('builtin:exit-door'), 10, 20, document, 'hall')).toMatchObject({
+      type: 'ExitDoor',
+      openCondition: 'AllInScene',
+    })
     expect(createObject(asset('builtin:letter'), 10, 20, document, 'hall')).toMatchObject({ type: 'Letter', text: '' })
   })
 
-  it('removing an object makes whatever waited for it visible from start', () => {
-    const document = removeObject(editorDocument(), 'lock')
+  it('removing an object makes whatever waited for it visible from start, and doors stop waiting for it', () => {
+    const letter: EditorObject = { ...createObject(asset('builtin:letter'), 50, 50, editorDocument(), 'hall'), unlockedById: 'lock' }
+    let document = addObject(editorDocument(), 'hall', letter)
+    document = updateObject<EditorDoor>(document, 'door', (d) => ({
+      ...d,
+      openCondition: 'SelectedLocks',
+      requiredLockIds: ['lock', 'other'],
+    }))
 
-    expect(findObject(document, 'lock')).toBeUndefined()
-    expect(findObject(document, 'door')?.object.unlockedById).toBeNull()
+    const without = removeObject(document, 'lock')
+
+    expect(findObject(without, 'lock')).toBeUndefined()
+    expect(findObject(without, letter.id)?.object.unlockedById).toBeNull()
+    expect((findObject(without, 'door')?.object as EditorDoor).requiredLockIds).toEqual(['other'])
+  })
+
+  it('names new scenes "Scene 3", never with a name the room already has', () => {
+    const name = (n: number) => `Scene ${String(n)}`
+    const document = editorDocument()
+
+    expect(createScene(document, name).name).toBe('Scene 3')
+    const withSceneThree = addScene(document, { ...createScene(document, name), name: 'Scene 3' })
+    expect(createScene(withSceneThree, name).name).toBe('Scene 4')
+    const renamed = updateScene(withSceneThree, 'hall', { name: 'Scene 4' })
+    expect(createScene(renamed, name).name).toBe('Scene 5')
+  })
+
+  it('moves scenes in the room order', () => {
+    const document = addScene(editorDocument(), createScene(editorDocument(), () => 'Kælderen'))
+
+    expect(moveScene(document, 2, 0).scenes.map((s) => s.name)).toEqual(['Kælderen', 'Gangen', 'Biblioteket'])
+    expect(moveScene(document, 0, 0)).toBe(document)
+    expect(moveScene(document, 0, 5)).toBe(document)
+  })
+
+  it('lists the locks a door can open with, those in its own scene first', () => {
+    const libraryLock = { ...createObject(asset('builtin:padlock'), 50, 50, editorDocument(), 'library'), id: 'library-lock' }
+    const document = addObject(editorDocument(), 'library', libraryLock)
+
+    expect(lockChoices(document, 'library').map((l) => l.id)).toEqual(['library-lock', 'lock'])
+    expect(lockChoices(document, 'hall').map((l) => l.id)).toEqual(['lock', 'library-lock'])
   })
 
   it('removing a scene clears doors into it and moves the start scene, but never removes the last scene', () => {
-    const library = createScene(editorDocument(), 'Kælderen')
+    const library = createScene(editorDocument(), () => 'Kælderen')
     let document = addScene(editorDocument(), library)
     const waiting: EditorObject = { ...createObject(asset('builtin:letter'), 50, 50, document, 'library'), unlockedById: 'lock' }
     document = addObject(document, 'library', waiting)
@@ -83,7 +126,7 @@ describe('editor document', () => {
   })
 
   it('a new scene gets a background the room does not use yet', () => {
-    const scene = createScene(editorDocument(), 'Ny')
+    const scene = createScene(editorDocument(), () => 'Ny')
 
     expect(['builtin:classroom', 'builtin:library']).not.toContain(scene.backgroundImageKey)
   })
@@ -91,12 +134,23 @@ describe('editor document', () => {
   it('offers only locks and doors to wait for, never the object itself or something that waits for it', () => {
     const document = editorDocument()
     const letter = createObject(asset('builtin:letter'), 50, 50, document, 'hall')
-    const withLetter = addObject(document, 'hall', letter)
+    const second = { ...createObject(asset('builtin:padlock'), 50, 50, document, 'hall'), id: 'second', unlockedById: 'lock' }
+    const withObjects = addObject(addObject(document, 'hall', letter), 'hall', second)
 
-    // The door waits for the lock, so the lock may not wait for the door.
-    expect(unlockedByChoices(withLetter, 'lock').map((o) => o.id)).toEqual([])
-    expect(unlockedByChoices(withLetter, 'door').map((o) => o.id)).toEqual(['lock'])
-    expect(unlockedByChoices(withLetter, letter.id).map((o) => o.id)).toEqual(['lock', 'door'])
+    // The second lock waits for the first, and the door opens with the scene's locks: the first lock waits for neither.
+    expect(unlockedByChoices(withObjects, 'lock').map((o) => o.id)).toEqual([])
+    expect(unlockedByChoices(withObjects, letter.id).map((o) => o.id)).toEqual(['lock', 'door', 'second'])
+    // Doors open by their own condition and never wait.
+    expect(unlockedByChoices(withObjects, 'door')).toEqual([])
+
+    // A door that opens with another lock can be waited for.
+    const opensWithSecond = updateObject<EditorDoor>(withObjects, 'door', (d) => ({
+      ...d,
+      openCondition: 'SelectedLocks',
+      requiredLockIds: ['second'],
+    }))
+    expect(unlockedByChoices(opensWithSecond, 'lock').map((o) => o.id)).toEqual([])
+    expect(unlockedByChoices(removeObject(opensWithSecond, 'second'), 'lock').map((o) => o.id)).toEqual(['door'])
   })
 
   it('creates empty text boxes that can wait for a lock, but that nothing can wait for', () => {
@@ -105,7 +159,7 @@ describe('editor document', () => {
 
     const document = addObject(editorDocument(), 'hall', textBox)
     expect(unlockedByChoices(document, textBox.id).map((o) => o.id)).toEqual(['lock', 'door'])
-    expect(unlockedByChoices(document, 'door').map((o) => o.id)).not.toContain(textBox.id)
+    expect(unlockedByChoices(document, 'lock').map((o) => o.id)).not.toContain(textBox.id)
   })
 
   it('waits with saving while the title or a scene name is empty', () => {
@@ -122,5 +176,10 @@ describe('new ids', () => {
     expect(first).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     expect(first < second).toBe(true)
     expect(newId()).not.toBe(newId())
+  })
+
+  it('for items to put in order are random (version 4), so they never give the order away', () => {
+    expect(randomId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(randomId()).not.toBe(randomId())
   })
 })

@@ -73,6 +73,9 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int>("WrongAnswerCooldownSeconds")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerTeacherId");
@@ -308,6 +311,12 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("SolvedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("SolvedSteps")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StepWrongAttempts")
+                        .HasColumnType("integer");
+
                     b.Property<int>("WrongAttempts")
                         .HasColumnType("integer");
 
@@ -484,23 +493,20 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Eduscape.Domain.Rooms.Door", b =>
+            modelBuilder.Entity("Eduscape.Domain.Rooms.Doorway", b =>
                 {
                     b.HasBaseType("Eduscape.Domain.Rooms.RoomObject");
 
-                    b.Property<Guid?>("TargetSceneId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("OpenCondition")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("OpenCondition");
 
-                    b.HasIndex("TargetSceneId");
-
-                    b.HasDiscriminator().HasValue("Door");
-                });
-
-            modelBuilder.Entity("Eduscape.Domain.Rooms.ExitDoor", b =>
-                {
-                    b.HasBaseType("Eduscape.Domain.Rooms.RoomObject");
-
-                    b.HasDiscriminator().HasValue("ExitDoor");
+                    b.PrimitiveCollection<Guid[]>("_requiredLockIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("RequiredLockIds");
                 });
 
             modelBuilder.Entity("Eduscape.Domain.Rooms.Letter", b =>
@@ -521,32 +527,10 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                 {
                     b.HasBaseType("Eduscape.Domain.Rooms.RoomObject");
 
-                    b.Property<string>("AnswerType")
+                    b.Property<string>("_steps")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("CorrectAnswer")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Hint")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.PrimitiveCollection<string[]>("Options")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<string>("Question")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<decimal?>("Tolerance")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Steps");
 
                     b.HasDiscriminator().HasValue("Lock");
                 });
@@ -563,6 +547,25 @@ namespace Eduscape.Infrastructure.Persistence.Migrations
                         .HasColumnName("Text");
 
                     b.HasDiscriminator().HasValue("TextBox");
+                });
+
+            modelBuilder.Entity("Eduscape.Domain.Rooms.Door", b =>
+                {
+                    b.HasBaseType("Eduscape.Domain.Rooms.Doorway");
+
+                    b.Property<Guid?>("TargetSceneId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("TargetSceneId");
+
+                    b.HasDiscriminator().HasValue("Door");
+                });
+
+            modelBuilder.Entity("Eduscape.Domain.Rooms.ExitDoor", b =>
+                {
+                    b.HasBaseType("Eduscape.Domain.Rooms.Doorway");
+
+                    b.HasDiscriminator().HasValue("ExitDoor");
                 });
 
             modelBuilder.Entity("Eduscape.Domain.Classes.Class", b =>

@@ -50,6 +50,36 @@ public class PreviewTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
     }
 
     [PostgresFact]
+    public async Task Preview_FromAScene_StartsThere_WithTheLocksBeforeItSolved()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = await PlayTestRoom.AddAsync(factory, teacher.Id);
+        var second = room.Room.Scenes[1];
+
+        var preview = await ReadAsync<PreviewResponse>(await PreviewAsync(teacher.Client, room.Room.Id, second.Id));
+
+        var state = await SessionApi.ReadAsync<PlayStateDto>(
+            await SessionApi.ReconnectAsync(factory.CreateClient(), preview.DeviceToken));
+        Assert.Equal(second.Id, state.CurrentSceneId);
+        Assert.Equal(new[] { room.CodeLock.Id, room.TextLock.Id }.Order(), state.Team.SolvedLockIds.Order());
+        Assert.Contains(room.Door.Id, state.Team.OpenedDoorIds);
+    }
+
+    [PostgresFact]
+    public async Task Preview_FromTheBeginning_SolvesNothing()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = await PlayTestRoom.AddAsync(factory, teacher.Id);
+
+        var preview = await ReadAsync<PreviewResponse>(await PreviewAsync(teacher.Client, room.Room.Id));
+
+        var state = await SessionApi.ReadAsync<PlayStateDto>(
+            await SessionApi.ReconnectAsync(factory.CreateClient(), preview.DeviceToken));
+        Assert.Null(state.CurrentSceneId);
+        Assert.Empty(state.Team.SolvedLockIds);
+    }
+
+    [PostgresFact]
     public async Task NormalSession_IsNotAPreview()
     {
         var teacher = await factory.RegisterTeacherAsync();

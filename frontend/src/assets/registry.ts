@@ -3,6 +3,8 @@ import basement from './library/backgrounds/basement.svg'
 import classroom from './library/backgrounds/classroom.svg'
 import laboratory from './library/backgrounds/laboratory.svg'
 import library from './library/backgrounds/library.svg'
+import chestClosed from './library/objects/chest-closed.svg'
+import chestOpen from './library/objects/chest-open.svg'
 import codeLockClosed from './library/objects/code-lock-closed.svg'
 import codeLockOpen from './library/objects/code-lock-open.svg'
 import doorClosed from './library/objects/door-closed.svg'
@@ -13,6 +15,8 @@ import letterClosed from './library/objects/letter-closed.svg'
 import letterOpen from './library/objects/letter-open.svg'
 import padlockClosed from './library/objects/padlock-closed.svg'
 import padlockOpen from './library/objects/padlock-open.svg'
+import safeClosed from './library/objects/safe-closed.svg'
+import safeOpen from './library/objects/safe-open.svg'
 
 /** The same object types as the backend's RoomObjectType. */
 export type ObjectAssetType = 'Lock' | 'Letter' | 'Door' | 'ExitDoor'
@@ -69,6 +73,20 @@ export const assets: readonly Asset[] = [
     type: 'Lock',
     nameKey: 'assets.codeLock',
     files: { closed: codeLockClosed, open: codeLockOpen },
+    aspectRatio: square,
+  },
+  {
+    key: 'builtin:chest',
+    type: 'Lock',
+    nameKey: 'assets.chest',
+    files: { closed: chestClosed, open: chestOpen },
+    aspectRatio: square,
+  },
+  {
+    key: 'builtin:safe',
+    type: 'Lock',
+    nameKey: 'assets.safe',
+    files: { closed: safeClosed, open: safeOpen },
     aspectRatio: square,
   },
   {

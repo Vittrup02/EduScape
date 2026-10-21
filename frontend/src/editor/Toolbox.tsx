@@ -8,9 +8,17 @@ import { pointOnStage, type StagePoint } from './stagePoint'
 /** A sticker from the asset library, or a text box for a piece of the story. */
 export type ToolboxItem = { kind: 'asset'; asset: ObjectAsset } | { kind: 'textBox' }
 
-/** The stickers the teacher can put on a scene: the asset library's objects, then the text box. */
+const objectAssets = assets.filter((a): a is ObjectAsset => a.type !== 'Background')
+
+/**
+ * The stickers the teacher can put on a scene: one lock, the other objects, then the text box. A lock's graphic
+ * (padlock, chest, safe …) is chosen in its panel, apart from its puzzle, so the sheet stays short enough to reach
+ * every sticker without scrolling.
+ */
 const items: ToolboxItem[] = [
-  ...assets.filter((a): a is ObjectAsset => a.type !== 'Background').map((asset) => ({ kind: 'asset' as const, asset })),
+  ...objectAssets
+    .filter((asset, index) => asset.type !== 'Lock' || objectAssets.findIndex((a) => a.type === 'Lock') === index)
+    .map((asset) => ({ kind: 'asset' as const, asset })),
   { kind: 'textBox' },
 ]
 
@@ -58,7 +66,12 @@ export function Toolbox({ stageRef, onAdd }: ToolboxProps) {
   const [drag, setDrag] = useState<Drag | null>(null)
   const suppressClick = useRef(false)
 
-  const name = (item: ToolboxItem) => (item.kind === 'asset' ? t(item.asset.nameKey) : t('editor.toolbox.textBox'))
+  const name = (item: ToolboxItem) => {
+    if (item.kind === 'textBox') {
+      return t('editor.toolbox.textBox')
+    }
+    return item.asset.type === 'Lock' ? t('editor.toolbox.lock') : t(item.asset.nameKey)
+  }
 
   const picture = (item: ToolboxItem): ReactNode =>
     item.kind === 'asset' ? (

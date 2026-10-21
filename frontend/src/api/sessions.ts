@@ -80,11 +80,11 @@ export interface DashboardScene {
   name: string
 }
 
-/** A lock's question; the dashboard never gets the answer. */
+/** A lock's questions, one per step; the dashboard never gets the answers. */
 export interface DashboardLock {
   id: string
   sceneId: string
-  question: string
+  questions: string[]
 }
 
 export interface DashboardParticipant {
@@ -100,6 +100,8 @@ export interface DashboardCurrentLock {
   lockId: string
   stuckSince: string
   wrongAttempts: number
+  /** The steps the team has answered: the index of the step it is on. */
+  solvedSteps: number
 }
 
 export interface DashboardTeam {

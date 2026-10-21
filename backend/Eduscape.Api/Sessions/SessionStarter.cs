@@ -1,5 +1,6 @@
 using Eduscape.Domain.Classes;
 using Eduscape.Domain.Common;
+using Eduscape.Domain.Rooms;
 using Eduscape.Domain.Sessions;
 using Eduscape.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ public sealed class SessionStarter(
     /// </summary>
     public async Task<Guid?> StartAsync(Guid teacherId, StartSessionRequest request, CancellationToken cancellationToken)
     {
-        if (!await EnsurePlayableAsync(teacherId, request.RoomId, cancellationToken))
+        if (await LoadPlayableAsync(teacherId, request.RoomId, cancellationToken) is null)
         {
             return null;
         }
@@ -51,10 +52,14 @@ public sealed class SessionStarter(
     /// <summary>
     /// Starts a preview of the room and joins the teacher's device to it. Returns the device token, or null if the
     /// room is neither the teacher's own nor a template. Throws <see cref="DomainErrors.RoomInvalid"/> like a start.
+    /// With <paramref name="startSceneId"/> the preview starts in that scene, with the locks before it already solved,
+    /// so the teacher can try the scene they are working on without playing everything before it.
     /// </summary>
-    public async Task<string?> StartPreviewAsync(Guid teacherId, Guid roomId, CancellationToken cancellationToken)
+    public async Task<string?> StartPreviewAsync(
+        Guid teacherId, Guid roomId, Guid? startSceneId, CancellationToken cancellationToken)
     {
-        if (!await EnsurePlayableAsync(teacherId, roomId, cancellationToken))
+        var room = await LoadPlayableAsync(teacherId, roomId, cancellationToken);
+        if (room is null)
         {
             return null;
         }
@@ -62,15 +67,29 @@ public sealed class SessionStarter(
         var now = timeProvider.GetUtcNow();
         var deviceToken = DeviceToken.Create();
         await SaveWithFreePinAsync(
-            pin => Task.FromResult(
-                Session.StartPreview(roomId, pin, DeviceToken.Hash(deviceToken), now, options.Value.PreviewLifetime).Session),
+            pin =>
+            {
+                var (session, participant) = Session.StartPreview(
+                    roomId, pin, DeviceToken.Hash(deviceToken), now, options.Value.PreviewLifetime);
+                if (startSceneId is { } sceneId)
+                {
+                    var team = session.Teams.Single();
+                    Gameplay.SolveUntilSceneOpens(room, team, sceneId, now);
+                    if (RoomProgress.For(room, team).IsSceneUnlocked(sceneId))
+                    {
+                        Gameplay.EnterScene(room, team, participant, sceneId, now);
+                    }
+                }
+
+                return Task.FromResult(session);
+            },
             now,
             cancellationToken);
         return deviceToken;
     }
 
-    /// <summary>False if the room is not available to the teacher; throws if it is available but unfinished.</summary>
-    private async Task<bool> EnsurePlayableAsync(Guid teacherId, Guid roomId, CancellationToken cancellationToken)
+    /// <summary>Null if the room is not available to the teacher; throws if it is available but unfinished.</summary>
+    private async Task<EscapeRoom?> LoadPlayableAsync(Guid teacherId, Guid roomId, CancellationToken cancellationToken)
     {
         var room = await db.EscapeRooms
             .AsNoTracking()
@@ -79,7 +98,7 @@ public sealed class SessionStarter(
             .AsSplitQuery()
             .SingleOrDefaultAsync(r => r.Id == roomId && (r.OwnerTeacherId == teacherId || r.IsTemplate), cancellationToken);
         room?.EnsurePlayable();
-        return room is not null;
+        return room;
     }
 
     private async Task<Session> SaveWithFreePinAsync(

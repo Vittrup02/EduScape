@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { RoomDocument } from '../api/editor'
 import { backgroundImage } from '../assets/sceneLayout'
+import { SortableList } from '../sortable/SortableList'
 
 interface SceneStripProps {
   document: RoomDocument
@@ -8,28 +9,39 @@ interface SceneStripProps {
   onOpen: (sceneId: string) => void
   onAdd: () => void
   onRemove: (sceneId: string) => void
+  /** Moves a scene in the room's order. */
+  onMove: (from: number, to: number) => void
 }
 
 /**
- * The room's scenes under the stage: open one to edit it, add a new one, or remove one with the cross in its
- * corner (which can be undone). The last scene has no cross.
+ * The room's scenes under the stage, in the room's order: open one to edit it, drag it to another place, add a new
+ * one, or remove one with the cross in its corner (which can be undone). The last scene has no cross.
  */
-export function SceneStrip({ document, currentSceneId, onOpen, onAdd, onRemove }: SceneStripProps) {
+export function SceneStrip({ document, currentSceneId, onOpen, onAdd, onRemove, onMove }: SceneStripProps) {
   const { t } = useTranslation()
   const canRemove = document.scenes.length > 1
+  const sceneName = (name: string) => (name.trim() === '' ? t('editor.scene.unnamed') : name)
 
   return (
     <nav className="scene-strip" aria-label={t('editor.scenes')}>
-      <ul>
-        {document.scenes.map((scene) => {
+      <SortableList
+        items={document.scenes}
+        label={t('editor.scenes')}
+        orientation="horizontal"
+        getKey={(scene) => scene.id}
+        itemLabel={(scene) => sceneName(scene.name)}
+        onMove={onMove}
+        renderItem={(scene, _index, handle) => {
           const background = backgroundImage(scene.backgroundImageKey, scene.backgroundImageUrl)
-          const name = scene.name.trim() === '' ? t('editor.scene.unnamed') : scene.name
+          const name = sceneName(scene.name)
           return (
-            <li key={scene.id} className="scene-strip-item">
+            <div className="scene-strip-item" data-dragging={handle.isDragging || undefined}>
+              {/* The tab is what the scene is dragged by; a click without moving opens it. */}
               <button
                 type="button"
                 className="scene-tab"
                 aria-current={scene.id === currentSceneId || undefined}
+                {...handle.dragProps}
                 onClick={() => {
                   onOpen(scene.id)
                 }}
@@ -54,15 +66,15 @@ export function SceneStrip({ document, currentSceneId, onOpen, onAdd, onRemove }
                   <span aria-hidden="true">×</span>
                 </button>
               )}
-            </li>
+            </div>
           )
-        })}
-        <li>
+        }}
+        footer={
           <button type="button" className="scene-tab add-scene" onClick={onAdd}>
             {t('editor.scene.add')}
           </button>
-        </li>
-      </ul>
+        }
+      />
     </nav>
   )
 }

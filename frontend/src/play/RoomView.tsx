@@ -3,17 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { ObjectGraphic } from '../assets/ObjectGraphic'
 import { backgroundImage, objectAsset, objectStyle, textBoxStyle } from '../assets/sceneLayout'
 import { ApiError } from '../api/client'
-import { openDoor, openExitDoor, reportScene, type PlayObject, type PlayState, type PlayTextBox } from '../api/play'
+import { openExitDoor, reportScene, type PlayObject, type PlayState, type PlayTextBox } from '../api/play'
 import { errorKey } from '../i18n/errors'
 import { LockDialog } from './LockDialog'
 import { Modal } from './Modal'
 import {
   canOpenExitDoor,
+  currentStep,
   findScene,
   isAvailable,
   isCompleted,
   isSceneUnlocked,
-  revealedHint,
   unlockedScenes,
   type TeamEvent,
 } from './progress'
@@ -31,12 +31,17 @@ interface RoomViewProps {
 
 /**
  * The scene the student is in, with its objects placed on the background. Progress belongs to the team; which
- * scene the student looks at is the student's own choice among the team's unlocked scenes.
+ * scene the student looks at is the student's own choice among the team's unlocked scenes. Doors open by themselves
+ * when the team meets their condition (every device animates it); the student then walks through by clicking, so
+ * nobody is moved away in the middle of a puzzle.
  */
 export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps) {
   const { t } = useTranslation()
   const { room, team } = state
-  const [chosenSceneId, setSceneId] = useState(room.startSceneId)
+  // Back where the student was before a reload, or where a teacher's preview starts.
+  const [chosenSceneId, setSceneId] = useState(state.currentSceneId ?? room.startSceneId)
+  // Said quietly when a student tries a door that is still shut; it is not an error.
+  const [closedDoorId, setClosedDoorId] = useState<string | null>(null)
   // After the teacher moves the student to another team, that team may not have unlocked the scene yet.
   const sceneId =
     chosenSceneId !== null && isSceneUnlocked(room, team, chosenSceneId) ? chosenSceneId : room.startSceneId
@@ -93,8 +98,11 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
 
   const label = (object: ClickableObject): string => {
     switch (object.type) {
-      case 'Lock':
-        return t(isOpen(object) ? 'play.object.lockOpen' : 'play.object.lock', { question: object.question })
+      case 'Lock': {
+        // Named by the step the team is on, so the label follows the puzzle.
+        const step = object.steps.at(Math.min(currentStep(team, object), object.steps.length - 1))
+        return t(isOpen(object) ? 'play.object.lockOpen' : 'play.object.lock', { question: step?.question ?? '' })
+      }
       case 'Letter':
         return t('play.object.letter')
       case 'Door': {
@@ -102,12 +110,13 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
         return t(isOpen(object) ? 'play.object.doorOpen' : 'play.object.door', { scene: target })
       }
       case 'ExitDoor':
-        return t('play.object.exitDoor')
+        return t(isOpen(object) ? 'play.object.exitDoorOpen' : 'play.object.exitDoor')
     }
   }
 
   const activate = (object: ClickableObject) => {
     setErrorCode(null)
+    setClosedDoorId(null)
     switch (object.type) {
       case 'Lock':
         setOpenObjectId(object.id)
@@ -116,23 +125,18 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
         setOpenObjectId(object.id)
         setReadLetterIds((ids) => new Set(ids).add(object.id))
         break
-      case 'Door': {
-        const target = object.targetSceneId
-        if (target === null) {
-          break
+      case 'Door':
+        if (!isCompleted(object, team)) {
+          setClosedDoorId(object.id)
+        } else if (object.targetSceneId !== null) {
+          setSceneId(object.targetSceneId)
         }
-        if (isCompleted(object, team)) {
-          setSceneId(target)
-          break
-        }
-        void run(async () => {
-          await openDoor(deviceToken, object.id)
-          onEvent({ type: 'doorOpened', doorId: object.id })
-          setSceneId(target)
-        })
         break
-      }
       case 'ExitDoor':
+        if (!canOpenExitDoor(room, team, object)) {
+          setClosedDoorId(object.id)
+          break
+        }
         void run(async () => {
           await openExitDoor(deviceToken, object.id)
           onEvent({ type: 'teamEscaped' })
@@ -171,6 +175,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
               onClick={() => {
                 setSceneId(s.id)
                 setErrorCode(null)
+                setClosedDoorId(null)
               }}
             >
               {s.name}
@@ -233,6 +238,11 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
           {t('play.narration.reread')}
         </button>
       )}
+      {closedDoorId !== null && !team.openedDoorIds.includes(closedDoorId) && (
+        <p role="status" className="door-closed">
+          {t('play.door.closed')}
+        </p>
+      )}
       {errorCode !== null && (
         <p role="alert" className="error">
           {t(errorKey(errorCode))}
@@ -241,8 +251,7 @@ export function RoomView({ state, deviceToken, online, onEvent }: RoomViewProps)
       {openObject?.type === 'Lock' && (
         <LockDialog
           lock={openObject}
-          solved={isCompleted(openObject, team)}
-          hint={revealedHint(team, openObject.id)}
+          team={team}
           deviceToken={deviceToken}
           online={online}
           onEvent={onEvent}

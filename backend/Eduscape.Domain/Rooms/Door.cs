@@ -1,7 +1,7 @@
 namespace Eduscape.Domain.Rooms;
 
-/// <summary>Leads to another scene in the same room.</summary>
-public sealed class Door : RoomObject
+/// <summary>Leads to another scene in the same room once it is open (see <see cref="Doorway"/>).</summary>
+public sealed class Door : Doorway
 {
     public Door(Position position, string graphicKey, string? unlockedGraphicKey, Guid? targetSceneId, Guid? id = null)
         : base(position, graphicKey, unlockedGraphicKey, id)

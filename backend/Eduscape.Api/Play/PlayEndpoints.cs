@@ -22,31 +22,47 @@ public sealed record JoinRequest(string? Pin, Guid? TeamId, string? Nickname);
 
 public sealed record ReconnectRequest(string? DeviceToken);
 
-/// <summary>A lock's hint, which the team has earned with <see cref="Team.WrongAttemptsBeforeHint"/> wrong answers.</summary>
-public sealed record RevealedHintDto(Guid LockId, string Hint);
+/// <summary>
+/// The team's progress on an unsolved lock: the step it is on, the step's hint once the team has earned it with
+/// <see cref="Team.WrongAttemptsBeforeHint"/> wrong answers, and how many seconds it must still wait after a wrong answer.
+/// </summary>
+public sealed record LockProgressDto(Guid LockId, int SolvedSteps, string? Hint, int CooldownSeconds);
 
+/// <summary><c>OpenedDoorIds</c> are the open doors and exit doors, which follow from the solved locks.</summary>
 public sealed record TeamStateDto(
     Guid Id,
     TeamColor Color,
     Guid[] SolvedLockIds,
     Guid[] OpenedDoorIds,
-    RevealedHintDto[] RevealedHints,
+    LockProgressDto[] Locks,
     DateTimeOffset? EscapedAt)
 {
-    public static TeamStateDto From(Team team, EscapeRoom room) => new(
+    public static TeamStateDto From(Team team, EscapeRoom room, DateTimeOffset now) => new(
         team.Id,
         team.Color,
         [.. team.SolvedLockIds],
-        [.. team.OpenedDoorIds],
+        [.. RoomProgress.For(room, team).OpenDoorwayIds],
         [.. room.Objects.OfType<Lock>()
-            .Where(l => l.Hint is not null && team.IsHintVisible(l.Id))
-            .Select(l => new RevealedHintDto(l.Id, l.Hint!))],
+            .Where(l => !team.IsLockSolved(l.Id))
+            .Select(l => new LockProgressDto(
+                l.Id,
+                team.SolvedSteps(l.Id),
+                CurrentHint(team, l),
+                team.CooldownRemainingSeconds(l.Id, room.WrongAnswerCooldownSeconds, now)))
+            .Where(p => p.SolvedSteps > 0 || p.Hint is not null || p.CooldownSeconds > 0)],
         team.EscapedAt);
+
+    /// <summary>The hint of the step the team is on, once earned; null otherwise.</summary>
+    public static string? CurrentHint(Team team, Lock @lock) =>
+        team.IsHintVisible(@lock.Id) && team.SolvedSteps(@lock.Id) is var step && step < @lock.Steps.Count
+            ? @lock.Steps[step].Hint
+            : null;
 }
 
 /// <summary>
 /// The whole state a student's device needs, sent on join and on every reconnect. <c>IsPreview</c> is set when a
-/// teacher is trying their own room.
+/// teacher is trying their own room. <c>CurrentSceneId</c> is the scene the student was last in, so a reload (or a
+/// preview from a scene) starts there.
 /// </summary>
 public sealed record PlayStateDto(
     Guid SessionId,
@@ -56,14 +72,27 @@ public sealed record PlayStateDto(
     string? Nickname,
     TeamStateDto Team,
     PlayRoomDto Room,
-    bool IsPreview);
+    bool IsPreview,
+    Guid? CurrentSceneId);
 
-public sealed record AnswerRequest(string? DeviceToken, Guid LockId, string? Answer);
+/// <summary>
+/// An answer to the lock's step <c>StepIndex</c>: <c>Answer</c> for typed and multiple-choice answers, <c>Order</c>
+/// (the item ids in the student's order) for order steps.
+/// </summary>
+public sealed record AnswerRequest(string? DeviceToken, Guid LockId, int StepIndex, string? Answer, Guid[]? Order = null);
 
-/// <summary><c>Hint</c> is set once the team has earned the lock's hint. The correct answer is never sent.</summary>
-public sealed record AnswerResponse(AnswerOutcome Outcome, string? Hint);
-
-public sealed record OpenDoorRequest(string? DeviceToken, Guid DoorId);
+/// <summary>
+/// The correct answer is never sent. <c>SolvedSteps</c> is the team's progress on the lock, <c>Hint</c> the current
+/// step's hint once earned, <c>CooldownSeconds</c> how long the team must wait before answering again, and
+/// <c>OpenedDoorIds</c> the doors that opened because of this answer.
+/// </summary>
+public sealed record AnswerResponse(
+    AnswerOutcome Outcome,
+    int SolvedSteps,
+    bool LockSolved,
+    string? Hint,
+    int CooldownSeconds,
+    Guid[] OpenedDoorIds);
 
 public sealed record OpenExitDoorRequest(string? DeviceToken, Guid ExitDoorId);
 
@@ -88,9 +117,9 @@ public static class PlayEndpoints
         // when the backend wakes up.
         play.MapPost("/reconnect", ReconnectAsync);
 
-        // Answers are checked only here, on the server.
+        // Answers are checked only here, on the server. Doors open by themselves when an answer meets their condition;
+        // students walk through an open exit door to escape.
         play.MapPost("/answer", AnswerAsync);
-        play.MapPost("/doors/open", OpenDoorAsync);
         play.MapPost("/exit", OpenExitDoorAsync);
 
         // Which scene a student looks at is their own choice; it is reported only for the teacher's dashboard.
@@ -133,7 +162,7 @@ public static class PlayEndpoints
         await db.SaveChangesAsync(cancellationToken);
         await dashboard.SessionChangedAsync(session.Id);
 
-        var state = await LoadStateAsync(session, participant, db, imageUrls, cancellationToken);
+        var state = await LoadStateAsync(session, participant, db, imageUrls, timeProvider.GetUtcNow(), cancellationToken);
         return TypedResults.Ok(new JoinResponse(deviceToken, state));
     }
 
@@ -172,7 +201,7 @@ public static class PlayEndpoints
             throw new DomainException(DomainErrors.SessionClosed);
         }
 
-        return TypedResults.Ok(await LoadStateAsync(session, participant, db, imageUrls, cancellationToken));
+        return TypedResults.Ok(await LoadStateAsync(session, participant, db, imageUrls, timeProvider.GetUtcNow(), cancellationToken));
     }
 
     // The team and the teacher's dashboard are notified only of changes, and only after they are saved. A lock solved
@@ -186,60 +215,56 @@ public static class PlayEndpoints
         IDashboardNotifier dashboard,
         CancellationToken cancellationToken)
     {
+        var submission = new AnswerSubmission(request.Answer, request.Order);
         var done = await actions.RunAsync(
             request.DeviceToken,
-            (room, team, now) => Gameplay.SubmitAnswer(room, team, request.LockId, request.Answer, now),
+            (room, team, now) => Gameplay.SubmitAnswer(room, team, request.LockId, request.StepIndex, submission, now),
             cancellationToken);
         if (done is null)
         {
             return DeviceNotRecognized();
         }
 
-        var hint = done.Team.IsHintVisible(request.LockId)
-            ? done.Room.Objects.OfType<Lock>().Single(l => l.Id == request.LockId).Hint
-            : null;
+        var result = done.Result;
+        var @lock = done.Room.Objects.OfType<Lock>().Single(l => l.Id == request.LockId);
+        var hint = TeamStateDto.CurrentHint(done.Team, @lock);
+        var teamId = done.Team.Id;
 
-        if (done.Result.Outcome == AnswerOutcome.Correct)
+        switch (result.Outcome)
         {
-            await notifier.LockSolvedAsync(done.Team.Id, request.LockId);
-        }
-        else if (done.Result.HintRevealedNow && hint is not null)
-        {
-            await notifier.HintRevealedAsync(done.Team.Id, request.LockId, hint);
+            case AnswerOutcome.Correct when result.LockSolved:
+                await notifier.LockSolvedAsync(teamId, request.LockId);
+                foreach (var doorId in result.OpenedDoorwayIds)
+                {
+                    await notifier.DoorOpenedAsync(teamId, doorId);
+                }
+
+                break;
+            case AnswerOutcome.Correct:
+                await notifier.StepSolvedAsync(teamId, request.LockId, result.SolvedSteps);
+                break;
+            case AnswerOutcome.Wrong:
+                if (result.HintRevealedNow && hint is not null)
+                {
+                    await notifier.HintRevealedAsync(teamId, request.LockId, hint);
+                }
+
+                if (result.CooldownSeconds > 0)
+                {
+                    await notifier.LockCooldownAsync(teamId, request.LockId, result.CooldownSeconds);
+                }
+
+                break;
         }
 
         // A wrong answer changes what the dashboard shows too: the attempts on the lock the team is stuck on.
-        if (done.Result.Outcome != AnswerOutcome.AlreadySolved)
+        if (result.Outcome is AnswerOutcome.Correct or AnswerOutcome.Wrong)
         {
             await dashboard.SessionChangedAsync(done.Team.SessionId);
         }
 
-        return TypedResults.Ok(new AnswerResponse(done.Result.Outcome, hint));
-    }
-
-    private static async Task<IResult> OpenDoorAsync(
-        OpenDoorRequest request,
-        TeamActions actions,
-        ITeamNotifier notifier,
-        IDashboardNotifier dashboard,
-        CancellationToken cancellationToken)
-    {
-        var done = await actions.RunAsync(
-            request.DeviceToken,
-            (room, team, now) => Gameplay.OpenDoor(room, team, request.DoorId, now),
-            cancellationToken);
-        if (done is null)
-        {
-            return DeviceNotRecognized();
-        }
-
-        if (done.Result)
-        {
-            await notifier.DoorOpenedAsync(done.Team.Id, request.DoorId);
-            await dashboard.SessionChangedAsync(done.Team.SessionId);
-        }
-
-        return TypedResults.NoContent();
+        return TypedResults.Ok(new AnswerResponse(
+            result.Outcome, result.SolvedSteps, result.LockSolved, hint, result.CooldownSeconds, [.. result.OpenedDoorwayIds]));
     }
 
     private static async Task<IResult> OpenExitDoorAsync(
@@ -313,6 +338,7 @@ public static class PlayEndpoints
         Participant participant,
         EduscapeDbContext db,
         ImageUrls imageUrls,
+        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var team = await TeamActions.LoadTeamAsync(db, participant.TeamId, cancellationToken);
@@ -324,9 +350,10 @@ public static class PlayEndpoints
             session.Status,
             participant.Id,
             participant.Nickname,
-            TeamStateDto.From(team, room),
-            PlayRoomDto.From(room, imageUrls),
-            session.IsPreview);
+            TeamStateDto.From(team, room, now),
+            PlayRoomDto.From(room, imageUrls, team.Id),
+            session.IsPreview,
+            participant.CurrentSceneId);
     }
 
     private static IResult PinNotFound() =>

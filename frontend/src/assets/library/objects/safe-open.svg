@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <rect id="case" x="20" y="16" width="120" height="124" rx="12"/>
+    <path id="door" d="M126 29l22-7v112l-22-7z"/>
+    <path id="spark" d="M20 6l3.5 10 10 3.5-10 3.5-3.5 10-3.5-10-10-3.5 10-3.5z"/>
+  </defs>
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-linejoin="round">
+    <use href="#case" stroke-width="23"/>
+    <use href="#door" stroke-width="23"/>
+    <rect x="32" y="136" width="20" height="14" stroke-width="23"/>
+    <rect x="108" y="136" width="20" height="14" stroke-width="23"/>
+    <use href="#spark" stroke-width="12"/>
+  </g>
+  <rect x="32" y="136" width="20" height="14" rx="3" fill="#1D2B3A"/>
+  <rect x="108" y="136" width="20" height="14" rx="3" fill="#1D2B3A"/>
+  <use href="#case" fill="#4A6178"/>
+  <rect x="33" y="29" width="94" height="98" rx="6" fill="#FFE27A" stroke="#1D2B3A" stroke-width="5"/>
+  <rect x="35" y="82" width="90" height="6" fill="#E3B93A"/>
+  <path d="M48 82l6-12h20l6 12zM80 82l6-12h20l6 12zM64 70l6-12h20l6 12z" fill="#E3A21A" stroke="#1D2B3A" stroke-width="3.5" stroke-linejoin="round"/>
+  <use href="#case" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <use href="#door" fill="#6B8196"/>
+  <use href="#door" fill="none" stroke="#1D2B3A" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M137 66v28" stroke="#C9D6E0" stroke-width="6" stroke-linecap="round"/>
+  <use href="#spark" fill="#FFE27A" stroke="#1D2B3A" stroke-width="4" stroke-linejoin="round"/>
+</svg>

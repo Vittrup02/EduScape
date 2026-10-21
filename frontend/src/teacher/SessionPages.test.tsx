@@ -73,8 +73,8 @@ const dashboard: SessionDashboard = {
     { id: 'library', name: 'Biblioteket' },
   ],
   locks: [
-    { id: 'lock-1', sceneId: 'classroom', question: 'Hvad giver regnestykket?' },
-    { id: 'lock-2', sceneId: 'classroom', question: 'Hvad er 10 / 3?' },
+    { id: 'lock-1', sceneId: 'classroom', questions: ['Hvad giver regnestykket?'] },
+    { id: 'lock-2', sceneId: 'classroom', questions: ['Hvad er 10 / 3?', 'Hvad er 10 / 4?'] },
   ],
   teams: [
     team('red', 'Red', {
@@ -293,24 +293,25 @@ describe('the live dashboard', () => {
 
   it('tells which lock a team is working on, and warns once it has been stuck for 5 minutes', async () => {
     let current = withTeam('red', {
-      currentLock: { lockId: 'lock-2', stuckSince: minutesBeforeNow(2), wrongAttempts: 1 },
+      currentLock: { lockId: 'lock-2', stuckSince: minutesBeforeNow(2), wrongAttempts: 1, solvedSteps: 0 },
     })
     mockFetch({ '/api/teacher/sessions/s1/dashboard': () => json(current) })
     renderAt('/teacher/sessions/s1')
 
     const working = await screen.findByText(/Arbejder på „Hvad er 10 \/ 3\?“/)
-    expect(working).toHaveTextContent('· 1 forkert svar')
+    expect(working).toHaveTextContent('(trin 1 af 2) · 1 forkert svar')
     expect(working).not.toHaveAttribute('data-stuck')
 
+    // The team has moved on to the lock's second step.
     current = withTeam('red', {
-      currentLock: { lockId: 'lock-2', stuckSince: minutesBeforeNow(7), wrongAttempts: 4 },
+      currentLock: { lockId: 'lock-2', stuckSince: minutesBeforeNow(7), wrongAttempts: 4, solvedSteps: 1 },
     })
     act(() => {
       latestTeacherHub().handlers.dashboardChanged()
     })
 
-    const stuck = await screen.findByText(/Har siddet fast på „Hvad er 10 \/ 3\?“ i 7 minutter/)
-    expect(stuck).toHaveTextContent('· 4 forkerte svar')
+    const stuck = await screen.findByText(/Har siddet fast på „Hvad er 10 \/ 4\?“ i 7 minutter/)
+    expect(stuck).toHaveTextContent('(trin 2 af 2) · 4 forkerte svar')
     expect(stuck).toHaveAttribute('data-stuck')
   })
 

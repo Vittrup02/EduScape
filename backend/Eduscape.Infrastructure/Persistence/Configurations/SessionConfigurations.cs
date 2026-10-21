@@ -67,7 +67,6 @@ internal sealed class TeamConfiguration : IEntityTypeConfiguration<Team>
         builder.ToTable("Teams");
         builder.Property(t => t.Id).ValueGeneratedNever();
         builder.Ignore(t => t.SolvedLockIds);
-        builder.Ignore(t => t.OpenedDoorIds);
 
         builder.HasMany(t => t.LockProgress)
             .WithOne()
@@ -101,6 +100,8 @@ internal sealed class TeamLockProgressConfiguration : IEntityTypeConfiguration<T
     }
 }
 
+// Doors now open by themselves and follow from the solved locks, so nothing writes this table any more. It stays until
+// a later release drops it, so a running older version keeps working during a deploy.
 internal sealed class TeamOpenedDoorConfiguration : IEntityTypeConfiguration<TeamOpenedDoor>
 {
     public void Configure(EntityTypeBuilder<TeamOpenedDoor> builder)

@@ -3,8 +3,14 @@ import { apiBaseUrl } from './client'
 
 /** Events the server pushes to every device on the team. Same names as IPlayClient in the backend. */
 export interface PlayHubEvents {
+  /** The team answered the lock's last step. */
   lockSolved(lockId: string): void
+  /** The team answered a step; the lock's next step (index `solvedSteps`) is up. */
+  stepSolved(lockId: string, solvedSteps: number): void
   hintRevealed(lockId: string, hint: string): void
+  /** A wrong answer: the lock waits this many seconds for the whole team. */
+  lockCooldown(lockId: string, seconds: number): void
+  /** A door opened by itself, because the team met its condition. */
   doorOpened(doorId: string): void
   teamEscaped(): void
   /** Sent to this student only: the teacher moved them to another team, whose state must be fetched. */
@@ -49,8 +55,14 @@ export function createPlayHub(handlers: PlayHubHandlers): PlayHub {
   connection.on('LockSolved', (lockId: string) => {
     handlers.lockSolved(lockId)
   })
+  connection.on('StepSolved', (lockId: string, solvedSteps: number) => {
+    handlers.stepSolved(lockId, solvedSteps)
+  })
   connection.on('HintRevealed', (lockId: string, hint: string) => {
     handlers.hintRevealed(lockId, hint)
+  })
+  connection.on('LockCooldown', (lockId: string, seconds: number) => {
+    handlers.lockCooldown(lockId, seconds)
   })
   connection.on('DoorOpened', (doorId: string) => {
     handlers.doorOpened(doorId)

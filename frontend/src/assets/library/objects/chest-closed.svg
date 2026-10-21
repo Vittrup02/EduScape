@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <path id="lid" d="M22 82V64a58 30 0 0 1 116 0v18z"/>
+    <rect id="body" x="22" y="80" width="116" height="64" rx="8"/>
+  </defs>
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-linejoin="round">
+    <use href="#lid" stroke-width="23"/>
+    <use href="#body" stroke-width="23"/>
+  </g>
+  <use href="#lid" fill="#C97B38"/>
+  <path d="M36 56a46 22 0 0 1 40-17" fill="none" stroke="#E8A866" stroke-width="7" stroke-linecap="round"/>
+  <use href="#body" fill="#A85F27"/>
+  <rect x="22" y="128" width="116" height="16" fill="#8A4A1C"/>
+  <rect x="38" y="36" width="12" height="108" fill="#6B8196"/>
+  <rect x="110" y="36" width="12" height="108" fill="#6B8196"/>
+  <use href="#lid" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <use href="#body" fill="none" stroke="#1D2B3A" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="66" y="70" width="28" height="32" rx="5" fill="#E3A21A" stroke="#1D2B3A" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M80 78a6 6 0 0 0-3 11.2L75.5 96h9L83 89.2A6 6 0 0 0 80 78z" fill="#1D2B3A"/>
+</svg>

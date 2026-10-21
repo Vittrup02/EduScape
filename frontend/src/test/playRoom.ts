@@ -1,13 +1,19 @@
-import type { PlayRoom, PlayState, TeamState } from '../api/play'
+import type { AnswerType, PlayRoom, PlayState, PlayStep, TeamState } from '../api/play'
+
+export function step(question: string, answerType: AnswerType, options: string[] | null = null): PlayStep {
+  return { question, answerType, options, orderItems: null }
+}
 
 /**
  * A room like the seeded demo. Classroom: letter, code lock, text lock (after the code lock), door to the library
- * (after the text lock). Library: multiple-choice lock and the exit door (after it).
+ * (open once both locks are solved). Library: multiple-choice lock and the exit door (open once it is solved). Which
+ * doors are open comes from the server, in the team's openedDoorIds.
  */
 export const playRoom: PlayRoom = {
   id: 'room',
   title: 'Demo',
   startSceneId: 'classroom',
+  wrongAnswerCooldownSeconds: 0,
   scenes: [
     {
       id: 'classroom',
@@ -34,9 +40,7 @@ export const playRoom: PlayRoom = {
           graphicKey: 'builtin:code-lock',
           unlockedGraphicKey: null,
           unlockedById: null,
-          question: 'Hvad giver regnestykket?',
-          answerType: 'Code',
-          options: null,
+          steps: [step('Hvad giver regnestykket?', 'Code')],
         },
         {
           id: 'text-lock',
@@ -46,9 +50,7 @@ export const playRoom: PlayRoom = {
           graphicKey: 'builtin:padlock',
           unlockedGraphicKey: null,
           unlockedById: 'code-lock',
-          question: 'Hvad er 10 / 3?',
-          answerType: 'Text',
-          options: null,
+          steps: [step('Hvad er 10 / 3?', 'Text')],
         },
         {
           id: 'door',
@@ -57,7 +59,7 @@ export const playRoom: PlayRoom = {
           y: 55,
           graphicKey: 'builtin:door',
           unlockedGraphicKey: null,
-          unlockedById: 'text-lock',
+          unlockedById: null,
           targetSceneId: 'library',
         },
       ],
@@ -77,9 +79,7 @@ export const playRoom: PlayRoom = {
           graphicKey: 'builtin:padlock',
           unlockedGraphicKey: null,
           unlockedById: null,
-          question: 'Hvilket tal er et primtal?',
-          answerType: 'MultipleChoice',
-          options: ['9', '15', '17'],
+          steps: [step('Hvilket tal er et primtal?', 'MultipleChoice', ['9', '15', '17'])],
         },
         {
           id: 'exit',
@@ -88,7 +88,7 @@ export const playRoom: PlayRoom = {
           y: 50,
           graphicKey: 'builtin:exit-door',
           unlockedGraphicKey: null,
-          unlockedById: 'choice-lock',
+          unlockedById: null,
         },
       ],
     },
@@ -101,7 +101,7 @@ export function teamState(overrides: Partial<TeamState> = {}): TeamState {
     color: 'Red',
     solvedLockIds: [],
     openedDoorIds: [],
-    revealedHints: [],
+    locks: [],
     escapedAt: null,
     ...overrides,
   }
@@ -117,6 +117,7 @@ export function playState(team: Partial<TeamState> = {}, overrides: Partial<Play
     team: teamState(team),
     room: playRoom,
     isPreview: false,
+    currentSceneId: null,
     ...overrides,
   }
 }

@@ -25,7 +25,9 @@ export function NewRoomPage() {
     setBusy(true)
     setErrorCode(null)
     try {
-      const room = await createRoom(title, subject, gradeLevel, t('editor.scene.defaultName', { n: 1 }))
+      // A room without a title gets a readable one the teacher can change in the editor.
+      const name = title.trim() === '' ? t('editor.untitledRoom') : title
+      const room = await createRoom(name, subject, gradeLevel, t('editor.scene.defaultName', { n: 1 }))
       void navigate(`/teacher/rooms/${room.id}/edit`, { replace: true })
     } catch (error) {
       setErrorCode(error instanceof ApiError ? error.code : 'UNKNOWN')
@@ -42,7 +44,6 @@ export function NewRoomPage() {
         <input
           id={titleId}
           value={title}
-          required
           maxLength={200}
           placeholder={t('editor.titlePlaceholder')}
           onChange={(event) => {

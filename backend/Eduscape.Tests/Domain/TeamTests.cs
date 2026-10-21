@@ -66,15 +66,57 @@ public class TeamTests
     }
 
     [Fact]
-    public void OpenDoor_IsIdempotent()
+    public void SolveStep_SolvesTheLockAfterItsLastStep()
     {
         var team = NewTeam();
-        var doorId = Guid.NewGuid();
+        var lockId = Guid.NewGuid();
 
-        Assert.True(team.OpenDoor(doorId, Now));
-        Assert.False(team.OpenDoor(doorId, Now));
+        Assert.False(team.SolveStep(lockId, stepCount: 2, Now));
+        Assert.Equal(1, team.SolvedSteps(lockId));
+        Assert.False(team.IsLockSolved(lockId));
 
-        Assert.Single(team.OpenedDoors);
+        Assert.True(team.SolveStep(lockId, stepCount: 2, Now.AddMinutes(1)));
+        Assert.True(team.IsLockSolved(lockId));
+        Assert.Equal(Now.AddMinutes(1), team.LockProgress.Single().SolvedAt);
+
+        // A solved lock stays solved.
+        Assert.False(team.SolveStep(lockId, stepCount: 2, Now.AddMinutes(2)));
+        Assert.Equal(2, team.SolvedSteps(lockId));
+    }
+
+    [Fact]
+    public void Hint_IsEarnedPerStep()
+    {
+        var team = NewTeam();
+        var lockId = Guid.NewGuid();
+        for (var i = 0; i < Team.WrongAttemptsBeforeHint; i++)
+        {
+            team.RegisterWrongAttempt(lockId, Now);
+        }
+
+        Assert.True(team.IsHintVisible(lockId));
+
+        team.SolveStep(lockId, stepCount: 2, Now);
+
+        // The next step's hint has to be earned again; the dashboard still counts every wrong answer.
+        Assert.False(team.IsHintVisible(lockId));
+        Assert.Equal(Team.WrongAttemptsBeforeHint, team.WrongAttempts(lockId));
+    }
+
+    [Fact]
+    public void Cooldown_CountsFromTheLastWrongAnswer_AndEndsWithTheStep()
+    {
+        var team = NewTeam();
+        var lockId = Guid.NewGuid();
+        team.RegisterWrongAttempt(lockId, Now);
+
+        Assert.Equal(15, team.CooldownRemainingSeconds(lockId, 15, Now));
+        Assert.Equal(1, team.CooldownRemainingSeconds(lockId, 15, Now.AddSeconds(14.5)));
+        Assert.Equal(0, team.CooldownRemainingSeconds(lockId, 15, Now.AddSeconds(15)));
+        Assert.Equal(0, team.CooldownRemainingSeconds(lockId, 0, Now));
+
+        team.SolveStep(lockId, stepCount: 2, Now.AddSeconds(20));
+        Assert.Equal(0, team.CooldownRemainingSeconds(lockId, 15, Now.AddSeconds(20)));
     }
 
     [Fact]

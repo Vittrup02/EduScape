@@ -36,19 +36,24 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         var teacher = await factory.RegisterTeacherAsync();
         var room = await GetRoomAsync(teacher.Client, (await CreateRoomAsync(teacher.Client)).Id);
         var library = NewScene("Bibliotek", NewExitDoor());
-        var mathLock = NewLock() with
+        var mathLock = NewLock([NewStep() with
         {
             AnswerType = AnswerType.Text,
             CorrectAnswer = "3,14",
             Tolerance = 0.01m,
             Hint = "Tænk på cirkler",
-        };
-        var choice = NewLock(question: "By?", answer: "Paris") with
-        {
-            AnswerType = AnswerType.MultipleChoice,
-            Options = ["Paris", "Rom"],
-        };
-        var door = NewDoor(library.Id, unlockedById: mathLock.Id);
+        }]);
+        // A lock with three steps: a typed answer with alternatives, multiple choice and an order.
+        var reaction = NewLock(
+        [
+            NewStep("Hvad hedder H2O?", "vand", AnswerType.Text) with { AcceptedAnswers = ["dihydrogenoxid"], AcceptTypos = true },
+            NewStep("By?", "Paris", AnswerType.MultipleChoice) with { Options = ["Paris", "Rom"] },
+            NewStep("Sæt trinene i rækkefølge", "", AnswerType.Order) with
+            {
+                OrderItems = [new(Guid.NewGuid(), "Afvej"), new(Guid.NewGuid(), "Opløs"), new(Guid.NewGuid(), "Filtrér")],
+            },
+        ]);
+        var door = NewDoor(library.Id, mathLock.Id);
         var letter = NewLetter();
         var start = room.Scenes[0] with { Name = "Gangen" };
         var request = ToRequest(room) with
@@ -56,10 +61,12 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
             Title = "Cirkler",
             Subject = Subject.PhysicsChemistry,
             GradeLevel = GradeLevel.Grade9,
+            WrongAnswerCooldownSeconds = 30,
             Scenes =
             [
-                new SaveSceneRequest(start.Id, start.Name, "builtin:basement", [mathLock, choice, door, letter], " Det er 1943. "),
+                // The library comes first in the strip, but students start in the hall.
                 library,
+                new SaveSceneRequest(start.Id, start.Name, "builtin:basement", [mathLock, reaction, door, letter], " Det er 1943. "),
             ],
         };
 
@@ -69,21 +76,55 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         Assert.Equal(1, saved.Revision);
         Assert.Empty(saved.ValidationErrors);
         Assert.Equal(("Cirkler", Subject.PhysicsChemistry, GradeLevel.Grade9, 1), (loaded.Title, loaded.Subject, loaded.GradeLevel, loaded.Revision));
-        Assert.Equal(["Gangen", "Bibliotek"], loaded.Scenes.Select(s => s.Name));
-        Assert.Equal("builtin:basement", loaded.Scenes[0].BackgroundImageKey);
-        Assert.Equal("Det er 1943.", loaded.Scenes[0].Narration);
-        Assert.Null(loaded.Scenes[1].Narration);
-        var objects = loaded.Scenes[0].Objects.ToDictionary(o => o.Id);
+        Assert.Equal(30, loaded.WrongAnswerCooldownSeconds);
+        Assert.Equal(["Bibliotek", "Gangen"], loaded.Scenes.Select(s => s.Name));
+        Assert.Equal(start.Id, loaded.StartSceneId);
+        Assert.Equal("builtin:basement", loaded.Scenes[1].BackgroundImageKey);
+        Assert.Equal("Det er 1943.", loaded.Scenes[1].Narration);
+        Assert.Null(loaded.Scenes[0].Narration);
+        var objects = loaded.Scenes[1].Objects.ToDictionary(o => o.Id);
         Assert.Equal(4, objects.Count);
         var loadedLock = objects[mathLock.Id];
+        var step = Assert.Single(loadedLock.Steps!);
         Assert.Equal(
-            (30d, 40d, "2 + 2?", AnswerType.Text, "3,14", 0.01m, "Tænk på cirkler"),
-            (loadedLock.X, loadedLock.Y, loadedLock.Question, loadedLock.AnswerType, loadedLock.CorrectAnswer,
-                loadedLock.Tolerance, loadedLock.Hint));
-        Assert.Equal(["Paris", "Rom"], objects[choice.Id].Options!);
-        Assert.Equal((library.Id, mathLock.Id), (objects[door.Id].TargetSceneId, objects[door.Id].UnlockedById));
+            (30d, 40d, mathLock.Steps![0].Id, "2 + 2?", AnswerType.Text, "3,14", 0.01m, "Tænk på cirkler"),
+            (loadedLock.X, loadedLock.Y, step.Id, step.Question, step.AnswerType, step.CorrectAnswer, step.Tolerance, step.Hint));
+        var steps = objects[reaction.Id].Steps!;
+        Assert.Equal(reaction.Steps!.Select(s => s.Id), steps.Select(s => s.Id));
+        Assert.Equal(["dihydrogenoxid"], steps[0].AcceptedAnswers!);
+        Assert.True(steps[0].AcceptTypos);
+        Assert.Equal(["Paris", "Rom"], steps[1].Options!);
+        Assert.Equal(["Afvej", "Opløs", "Filtrér"], steps[2].OrderItems!.Select(i => i.Text));
+        Assert.Equal(reaction.Steps![2].OrderItems!.Select(i => i.Id), steps[2].OrderItems!.Select(i => i.Id));
+        Assert.Equal((library.Id, DoorOpenCondition.SelectedLocks), (objects[door.Id].TargetSceneId, objects[door.Id].OpenCondition));
+        Assert.Equal([mathLock.Id], objects[door.Id].RequiredLockIds!);
+        Assert.Null(objects[door.Id].UnlockedById);
         Assert.Equal("Læs side 42", objects[letter.Id].Text);
-        Assert.Equal(RoomObjectType.ExitDoor, Assert.Single(loaded.Scenes[1].Objects).Type);
+        var exit = Assert.Single(loaded.Scenes[0].Objects);
+        Assert.Equal((RoomObjectType.ExitDoor, DoorOpenCondition.AllInScene), (exit.Type, exit.OpenCondition));
+    }
+
+    [PostgresFact]
+    public async Task Save_ReportsProblemsInTheStepTheyAreIn()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = await GetRoomAsync(teacher.Client, (await CreateRoomAsync(teacher.Client)).Id);
+        var twoSteps = NewLock([NewStep(), NewStep(question: "", answer: "") with { AnswerType = AnswerType.Order }]);
+        var noPuzzle = NewLock([]);
+        var request = ToRequest(room) with
+        {
+            Scenes = [ToRequest(room).Scenes[0] with { Objects = [twoSteps, noPuzzle, NewExitDoor()] }],
+        };
+
+        var saved = await SavedAsync(teacher.Client, room.Id, request);
+
+        Assert.Equal(
+            [
+                new RoomValidationErrorDto(DomainErrors.LockQuestionMissing, twoSteps.Id, 1),
+                new RoomValidationErrorDto(DomainErrors.OrderItemsInvalid, twoSteps.Id, 1),
+                new RoomValidationErrorDto(DomainErrors.LockPuzzleMissing, noPuzzle.Id),
+            ],
+            saved.ValidationErrors);
     }
 
     [PostgresFact]
@@ -139,7 +180,7 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
             [
                 new SaveSceneRequest(room.Scenes[0].Id, "Første", "builtin:classroom",
                 [
-                    lockA with { X = 70, Y = 10, CorrectAnswer = "5" },
+                    lockA with { X = 70, Y = 10, Steps = [lockA.Steps![0] with { CorrectAnswer = "5" }] },
                     door with { TargetSceneId = null },
                 ]),
             ],
@@ -157,7 +198,7 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         Assert.Equal(saved.ValidationErrors, reloaded.ValidationErrors);
         var scene = Assert.Single(reloaded.Scenes);
         var movedLock = scene.Objects.Single(o => o.Id == lockA.Id);
-        Assert.Equal((70d, 10d, "5"), (movedLock.X, movedLock.Y, movedLock.CorrectAnswer));
+        Assert.Equal((70d, 10d, "5"), (movedLock.X, movedLock.Y, movedLock.Steps![0].CorrectAnswer));
         Assert.DoesNotContain(scene.Objects, o => o.Id == letter.Id);
         await using var db = factory.Database.CreateContext();
         Assert.False(await db.Scenes.AnyAsync(s => s.Id == second.Id));
@@ -204,28 +245,38 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
 
         Assert.Equal(
             [
-                new RoomValidationErrorDto(DomainErrors.LockQuestionMissing, draft.Id),
-                new RoomValidationErrorDto(DomainErrors.LockAnswerMissing, draft.Id),
+                new RoomValidationErrorDto(DomainErrors.LockQuestionMissing, draft.Id, 0),
+                new RoomValidationErrorDto(DomainErrors.LockAnswerMissing, draft.Id, 0),
                 new RoomValidationErrorDto(DomainErrors.LetterTextMissing, letter.Id),
             ],
             saved.ValidationErrors.OrderBy(e => e.ObjectId == letter.Id).ThenBy(e => e.Code == DomainErrors.LockAnswerMissing));
     }
 
     [PostgresFact]
-    public async Task Save_IgnoresOptionsAndToleranceThatDoNotApplyToTheAnswerType()
+    public async Task Save_IgnoresSettingsThatDoNotApplyToTheAnswerType()
     {
         var teacher = await factory.RegisterTeacherAsync();
         var room = await GetRoomAsync(teacher.Client, (await CreateRoomAsync(teacher.Client)).Id);
-        var codeLock = NewLock() with { Options = ["kept", "while editing"], Tolerance = 0.5m };
+        var codeLock = NewLock([NewStep() with
+        {
+            Options = ["kept", "while editing"],
+            Tolerance = 0.5m,
+            AcceptedAnswers = ["fire"],
+            AcceptTypos = true,
+            OrderItems = [new(Guid.NewGuid(), "A")],
+        }]);
 
         await SavedAsync(teacher.Client, room.Id, ToRequest(room) with
         {
             Scenes = [new SaveSceneRequest(room.Scenes[0].Id, "Scene", "builtin:classroom", [codeLock])],
         });
-        var loaded = Assert.Single((await GetRoomAsync(teacher.Client, room.Id)).Scenes[0].Objects);
+        var loaded = Assert.Single(Assert.Single((await GetRoomAsync(teacher.Client, room.Id)).Scenes[0].Objects).Steps!);
 
         Assert.Empty(loaded.Options!);
         Assert.Null(loaded.Tolerance);
+        Assert.Empty(loaded.AcceptedAnswers!);
+        Assert.False(loaded.AcceptTypos);
+        Assert.Empty(loaded.OrderItems!);
     }
 
     [PostgresFact]
@@ -268,10 +319,16 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         { "duplicate id", ApiErrors.DocumentInvalid },
         { "no scenes", ApiErrors.DocumentInvalid },
         { "unknown start scene", ApiErrors.DocumentInvalid },
-        { "lock without answer type", ApiErrors.DocumentInvalid },
+        { "lock without steps", ApiErrors.DocumentInvalid },
+        { "step with unknown answer type", ApiErrors.DocumentInvalid },
+        { "door waiting with unlockedBy", ApiErrors.DocumentInvalid },
+        { "door opening with a lock outside the document", ApiErrors.DocumentInvalid },
+        { "order item with a time-ordered id", ApiErrors.DocumentInvalid },
+        { "order item with a free image URL", DomainErrors.ImageKeyInvalid },
         { "image key", DomainErrors.ImageKeyInvalid },
         { "position", DomainErrors.PositionOutOfRange },
         { "too many scenes", ApiErrors.RoomTooLarge },
+        { "negative wait", DomainErrors.CooldownInvalid },
     };
 
     [PostgresTheory]
@@ -284,6 +341,10 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
         var scene = request.Scenes[0];
         var lockA = NewLock();
         SaveSceneRequest WithObjects(params EditorObjectDto[] objects) => scene with { Objects = objects };
+        EditorObjectDto OrderLock(EditorOrderItemDto item) => NewLock([NewStep(answerType: AnswerType.Order) with
+        {
+            OrderItems = [item, new EditorOrderItemDto(Guid.NewGuid(), "B")],
+        }]);
 
         var invalid = problem switch
         {
@@ -292,13 +353,34 @@ public class EditorEndpointTests(EduscapeApiFactory factory) : IClassFixture<Edu
             "duplicate id" => request with { Scenes = [WithObjects(lockA, NewLetter() with { Id = lockA.Id })] },
             "no scenes" => request with { Scenes = [] },
             "unknown start scene" => request with { StartSceneId = Guid.NewGuid() },
-            "lock without answer type" => request with { Scenes = [WithObjects(lockA with { AnswerType = null })] },
+            "lock without steps" => request with { Scenes = [WithObjects(lockA with { Steps = null })] },
+            "step with unknown answer type" => request with
+            {
+                Scenes = [WithObjects(lockA with { Steps = [NewStep() with { AnswerType = (AnswerType)42 }] })],
+            },
+            "door waiting with unlockedBy" => request with
+            {
+                Scenes = [WithObjects(lockA, NewDoor(scene.Id) with { UnlockedById = lockA.Id })],
+            },
+            "door opening with a lock outside the document" => request with
+            {
+                Scenes = [WithObjects(NewDoor(scene.Id, Guid.NewGuid()))],
+            },
+            "order item with a time-ordered id" => request with
+            {
+                Scenes = [WithObjects(OrderLock(new EditorOrderItemDto(Guid.CreateVersion7(), "A")))],
+            },
+            "order item with a free image URL" => request with
+            {
+                Scenes = [WithObjects(OrderLock(new EditorOrderItemDto(Guid.NewGuid(), "A", "https://example.com/a.png")))],
+            },
             "image key" => request with { Scenes = [scene with { BackgroundImageKey = "https://example.com/cat.jpg" }] },
             "position" => request with { Scenes = [WithObjects(lockA with { X = 101 })] },
             "too many scenes" => request with
             {
                 Scenes = [scene, .. Enumerable.Range(0, RoomDocumentApplier.MaxScenes).Select(i => NewScene($"Scene {i}"))],
             },
+            "negative wait" => request with { WrongAnswerCooldownSeconds = -1 },
             _ => throw new ArgumentOutOfRangeException(nameof(problem)),
         };
 

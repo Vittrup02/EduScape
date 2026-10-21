@@ -34,9 +34,12 @@ public static class DemoRoomSeeder
         await context.SaveChangesAsync(cancellationToken);
     }
 
+    /// <summary>How long a team waits after a wrong answer in the demo: long enough to notice, short enough for tests.</summary>
+    public const int DemoCooldownSeconds = 5;
+
     /// <summary>
-    /// Two scenes: a letter, a code lock, a numeric lock with tolerance and a door in the first;
-    /// a multiple-choice lock and the exit door in the second. Each step is unlocked by the previous one.
+    /// Two scenes: a letter, a code lock, a numeric lock with tolerance (after the code lock) and a door in the first;
+    /// a multiple-choice lock and the exit door in the second. The doors open once their scene's locks are solved.
     /// Uses only built-in assets (see frontend/src/assets/ASSETS.md).
     /// </summary>
     public static EscapeRoom BuildDemoRoom()
@@ -47,6 +50,7 @@ public static class DemoRoomSeeder
             GradeLevel.Grade7,
             isTemplate: true,
             id: DemoRoomId);
+        room.SetWrongAnswerCooldown(DemoCooldownSeconds);
 
         var classroom = room.AddScene("Klasselokalet", "builtin:classroom");
         var library = room.AddScene("Biblioteket", "builtin:library");
@@ -73,10 +77,9 @@ public static class DemoRoomSeeder
             hint: "10 delt med 3 er lidt over 3."));
         divisionLock.SetUnlockedBy(codeLock);
 
-        var door = classroom.AddObject(new Door(new Position(88, 55), "builtin:door", null, library.Id));
-        door.SetUnlockedBy(divisionLock);
+        classroom.AddObject(new Door(new Position(88, 55), "builtin:door", null, library.Id));
 
-        var primeLock = library.AddObject(new Lock(
+        library.AddObject(new Lock(
             new Position(35, 40),
             "builtin:padlock",
             null,
@@ -86,8 +89,7 @@ public static class DemoRoomSeeder
             hint: "Et primtal kan kun deles med 1 og sig selv.",
             options: ["9", "15", "17", "21"]));
 
-        var exit = library.AddObject(new ExitDoor(new Position(85, 50), "builtin:exit-door", null));
-        exit.SetUnlockedBy(primeLock);
+        library.AddObject(new ExitDoor(new Position(85, 50), "builtin:exit-door", null));
 
         return room;
     }

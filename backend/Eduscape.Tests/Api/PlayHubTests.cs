@@ -4,6 +4,7 @@ using Eduscape.Api.Errors;
 using Eduscape.Api.Play;
 using Eduscape.Api.Sessions;
 using Eduscape.Domain.Common;
+using Eduscape.Domain.Rooms;
 using Eduscape.Domain.Sessions;
 using Eduscape.Tests.Infrastructure;
 using Microsoft.AspNetCore.Http.Connections;
@@ -85,8 +86,11 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
         await SessionApi.AnsweredAsync(Student, ida, room.TextLock.Id, PlayTestRoom.TextAnswer);
         Assert.Equal($"LockSolved {room.TextLock.Id}", await boDevice.NextEventAsync());
 
-        await SessionApi.OpenDoorAsync(Student, ida, room.Door.Id);
-        Assert.Equal($"DoorOpened {room.Door.Id}", await boDevice.NextEventAsync());
+        // The scene's last lock opens its door, and the exit door behind it (whose scene has no locks) with it.
+        // In either order: ids made in the same millisecond don't sort by when they were made.
+        string[] opened = [await boDevice.NextEventAsync(), await boDevice.NextEventAsync()];
+        string[] expected = [$"DoorOpened {room.Door.Id}", $"DoorOpened {room.ExitDoor.Id}"];
+        Assert.Equal(expected.Order(), opened.Order());
 
         await SessionApi.OpenExitDoorAsync(Student, ida, room.ExitDoor.Id);
         Assert.Equal("TeamEscaped", await boDevice.NextEventAsync());
@@ -113,6 +117,54 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
         Assert.Equal([$"LockSolved {session.Teams[0].Id} {room.CodeLock.Id}"], notifier.Events);
     }
 
+    [PostgresFact]
+    public async Task WrongAnswer_TellsTheTeamHowLongTheLockWaits()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = await PlayTestRoom.AddAsync(factory, teacher.Id, cooldownSeconds: 15);
+        var session = await SessionApi.StartSessionAsync(teacher.Client, room.Room.Id);
+        var ida = await JoinAsync(session, session.Teams[0].Id);
+        var bo = await JoinAsync(session, session.Teams[0].Id);
+        await using var boDevice = await TeamDevice.ConnectAsync(factory);
+        Assert.Null(await boDevice.SubscribeAsync(bo));
+
+        await SessionApi.AnsweredAsync(Student, ida, room.CodeLock.Id, "wrong");
+
+        Assert.Equal($"LockCooldown {room.CodeLock.Id} 15", await boDevice.NextEventAsync());
+    }
+
+    [PostgresFact]
+    public async Task SolvedStep_IsPushedToTeammates_AndTheLastOneSolvesTheLock()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = new EscapeRoom("Trin", Subject.Chemistry, GradeLevel.Stx1, teacher.Id);
+        room.SetWrongAnswerCooldown(0);
+        var scene = room.AddScene("Lab", "builtin:laboratory");
+        var twoSteps = scene.AddObject(new Lock(new Position(50, 50), "builtin:safe", null,
+        [
+            new LockStep("Første?", AnswerType.Code, "1"),
+            new LockStep("Anden?", AnswerType.Code, "2"),
+        ]));
+        scene.AddObject(new ExitDoor(new Position(80, 50), "builtin:exit-door", null));
+        await using (var db = factory.Database.CreateContext())
+        {
+            db.EscapeRooms.Add(room);
+            await db.SaveChangesAsync();
+        }
+
+        var session = await SessionApi.StartSessionAsync(teacher.Client, room.Id);
+        var ida = await JoinAsync(session, session.Teams[0].Id);
+        var bo = await JoinAsync(session, session.Teams[0].Id);
+        await using var boDevice = await TeamDevice.ConnectAsync(factory);
+        Assert.Null(await boDevice.SubscribeAsync(bo));
+
+        await SessionApi.AnsweredAsync(Student, ida, twoSteps.Id, "1", step: 0);
+        Assert.Equal($"StepSolved {twoSteps.Id} 1", await boDevice.NextEventAsync());
+
+        await SessionApi.AnsweredAsync(Student, ida, twoSteps.Id, "2", step: 1);
+        Assert.Equal($"LockSolved {twoSteps.Id}", await boDevice.NextEventAsync());
+    }
+
     private async Task<(PlayTestRoom Room, SessionDetailsDto Session)> StartAsync()
     {
         var teacher = await factory.RegisterTeacherAsync();
@@ -134,6 +186,8 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
         {
             _connection = connection;
             _connection.On<Guid>(nameof(IPlayClient.LockSolved), id => Record($"LockSolved {id}"));
+            _connection.On<Guid, int>(nameof(IPlayClient.StepSolved), (id, solved) => Record($"StepSolved {id} {solved}"));
+            _connection.On<Guid, int>(nameof(IPlayClient.LockCooldown), (id, seconds) => Record($"LockCooldown {id} {seconds}"));
             _connection.On<Guid, string>(nameof(IPlayClient.HintRevealed), (id, hint) => Record($"HintRevealed {id} {hint}"));
             _connection.On<Guid>(nameof(IPlayClient.DoorOpened), id => Record($"DoorOpened {id}"));
             _connection.On(nameof(IPlayClient.TeamEscaped), () => Record("TeamEscaped"));
@@ -179,7 +233,13 @@ public class PlayHubTests(EduscapeApiFactory factory) : IClassFixture<EduscapeAp
 
         public Task LockSolvedAsync(Guid teamId, Guid lockId) => Record($"LockSolved {teamId} {lockId}");
 
+        public Task StepSolvedAsync(Guid teamId, Guid lockId, int solvedSteps) =>
+            Record($"StepSolved {teamId} {lockId} {solvedSteps}");
+
         public Task HintRevealedAsync(Guid teamId, Guid lockId, string hint) => Record($"HintRevealed {teamId} {lockId}");
+
+        public Task LockCooldownAsync(Guid teamId, Guid lockId, int seconds) =>
+            Record($"LockCooldown {teamId} {lockId} {seconds}");
 
         public Task DoorOpenedAsync(Guid teamId, Guid doorId) => Record($"DoorOpened {teamId} {doorId}");
 

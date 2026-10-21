@@ -3,7 +3,7 @@ import type { EditorDoor, EditorScene, RoomDocument } from '../api/editor'
 import { sceneGraph } from './sceneGraph'
 
 function door(id: string, targetSceneId: string | null): EditorDoor {
-  return { id, type: 'Door', x: 50, y: 50, graphicKey: 'builtin:door', unlockedById: null, targetSceneId }
+  return { id, type: 'Door', x: 50, y: 50, graphicKey: 'builtin:door', unlockedById: null, targetSceneId, openCondition: 'AllInScene', requiredLockIds: [] }
 }
 
 function scene(id: string, ...objects: EditorScene['objects']): EditorScene {
@@ -11,7 +11,7 @@ function scene(id: string, ...objects: EditorScene['objects']): EditorScene {
 }
 
 function room(startSceneId: string, ...scenes: EditorScene[]): RoomDocument {
-  return { title: 'Rum', subject: 'Mathematics', gradeLevel: 'Grade6', startSceneId, scenes }
+  return { title: 'Rum', subject: 'Mathematics', gradeLevel: 'Grade6', startSceneId, scenes, wrongAnswerCooldownSeconds: 15 }
 }
 
 describe('scene graph', () => {
@@ -22,7 +22,7 @@ describe('scene graph', () => {
         scene('a'),
         scene('b', door('b-a', 'a'), door('b-c', 'c')),
         scene('c', door('c-d', 'd'), door('c-b', 'b')),
-        scene('d', { id: 'exit', type: 'ExitDoor', x: 1, y: 1, graphicKey: 'builtin:exit-door', unlockedById: null }),
+        scene('d', { id: 'exit', type: 'ExitDoor', x: 1, y: 1, graphicKey: 'builtin:exit-door', unlockedById: null, openCondition: 'AllInScene', requiredLockIds: [] }),
       ),
     )
 

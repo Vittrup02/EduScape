@@ -14,6 +14,7 @@ import {
   findScene,
   moveObject,
   removeObject,
+  moveScene,
   removeScene,
   setRoomDetails,
   setStartScene,
@@ -22,7 +23,8 @@ import {
 } from './editorDocument'
 import { GradeLevelSelect } from './GradeLevelSelect'
 import { useHistory } from './history'
-import { Inspector, type ObjectChange } from './Inspector'
+import type { ObjectChange } from './Field'
+import { Inspector } from './Inspector'
 import { objectLabel } from './objectLabel'
 import { PreviewButton } from './PreviewButton'
 import { SceneMap } from './SceneMap'
@@ -41,6 +43,7 @@ function toDocument(room: EditorRoom): RoomDocument {
     gradeLevel: room.gradeLevel,
     startSceneId: room.startSceneId,
     scenes: room.scenes,
+    wrongAnswerCooldownSeconds: room.wrongAnswerCooldownSeconds,
   }
 }
 
@@ -123,7 +126,7 @@ export function Editor({ room }: { room: EditorRoom }) {
   }
 
   const newScene = (): string => {
-    const created = createScene(document, t('editor.scene.defaultName', { n: document.scenes.length + 1 }))
+    const created = createScene(document, (n) => t('editor.scene.defaultName', { n }))
     apply((d) => addScene(d, created))
     return created.id
   }
@@ -220,7 +223,12 @@ export function Editor({ room }: { room: EditorRoom }) {
             {t('teacher.startSession')}
           </button>
         )}
-        <PreviewButton roomId={room.id} flush={autosave.flush} />
+        <PreviewButton
+          roomId={room.id}
+          scene={scene}
+          isStartScene={scene.id === document.startSceneId}
+          flush={autosave.flush}
+        />
         {document.title.trim() === '' && <p className="error">{t('editor.titleRequired')}</p>}
         {autosave.status === 'conflict' && (
           <p role="alert" className="error">
@@ -272,6 +280,9 @@ export function Editor({ room }: { room: EditorRoom }) {
               openScene(newScene())
             }}
             onRemove={removeSceneWithUndo}
+            onMove={(from, to) => {
+              apply((d) => moveScene(d, from, to))
+            }}
           />
           {removedScene?.document === document && (
             <p role="status" className="undo-note">
@@ -314,7 +325,11 @@ export function Editor({ room }: { room: EditorRoom }) {
               document={document}
               object={selected.object}
               sceneId={selected.scene.id}
+              uploadsEnabled={room.uploadsEnabled}
               onChange={changeSelected}
+              onCooldownChange={(wrongAnswerCooldownSeconds) => {
+                apply((d) => setRoomDetails(d, { wrongAnswerCooldownSeconds }))
+              }}
               onSeal={seal}
               onRemove={() => {
                 remove(selected.object.id)

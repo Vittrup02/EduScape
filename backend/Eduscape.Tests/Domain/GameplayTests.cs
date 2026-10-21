@@ -9,8 +9,8 @@ public class GameplayTests
     private static readonly Position Center = new(50, 50);
     private static readonly DateTimeOffset Now = new(2026, 10, 19, 9, 0, 0, TimeSpan.Zero);
 
-    // Scene 1: code lock A, decimal lock B (after A), door to scene 2 (after B).
-    // Scene 2: multiple-choice lock C and the exit door.
+    // Scene 1: code lock A, decimal lock B (after A), door to scene 2 (opens once both are solved).
+    // Scene 2: multiple-choice lock C and the exit door (opens once C is solved).
     private readonly EscapeRoom _room = new("Demo", Subject.Mathematics, GradeLevel.Grade7);
     private readonly Lock _lockA;
     private readonly Lock _lockB;
@@ -21,6 +21,8 @@ public class GameplayTests
 
     public GameplayTests()
     {
+        // Most tests answer wrong and right in the same instant; the wait after a wrong answer has its own tests.
+        _room.SetWrongAnswerCooldown(0);
         var scene1 = _room.AddScene("Klasselokalet", "builtin:classroom");
         var scene2 = _room.AddScene("Biblioteket", "builtin:library");
 
@@ -28,7 +30,6 @@ public class GameplayTests
         _lockB = scene1.AddObject(new Lock(Center, "builtin:code-lock", null, "10 / 3?", AnswerType.Text, "3,33", tolerance: 0.01m));
         _lockB.SetUnlockedBy(_lockA);
         _door = scene1.AddObject(new Door(Center, "builtin:door", null, scene2.Id));
-        _door.SetUnlockedBy(_lockB);
 
         _lockC = scene2.AddObject(new Lock(
             Center, "builtin:padlock", null, "Primtal?", AnswerType.MultipleChoice, "17", options: ["9", "17"]));
@@ -38,7 +39,8 @@ public class GameplayTests
             .AddTeam(TeamColor.Red);
     }
 
-    private AnswerResult Answer(Lock @lock, string? answer) => Gameplay.SubmitAnswer(_room, _team, @lock.Id, answer, Now);
+    private AnswerResult Answer(Lock @lock, string? answer, int step = 0, DateTimeOffset? at = null) =>
+        Gameplay.SubmitAnswer(_room, _team, @lock.Id, step, AnswerSubmission.Typed(answer), at ?? Now);
 
     private void SolveUpToDoor()
     {
@@ -52,6 +54,8 @@ public class GameplayTests
         var result = Answer(_lockA, " 0017 ");
 
         Assert.Equal(AnswerOutcome.Correct, result.Outcome);
+        Assert.True(result.LockSolved);
+        Assert.Equal(1, result.SolvedSteps);
         Assert.True(_team.IsLockSolved(_lockA.Id));
     }
 
@@ -88,10 +92,20 @@ public class GameplayTests
     }
 
     [Fact]
+    public void SolvingTheLastLockInTheScene_OpensItsDoor_AndReportsIt()
+    {
+        Assert.Empty(Answer(_lockA, "0017").OpenedDoorwayIds);
+
+        var result = Answer(_lockB, "3,33");
+
+        Assert.Equal([_door.Id], result.OpenedDoorwayIds);
+        Assert.True(RoomProgress.For(_room, _team).IsSceneUnlocked(_door.TargetSceneId!.Value));
+    }
+
+    [Fact]
     public void MultipleChoice_AcceptsOnlyTheCorrectOption()
     {
         SolveUpToDoor();
-        Gameplay.OpenDoor(_room, _team, _door.Id, Now);
 
         Assert.Equal(AnswerOutcome.Wrong, Answer(_lockC, "9").Outcome);
         Assert.Equal(AnswerOutcome.Correct, Answer(_lockC, "17").Outcome);
@@ -124,7 +138,7 @@ public class GameplayTests
         Answer(_lockA, "0017");
         var solvedAt = _team.LockProgress.Single().SolvedAt;
 
-        Assert.Equal(AnswerOutcome.AlreadySolved, Gameplay.SubmitAnswer(_room, _team, _lockA.Id, "0017", Now.AddMinutes(1)).Outcome);
+        Assert.Equal(AnswerOutcome.AlreadySolved, Answer(_lockA, "0017", at: Now.AddMinutes(1)).Outcome);
         Assert.Equal(AnswerOutcome.AlreadySolved, Answer(_lockA, "wrong").Outcome);
 
         Assert.Equal(solvedAt, _team.LockProgress.Single().SolvedAt);
@@ -162,7 +176,7 @@ public class GameplayTests
     [Fact]
     public void LockInSceneBehindClosedDoor_CannotBeAnswered()
     {
-        SolveUpToDoor();
+        Answer(_lockA, "0017");
 
         var error = Assert.Throws<DomainException>(() => Answer(_lockC, "17"));
 
@@ -172,36 +186,22 @@ public class GameplayTests
     [Fact]
     public void UnknownObject_IsNotFound()
     {
-        var error = Assert.Throws<DomainException>(() => Gameplay.SubmitAnswer(_room, _team, _door.Id, "1", Now));
+        var error = Assert.Throws<DomainException>(() =>
+            Gameplay.SubmitAnswer(_room, _team, _door.Id, 0, AnswerSubmission.Typed("1"), Now));
 
         Assert.Equal(DomainErrors.ObjectNotFound, error.Code);
     }
 
     [Fact]
-    public void OpenDoor_RequiresUnlockedBy_AndIsIdempotent()
-    {
-        Assert.Equal(
-            DomainErrors.ObjectNotAvailable,
-            Assert.Throws<DomainException>(() => Gameplay.OpenDoor(_room, _team, _door.Id, Now)).Code);
-
-        SolveUpToDoor();
-
-        Assert.True(Gameplay.OpenDoor(_room, _team, _door.Id, Now));
-        Assert.False(Gameplay.OpenDoor(_room, _team, _door.Id, Now));
-        Assert.Equal([_door.Id], _team.OpenedDoorIds);
-    }
-
-    [Fact]
-    public void ExitDoor_StaysLockedUntilEveryLockIsSolved()
+    public void ExitDoor_StaysLockedUntilItsSceneIsSolved()
     {
         SolveUpToDoor();
-        Gameplay.OpenDoor(_room, _team, _door.Id, Now);
 
         var error = Assert.Throws<DomainException>(() => Gameplay.OpenExitDoor(_room, _team, _exit.Id, Now));
         Assert.Equal(DomainErrors.ExitDoorLocked, error.Code);
         Assert.Null(_team.EscapedAt);
 
-        Answer(_lockC, "17");
+        Assert.Equal([_exit.Id], Answer(_lockC, "17").OpenedDoorwayIds);
 
         Assert.True(Gameplay.OpenExitDoor(_room, _team, _exit.Id, Now));
         Assert.False(Gameplay.OpenExitDoor(_room, _team, _exit.Id, Now.AddMinutes(1)));
@@ -218,7 +218,6 @@ public class GameplayTests
         Assert.Equal(DomainErrors.SceneLocked, locked.Code);
 
         SolveUpToDoor();
-        Gameplay.OpenDoor(_room, _team, _door.Id, Now);
         Gameplay.EnterScene(_room, _team, participant, library.Id, Now.AddMinutes(1));
 
         Assert.Equal(library.Id, participant.CurrentSceneId);
@@ -234,5 +233,62 @@ public class GameplayTests
             Gameplay.EnterScene(_room, _team, participant, Guid.NewGuid(), Now));
 
         Assert.Equal(DomainErrors.SceneNotFound, error.Code);
+    }
+
+    [Fact]
+    public void WrongAnswer_LocksTheLockForTheTeam_ForTheRoomsWait()
+    {
+        _room.SetWrongAnswerCooldown(15);
+
+        var wrong = Answer(_lockA, "1");
+        Assert.Equal(15, wrong.CooldownSeconds);
+
+        // A teammate trying right away is told to wait, and nothing is counted: not even a right answer.
+        var early = Answer(_lockA, "0017", at: Now.AddSeconds(10.2));
+        Assert.Equal(AnswerOutcome.CoolingDown, early.Outcome);
+        Assert.Equal(5, early.CooldownSeconds);
+        Assert.Equal(1, _team.WrongAttempts(_lockA.Id));
+        Assert.False(_team.IsLockSolved(_lockA.Id));
+
+        Assert.Equal(AnswerOutcome.Correct, Answer(_lockA, "0017", at: Now.AddSeconds(15)).Outcome);
+    }
+
+    [Fact]
+    public void WaitOfZero_LetsTheTeamAnswerRightAway()
+    {
+        Assert.Equal(0, Answer(_lockA, "1").CooldownSeconds);
+
+        Assert.Equal(AnswerOutcome.Wrong, Answer(_lockA, "2").Outcome);
+    }
+
+    [Fact]
+    public void Wait_OnlyLocksTheLockThatWasAnsweredWrong()
+    {
+        _room.SetWrongAnswerCooldown(15);
+        Answer(_lockA, "0017");
+        Answer(_lockB, "1");
+
+        // Lock B is waiting, but the next scene's lock is not.
+        Assert.Equal(AnswerOutcome.CoolingDown, Answer(_lockB, "3,33", at: Now.AddSeconds(1)).Outcome);
+        Assert.Equal(0, _team.CooldownRemainingSeconds(_lockA.Id, 15, Now.AddSeconds(1)));
+    }
+
+    [Fact]
+    public void SolveUntilSceneOpens_SolvesTheLocksBeforeTheScene_ButNotItsOwn()
+    {
+        Gameplay.SolveUntilSceneOpens(_room, _team, _lockC.SceneId, Now);
+
+        Assert.True(_team.IsLockSolved(_lockA.Id));
+        Assert.True(_team.IsLockSolved(_lockB.Id));
+        Assert.False(_team.IsLockSolved(_lockC.Id));
+        Assert.True(RoomProgress.For(_room, _team).IsSceneUnlocked(_lockC.SceneId));
+    }
+
+    [Fact]
+    public void SolveUntilSceneOpens_TheStartScene_SolvesNothing()
+    {
+        Gameplay.SolveUntilSceneOpens(_room, _team, _lockA.SceneId, Now);
+
+        Assert.Empty(_team.SolvedLockIds);
     }
 }

@@ -4,8 +4,9 @@ namespace Eduscape.Tests.Api;
 
 /// <summary>
 /// A small room with answers and hints that appear nowhere else, so tests can check they never reach the client.
-/// Scene 1: code lock (with hint), text lock with tolerance (after the code lock), door to scene 2 (after the text lock).
-/// Scene 2: the exit door.
+/// Scene 1: code lock (with hint), text lock with tolerance (after the code lock), door to scene 2 (opens once both
+/// are solved). Scene 2: the exit door, open as soon as the team gets there. Answers can be retried at once unless a
+/// test asks for a wait after wrong answers.
 /// </summary>
 internal sealed class PlayTestRoom
 {
@@ -14,9 +15,10 @@ internal sealed class PlayTestRoom
     public const string TextAnswer = "3,1416";
     public const decimal Tolerance = 0.0001m;
 
-    public PlayTestRoom(Guid ownerTeacherId)
+    public PlayTestRoom(Guid ownerTeacherId, int cooldownSeconds = 0)
     {
         Room = new EscapeRoom("Play test room", Subject.Mathematics, GradeLevel.Grade7, ownerTeacherId);
+        Room.SetWrongAnswerCooldown(cooldownSeconds);
         var first = Room.AddScene("First", "builtin:classroom");
         var second = Room.AddScene("Second", "builtin:library");
 
@@ -26,7 +28,6 @@ internal sealed class PlayTestRoom
             new Position(50, 50), "builtin:padlock", null, "What is pi?", AnswerType.Text, TextAnswer, tolerance: Tolerance));
         TextLock.SetUnlockedBy(CodeLock);
         Door = first.AddObject(new Door(new Position(80, 50), "builtin:door", null, second.Id));
-        Door.SetUnlockedBy(TextLock);
         ExitDoor = second.AddObject(new ExitDoor(new Position(80, 50), "builtin:exit-door", null));
     }
 
@@ -40,9 +41,9 @@ internal sealed class PlayTestRoom
 
     public ExitDoor ExitDoor { get; }
 
-    public static async Task<PlayTestRoom> AddAsync(EduscapeApiFactory factory, Guid ownerTeacherId)
+    public static async Task<PlayTestRoom> AddAsync(EduscapeApiFactory factory, Guid ownerTeacherId, int cooldownSeconds = 0)
     {
-        var testRoom = new PlayTestRoom(ownerTeacherId);
+        var testRoom = new PlayTestRoom(ownerTeacherId, cooldownSeconds);
         await using var db = factory.Database.CreateContext();
         db.EscapeRooms.Add(testRoom.Room);
         await db.SaveChangesAsync();

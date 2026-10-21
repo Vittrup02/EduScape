@@ -8,6 +8,7 @@ public static class TextLimits
     public const int StorageKey = 500;
     public const int Question = 1000;
     public const int Answer = 200;
+    public const int OrderItem = 200;
     public const int Hint = 1000;
     public const int LetterText = 4000;
     public const int Narration = 4000;

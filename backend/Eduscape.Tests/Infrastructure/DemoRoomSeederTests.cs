@@ -39,21 +39,23 @@ public class DemoRoomSeederTests
         var door = room.Objects.OfType<Door>().Single();
         var exit = room.Objects.OfType<ExitDoor>().Single();
         var solved = new HashSet<Guid>();
-        var opened = new HashSet<Guid>();
 
-        Assert.True(AnswerMatcher.IsCorrect(locks[0], "17"));
+        Assert.True(AnswerMatcher.IsCorrect(locks[0].Steps[0], AnswerSubmission.Typed("17")));
         solved.Add(locks[0].Id);
-        Assert.True(new RoomProgress(room, solved, opened).IsAvailable(locks[1]));
+        Assert.True(new RoomProgress(room, solved).IsAvailable(locks[1]));
+        Assert.False(new RoomProgress(room, solved).IsDoorwayOpen(door));
 
-        Assert.True(AnswerMatcher.IsCorrect(locks[1], "3.333"));
+        Assert.True(AnswerMatcher.IsCorrect(locks[1].Steps[0], AnswerSubmission.Typed("3.333")));
         solved.Add(locks[1].Id);
-        Assert.True(new RoomProgress(room, solved, opened).IsAvailable(door));
+        Assert.True(new RoomProgress(room, solved).IsDoorwayOpen(door));
+        Assert.True(new RoomProgress(room, solved).IsAvailable(locks[2]));
 
-        opened.Add(door.Id);
-        Assert.True(new RoomProgress(room, solved, opened).IsAvailable(locks[2]));
-
-        Assert.True(AnswerMatcher.IsCorrect(locks[2], "17"));
+        Assert.True(AnswerMatcher.IsCorrect(locks[2].Steps[0], AnswerSubmission.Typed("17")));
         solved.Add(locks[2].Id);
-        Assert.True(new RoomProgress(room, solved, opened).CanOpenExitDoor(exit));
+        Assert.True(new RoomProgress(room, solved).CanOpenExitDoor(exit));
     }
+
+    [Fact]
+    public void DemoRoom_WaitsOnlyBrieflyAfterAWrongAnswer() =>
+        Assert.Equal(DemoRoomSeeder.DemoCooldownSeconds, DemoRoomSeeder.BuildDemoRoom().WrongAnswerCooldownSeconds);
 }

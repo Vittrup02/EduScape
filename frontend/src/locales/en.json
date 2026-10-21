@@ -10,6 +10,15 @@
   "backend": {
     "waking": "Getting ready … this can take up to a minute the first time."
   },
+  "sortable": {
+    "roleDescription": "draggable",
+    "instructions": "Drag to move, or use the up and down arrow keys.",
+    "instructionsHorizontal": "Drag to move, or use the left and right arrow keys.",
+    "moved": "{{item}} is now number {{position}} of {{count}}.",
+    "moveUp": "Move {{item}} up",
+    "moveDown": "Move {{item}} down",
+    "grip": "Move {{item}}"
+  },
   "home": {
     "tagline": "Escape rooms for the classroom. The teacher builds the room, and the students solve the puzzles together to break out.",
     "teacherLogin": "Log in as a teacher",
@@ -126,6 +135,7 @@
     "locksSolved": "{{solved}} of {{total}} locks solved",
     "escaped": "Escaped after {{duration}}",
     "workingOn": "Working on “{{question}}”",
+    "step": "(step {{n}} of {{count}})",
     "stuck": "Stuck on “{{question}}” for {{duration}}",
     "wrongAttempts_one": "{{count}} wrong answer",
     "wrongAttempts_other": "{{count}} wrong answers",
@@ -171,7 +181,8 @@
       "title": "For the room",
       "hint": "Drag onto the picture – or click to place it in the middle.",
       "add": "Add {{name}}",
-      "textBox": "Text box"
+      "textBox": "Text box",
+      "lock": "Lock"
     },
     "stage": {
       "label": "Scene {{scene}}",
@@ -202,25 +213,13 @@
       "question": "Question",
       "questionHint": "What students see when they click the lock.",
       "answerType": "How do students answer?",
-      "answerTypes": {
-        "Code": "Code",
-        "Text": "Text or number",
-        "MultipleChoice": "Choose an answer"
-      },
-      "answerTypeDescriptions": {
-        "Code": "Must match character for character, e.g. 0427.",
-        "Text": "Upper and lower case don't matter, and 3,5 is the same as 3.5.",
-        "MultipleChoice": "Students pick one of your answers."
-      },
       "correctAnswer": "The correct answer",
-      "tolerance": "Also accept answers within ±",
-      "toleranceHint": "E.g. 0.01, so rounded results are accepted too.",
       "hint": "Hint",
       "hintHint": "Shown automatically after the team has answered wrong 3 times.",
       "removeHint": "Remove hint",
       "addHint": "Add a hint",
       "options": "Answer options",
-      "optionsHint": "Mark the correct answer.",
+      "optionsHint": "Mark the right answer. Drag ⠿ to change the order.",
       "markCorrect": "Option {{n}} is the correct answer",
       "option": "Option {{n}}",
       "removeOption": "Remove option {{n}}",
@@ -237,7 +236,7 @@
       "newScene": "A new scene"
     },
     "exitDoor": {
-      "explanation": "The exit door opens when every lock in the room is solved. Then the students have escaped."
+      "explanation": "When students walk through the open exit door, they have escaped."
     },
     "textBox": {
       "text": "Text",
@@ -284,12 +283,78 @@
     },
     "validation": {
       "ready": "The room is ready to try.",
-      "title": "Missing before the room can be played"
+      "title": "Missing before the room can be played",
+      "step": "Step {{n}}: {{problem}}"
     },
     "preview": {
       "button": "Try the room",
       "opening": "Opening...",
-      "notSaved": "The room couldn't be saved. Check the title and the scene names, and try again."
+      "notSaved": "The room couldn't be saved. Check the title and the scene names, and try again.",
+      "fromStart": "Start over",
+      "startsIn": "Starts in {{scene}}, with the locks in the scenes before it solved."
+    },
+    "untitledRoom": "Untitled room",
+    "puzzle": {
+      "choose": "What kind of puzzle should the lock have?",
+      "kinds": {
+        "MultipleChoice": "Multiple choice",
+        "Typed": "Type the answer",
+        "Order": "Drag into order",
+        "Steps": "Several steps"
+      },
+      "kindDescriptions": {
+        "MultipleChoice": "Students pick one of your answers.",
+        "Typed": "Students type a word, a number or a code. Numbers can be accepted within ± a tolerance.",
+        "Order": "Students drag cards into the right order, e.g. the steps of a reaction.",
+        "Steps": "Several questions one after the other in the same lock. It opens after the last one."
+      },
+      "step": "Step {{n}}",
+      "steps": "Steps",
+      "stepsHint": "Students see one step at a time in this order, and the lock opens after the last one. Drag ⠿ to change the order.",
+      "addStep": "Add a step",
+      "removeStep": "Delete step {{n}}",
+      "noQuestion": "no question yet",
+      "exactCode": "Exact code",
+      "exactCodeHint": "Must match character for character, e.g. 0427. No spelling mistakes or tolerance.",
+      "textHint": "Upper and lower case don't matter, and 3,5 is the same as 3.5.",
+      "tolerance": "Also accept answers within",
+      "toleranceHint": "E.g. {{example}}, so rounded results are accepted too. You can type a comma or a point.",
+      "toleranceRange": "Answers from {{from}} to {{to}} are accepted.",
+      "acceptedAnswers": "Other right answers",
+      "acceptedAnswersHint": "E.g. a synonym or another spelling.",
+      "acceptedAnswer": "Other right answer {{n}}",
+      "addAcceptedAnswer": "Add another right answer",
+      "removeAcceptedAnswer": "Remove other right answer {{n}}",
+      "acceptTypos": "Accept small spelling mistakes",
+      "acceptTyposHint": "1 mistake in answers of 5–9 characters and 2 from 10 characters. Answers under 5 characters, e.g. “Na”, must always be spelled right.",
+      "orderItems": "Items in the right order",
+      "orderItemsHint": "Drag ⠿ to put the items in the right order – the top one comes first. Students see them shuffled.",
+      "orderItem": "Item {{n}}",
+      "addOrderItem": "Add an item",
+      "removeOrderItem": "Remove item {{n}}",
+      "addImage": "Add a picture to item {{n}}",
+      "addImageShort": "Add picture",
+      "removeImage": "Remove the picture from item {{n}}",
+      "removeImageShort": "Remove picture"
+    },
+    "cooldown": {
+      "label": "Wait after a wrong answer",
+      "hint": "Applies to every lock in the room. After a wrong answer the lock stays locked for the team this long, and students see a countdown.",
+      "off": "No wait",
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds"
+    },
+    "doorway": {
+      "condition": "When does the door open?",
+      "exitCondition": "When does the exit door open?",
+      "conditions": {
+        "AllInScene": "When every puzzle in the scene is solved",
+        "SelectedLocks": "When chosen locks are solved"
+      },
+      "locks": "Locks to solve",
+      "noLocks": "There are no locks in the room yet.",
+      "inScene": "{{name}} ({{scene}})",
+      "hint": "The door opens by itself for the whole team. Students click the open door to go on."
     }
   },
   "join": {
@@ -336,7 +401,8 @@
       "letter": "Letter",
       "door": "Door to {{scene}}",
       "doorOpen": "Open door to {{scene}}",
-      "exitDoor": "Exit door"
+      "exitDoor": "Exit door",
+      "exitDoorOpen": "Open exit door"
     },
     "lock": {
       "title": "Lock",
@@ -345,14 +411,26 @@
       "options": "Choose an answer",
       "wrong": "Wrong answer. Try again.",
       "solved": "The lock is open.",
-      "hint": "Hint:"
+      "hint": "Hint:",
+      "step": "Step {{n}} of {{count}}",
+      "stepSolved": "That step is solved. Here is the next one.",
+      "cooldown_one": "The lock is locked for {{count}} second after the wrong answer.",
+      "cooldown_other": "The lock is locked for {{count}} seconds after the wrong answer."
+    },
+    "order": {
+      "label": "The items in your order",
+      "instructions": "Drag the cards into the right order, then press Try.",
+      "submit": "Try"
+    },
+    "door": {
+      "closed": "The door is shut. Solve the puzzles to open it."
     },
     "letter": {
       "title": "Letter"
     },
     "escaped": {
-      "team": "You broke out!",
-      "individual": "You broke out!",
+      "team": "You got out!",
+      "individual": "You got out!",
       "text": "Well done! Tell your teacher."
     }
   },
@@ -429,7 +507,9 @@
     "classroom": "Classroom",
     "laboratory": "Laboratory",
     "library": "Library",
-    "basement": "Basement"
+    "basement": "Basement",
+    "chest": "Chest",
+    "safe": "Safe"
   },
   "errors": {
     "UNKNOWN": "Something went wrong. Please try again.",
@@ -464,7 +544,7 @@
     "PARTICIPANT_MOVE_NOT_ALLOWED": "Students can only be moved when playing in teams.",
     "OBJECT_NOT_FOUND": "The object does not exist in the room.",
     "OBJECT_NOT_AVAILABLE": "You cannot use that yet. Solve something else first.",
-    "EXIT_DOOR_LOCKED": "The exit door is still locked. Solve every lock in the room first.",
+    "EXIT_DOOR_LOCKED": "The exit door is still closed. Solve the puzzles to open it.",
     "SCENE_LOCKED": "Your team has not unlocked that scene yet.",
     "START_SCENE_MISSING": "The room has no start scene.",
     "UNLOCKED_BY_NOT_FOUND": "The object is waiting for something that no longer exists in the room.",
@@ -477,7 +557,15 @@
     "LETTER_TEXT_MISSING": "The letter is empty.",
     "TEXT_BOX_TEXT_MISSING": "The text box is empty.",
     "EXIT_DOOR_MISSING": "The room has no exit door, so students can't break out. Drag an exit door onto the picture.",
-    "OBJECT_UNREACHABLE": "Students can never get here. No door leads to its scene, or it waits for something that can only be solved later.",
+    "OBJECT_UNREACHABLE": "Students can never get here or open it. No door leads to its scene, or it waits for a lock that can only be solved later.",
+    "LOCK_PUZZLE_MISSING": "The lock has no puzzle yet. Choose what kind of puzzle it should have.",
+    "ORDER_ITEMS_INVALID": "Put in order needs at least two items, and every item needs a text.",
+    "DOOR_LOCKS_MISSING": "Choose the locks that open the door.",
+    "LOCK_STEP_INVALID": "The puzzle couldn't be saved. Reload the page and try again.",
+    "LIST_TOO_LONG": "There are too many. A lock can have at most 10 steps, and a step at most 12 items or options.",
+    "DOOR_CONDITION_INVALID": "The door couldn't be saved. Reload the page and try again.",
+    "DOOR_CANNOT_WAIT": "A door opens when its puzzles are solved. It can't wait for anything else as well.",
+    "COOLDOWN_INVALID": "The wait must be between 0 and 300 seconds.",
     "SERVER_UNAVAILABLE": "The server isn't responding right now. Please try again in a moment.",
     "LAST_SCENE": "The room needs at least one scene.",
     "IMAGE_KEY_INVALID": "The image doesn't exist. Choose another one.",

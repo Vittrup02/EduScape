@@ -28,8 +28,8 @@ public class PlayAnswerTests(EduscapeApiFactory factory) : IClassFixture<Eduscap
         var objectIds = joined.State.Room.Scenes.SelectMany(s => s.Objects).Select(o => o.Id);
         Assert.Equal(room.Room.Objects.Select(o => o.Id).Order(), objectIds.Order());
         var codeLock = joined.State.Room.Scenes.SelectMany(s => s.Objects).Single(o => o.Id == room.CodeLock.Id);
-        Assert.Equal("Which code?", codeLock.Question);
-        Assert.Equal(AnswerType.Code, codeLock.AnswerType);
+        var step = Assert.Single(codeLock.Steps!);
+        Assert.Equal(("Which code?", AnswerType.Code), (step.Question, step.AnswerType));
 
         foreach (var json in new[] { joinJson, reconnectJson })
         {
@@ -77,13 +77,35 @@ public class PlayAnswerTests(EduscapeApiFactory factory) : IClassFixture<Eduscap
 
         Assert.Null((await SessionApi.AnsweredAsync(Student, ida, room.CodeLock.Id, "1")).Hint);
         Assert.Null((await SessionApi.AnsweredAsync(Student, bo, room.CodeLock.Id, "2")).Hint);
-        Assert.Empty((await StateAsync(bo)).Team.RevealedHints);
+        // Wrong answers alone are not progress the device needs to show.
+        Assert.Empty((await StateAsync(bo)).Team.Locks);
 
         var third = await SessionApi.AnsweredAsync(Student, ida, room.CodeLock.Id, "3");
 
         Assert.Equal(AnswerOutcome.Wrong, third.Outcome);
         Assert.Equal(PlayTestRoom.Hint, third.Hint);
-        Assert.Equal([new RevealedHintDto(room.CodeLock.Id, PlayTestRoom.Hint)], (await StateAsync(bo)).Team.RevealedHints);
+        Assert.Equal([new LockProgressDto(room.CodeLock.Id, 0, PlayTestRoom.Hint, 0)], (await StateAsync(bo)).Team.Locks);
+    }
+
+    [PostgresFact]
+    public async Task WrongAnswer_LocksTheLockForTheTeam_UntilTheWaitIsOver()
+    {
+        var teacher = await factory.RegisterTeacherAsync();
+        var room = await PlayTestRoom.AddAsync(factory, teacher.Id, cooldownSeconds: 15);
+        var session = await SessionApi.StartSessionAsync(teacher.Client, room.Room.Id);
+        var ida = await JoinAsync(session, session.Teams[0].Id);
+        var bo = await JoinAsync(session, session.Teams[0].Id);
+
+        var wrong = await SessionApi.AnsweredAsync(Student, ida, room.CodeLock.Id, "1");
+        Assert.Equal((AnswerOutcome.Wrong, 15), (wrong.Outcome, wrong.CooldownSeconds));
+
+        // The wait is enforced on the server, for every device on the team: even the right answer is refused for now.
+        var right = await SessionApi.AnsweredAsync(Student, bo, room.CodeLock.Id, PlayTestRoom.CodeAnswer);
+        Assert.Equal(AnswerOutcome.CoolingDown, right.Outcome);
+        Assert.InRange(right.CooldownSeconds, 1, 15);
+
+        // A device that reconnects sees the countdown too.
+        Assert.InRange(Assert.Single((await StateAsync(bo)).Team.Locks).CooldownSeconds, 1, 15);
     }
 
     [PostgresFact]
@@ -109,25 +131,25 @@ public class PlayAnswerTests(EduscapeApiFactory factory) : IClassFixture<Eduscap
     }
 
     [PostgresFact]
-    public async Task Team_CanOpenTheDoorAndEscape_InOrder()
+    public async Task Door_OpensByItselfWhenItsSceneIsSolved_AndTheTeamEscapes()
     {
         var (room, session) = await StartAsync();
         var ida = await JoinAsync(session, session.Teams[0].Id);
         var bo = await JoinAsync(session, session.Teams[0].Id);
 
         await TeacherAuthTests.AssertErrorAsync(
-            await SessionApi.OpenDoorAsync(Student, ida, room.Door.Id), HttpStatusCode.BadRequest, DomainErrors.ObjectNotAvailable);
-        await TeacherAuthTests.AssertErrorAsync(
             await SessionApi.OpenExitDoorAsync(Student, ida, room.ExitDoor.Id), HttpStatusCode.BadRequest, DomainErrors.ObjectNotAvailable);
+        Assert.Empty((await StateAsync(bo)).Team.OpenedDoorIds);
 
-        await SessionApi.AnsweredAsync(Student, ida, room.CodeLock.Id, PlayTestRoom.CodeAnswer);
-        await SessionApi.AnsweredAsync(Student, bo, room.TextLock.Id, PlayTestRoom.TextAnswer);
-        Assert.Equal(HttpStatusCode.NoContent, (await SessionApi.OpenDoorAsync(Student, bo, room.Door.Id)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await SessionApi.OpenDoorAsync(Student, ida, room.Door.Id)).StatusCode);
+        Assert.Empty((await SessionApi.AnsweredAsync(Student, ida, room.CodeLock.Id, PlayTestRoom.CodeAnswer)).OpenedDoorIds);
+        var last = await SessionApi.AnsweredAsync(Student, bo, room.TextLock.Id, PlayTestRoom.TextAnswer);
+
+        // The door opened with the scene's last lock, and the exit door behind it (in a scene without locks) with it.
+        Assert.Equal(new[] { room.Door.Id, room.ExitDoor.Id }.Order(), last.OpenedDoorIds.Order());
         Assert.Equal(HttpStatusCode.NoContent, (await SessionApi.OpenExitDoorAsync(Student, ida, room.ExitDoor.Id)).StatusCode);
 
         var state = await StateAsync(bo);
-        Assert.Equal([room.Door.Id], state.Team.OpenedDoorIds);
+        Assert.Equal(new[] { room.Door.Id, room.ExitDoor.Id }.Order(), state.Team.OpenedDoorIds.Order());
         Assert.NotNull(state.Team.EscapedAt);
     }
 

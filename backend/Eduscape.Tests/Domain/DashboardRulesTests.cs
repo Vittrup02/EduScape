@@ -44,7 +44,7 @@ public class DashboardRulesTests
         team.RegisterWrongAttempt(second, Now.AddMinutes(1));
         team.RegisterWrongAttempt(second, Now.AddMinutes(2));
 
-        Assert.Equal(new CurrentLock(second, Now.AddMinutes(1), WrongAttempts: 2), team.FindCurrentLock());
+        Assert.Equal(new CurrentLock(second, Now.AddMinutes(1), WrongAttempts: 2, SolvedSteps: 0), team.FindCurrentLock());
     }
 
     [Fact]
@@ -66,10 +66,27 @@ public class DashboardRulesTests
         var team = NewSession().Teams[0];
         var stuck = Guid.NewGuid();
         team.RegisterWrongAttempt(stuck, Now);
-        team.OpenDoor(Guid.NewGuid(), Now.AddMinutes(4));
+        team.TrySolveLock(Guid.NewGuid(), Now.AddMinutes(4));
         team.RegisterWrongAttempt(stuck, Now.AddMinutes(5));
 
         Assert.Equal(Now.AddMinutes(4), team.FindCurrentLock()?.StuckSince);
+    }
+
+    [Fact]
+    public void FindCurrentLock_StartsOverWithEachStep()
+    {
+        var team = NewSession().Teams[0];
+        var stuck = Guid.NewGuid();
+        team.RegisterWrongAttempt(stuck, Now);
+        team.SolveStep(stuck, stepCount: 3, Now.AddMinutes(2));
+
+        // Until the team answers the next step wrong, it isn't stuck on it.
+        Assert.Null(team.FindCurrentLock());
+
+        team.RegisterWrongAttempt(stuck, Now.AddMinutes(3));
+        Assert.Equal(
+            new CurrentLock(stuck, Now.AddMinutes(3), WrongAttempts: 2, SolvedSteps: 1),
+            team.FindCurrentLock());
     }
 
     [Fact]

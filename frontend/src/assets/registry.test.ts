@@ -28,7 +28,12 @@ describe('asset registry', () => {
   })
 
   it('lists the choices for each type', () => {
-    expect(assetsOfType('Lock').map((asset) => asset.key)).toEqual(['builtin:padlock', 'builtin:code-lock'])
+    expect(assetsOfType('Lock').map((asset) => asset.key)).toEqual([
+      'builtin:padlock',
+      'builtin:code-lock',
+      'builtin:chest',
+      'builtin:safe',
+    ])
     expect(assetsOfType('Letter')).toHaveLength(1)
     expect(assetsOfType('Door')).toHaveLength(1)
     expect(assetsOfType('ExitDoor')).toHaveLength(1)

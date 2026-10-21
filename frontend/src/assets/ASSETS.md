@@ -16,6 +16,8 @@ Viewbox 160 × 160 for locks and the letter, 160 × 240 for doors. Both states o
 |---|---|---|---|---|---|
 | `builtin:padlock` | Lock | `objects/padlock-closed.svg` | `objects/padlock-open.svg` | Original, eduscape | © eduscape |
 | `builtin:code-lock` | Lock | `objects/code-lock-closed.svg` | `objects/code-lock-open.svg` | Original, eduscape | © eduscape |
+| `builtin:chest` | Lock | `objects/chest-closed.svg` | `objects/chest-open.svg` | Original, eduscape | © eduscape |
+| `builtin:safe` | Lock | `objects/safe-closed.svg` | `objects/safe-open.svg` | Original, eduscape | © eduscape |
 | `builtin:letter` | Letter | `objects/letter-closed.svg` | `objects/letter-open.svg` | Original, eduscape | © eduscape |
 | `builtin:door` | Door | `objects/door-closed.svg` | `objects/door-open.svg` | Original, eduscape | © eduscape |
 | `builtin:exit-door` | ExitDoor | `objects/exit-door-closed.svg` | `objects/exit-door-open.svg` | Original, eduscape | © eduscape |

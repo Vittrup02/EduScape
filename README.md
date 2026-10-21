@@ -10,10 +10,10 @@ Læreren placerer kodelåse, breve med ledetråde og døre oven på et billede. 
 
 **For læreren**
 - Byg et rum i en træk-og-slip-editor: vælg et baggrundsbillede og placer objekter på det.
-- **Lås** – åbner et spørgsmål; når det besvares korrekt, låses den op.
+- **Lås** – en grafik (hængelås, kodelås, kiste, pengeskab) med en gåde: multiple choice, et svar der skrives (ord, tal med tolerance eller kode), elementer der skal trækkes i rækkefølge, eller flere trin efter hinanden. Når gåden er løst, låses den op.
 - **Brev** – viser en ledetråd, fx "Læs side 42 i bogen".
-- **Dør** – fører videre til en ny scene med eget billede og egne gåder.
-- **Slutdør** – åbner når alt er løst, og eleverne er sluppet ud.
+- **Dør** – fører videre til en ny scene med eget billede og egne gåder. Den åbner af sig selv, når scenens gåder (eller de valgte låse) er løst.
+- **Slutdør** – åbner på samme måde, og når holdet går igennem, er det sluppet ud.
 - Objekter kan afhænge af hinanden ("vises når lås 1 er løst"), så rummet får et forløb.
 - Start ud fra en template eller byg fra bunden.
 - Følg alle hold live på et dashboard.
@@ -21,7 +21,7 @@ Læreren placerer kodelåse, breve med ledetråde og døre oven på et billede. 
 **For eleverne**
 - Tast PIN-koden, vælg hold og evt. et kaldenavn.
 - Løs gåderne sammen – holdets fremskridt deles i realtid, men hver elev kan bevæge sig frit mellem de scener, holdet har låst op.
-- Efter 3 forkerte forsøg på en lås vises et hint.
+- Efter 3 forkerte forsøg på en lås vises et hint. Efter et forkert svar venter låsen et øjeblik (standard 15 sekunder), så holdet ikke bare gætter.
 - Læreren kan også vælge individuel tilstand, hvor hver elev løser rummet alene.
 
 ## Privatliv
@@ -115,11 +115,13 @@ Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i 
 
 ## Spilvisning og realtid
 
-`/play` viser scenens baggrund med objekterne fra asset-biblioteket, placeret i procent af billedet. Objekter, der venter på en anden lås eller dør (`unlockedBy`), vises først, når den er løst. Lock åbner en pop-up med spørgsmålet, Letter viser lærerens tekst, Door åbner den næste scene for hele holdet, og slutdøren afslutter rummet, når alle låse er løst. Eleven kan frit gå tilbage til scener, holdet har låst op.
+`/play` viser scenens baggrund med objekterne fra asset-biblioteket, placeret i procent af billedet. Objekter, der venter på en anden lås eller dør (`unlockedBy`), vises først, når den er løst. Lock åbner en pop-up med det trin af gåden, holdet er nået til; når det er løst, kommer det næste i samme pop-up, og låsen åbner efter det sidste. Letter viser lærerens tekst. Døre og slutdøren er altid synlige og åbner af sig selv, når deres betingelse er opfyldt ("Når alle gåder i scenen er løst" eller udvalgte låse) – med en kort animation hos hele holdet, eller kun en fade ved `prefers-reduced-motion`. Eleverne går selv igennem ved at klikke på den åbne dør, så ingen flyttes midt i en gåde. Hvert hold får sin egen "I slap ud!"-skærm, når det går gennem slutdøren. Eleven kan frit gå tilbage til scener, holdet har låst op, og fortsætter efter en genindlæsning i samme scene.
 
-- **Svar valideres kun på serveren.** Klienten får spørgsmål og svarmuligheder, men aldrig det rigtige svar eller tolerancen. Et hint sendes først, når holdet har svaret forkert 3 gange.
-- **Handlinger går via REST** med enheds-tokenet i body: `POST /api/play/answer`, `/api/play/doors/open` og `/api/play/exit`. Hvert kald låser holdets række i databasen (`SELECT … FOR UPDATE`), så samtidige svar på samme lås håndteres ét ad gangen. Låsen bliver løst én gang, og den anden elev får `AlreadySolved`. Der kommer ingen fejl og ingen dobbelt registrering.
-- **Push via SignalR** (`/hubs/play`): hvert hold er en gruppe. Efter en gemt ændring får gruppen `LockSolved(lockId)`, `HintRevealed(lockId, hint)`, `DoorOpened(doorId)` eller `TeamEscaped()`. Når læreren lukker sessionen, får alle holdene `SessionClosed()`. Hubben har kun metoden `Subscribe(deviceToken)`, og tokenet sendes som besked, ikke i URL'en. Render kører én instans, så der er ingen backplane.
+- **Svar valideres kun på serveren.** Klienten får spørgsmål og svarmuligheder, men aldrig det rigtige svar, tolerancen eller den rigtige rækkefølge. Et hint sendes først, når holdet har svaret forkert 3 gange på trinnet. Tekstsvar kan godkende synonymer og, hvis læreren vil, små stavefejl (1 fejl fra 5 tegn, 2 fra 10 tegn, aldrig under 5 tegn, aldrig i tal og koder).
+- **Træk i rækkefølge:** elementerne sendes blandet, på samme måde til hele holdet og aldrig i den rigtige rækkefølge. Elementernes id'er er tilfældige (UUID v4), så heller ikke de afslører rækkefølgen. Eleven trækker kortene med mus eller finger (eller piletasterne) og sender id'erne i sin rækkefølge.
+- **Ventetid:** efter et forkert svar er låsen låst for holdet i rummets ventetid (`WrongAnswerCooldownSeconds`, standard 15, 0 = slået fra). Serveren svarer `CoolingDown` på svar i ventetiden uden at tælle dem, og eleverne ser en nedtælling.
+- **Handlinger går via REST** med enheds-tokenet i body: `POST /api/play/answer` (med trinnets nummer) og `/api/play/exit`. Hvert kald låser holdets række i databasen (`SELECT … FOR UPDATE`), så samtidige svar på samme lås håndteres ét ad gangen. Et trin bliver løst én gang, og den anden elev får `AlreadySolved`. Der kommer ingen fejl og ingen dobbelt registrering. Døre åbnes aldrig med et kald: de følger af holdets løste låse.
+- **Push via SignalR** (`/hubs/play`): hvert hold er en gruppe. Efter en gemt ændring får gruppen `StepSolved(lockId, solvedSteps)`, `LockSolved(lockId)`, `HintRevealed(lockId, hint)`, `LockCooldown(lockId, seconds)`, `DoorOpened(doorId)` eller `TeamEscaped()`. Når læreren lukker sessionen, får alle holdene `SessionClosed()`. Hubben har kun metoden `Subscribe(deviceToken)`, og tokenet sendes som besked, ikke i URL'en. Render kører én instans, så der er ingen backplane.
 - **Reconnect:** klienten forbinder til hubben, kalder `Subscribe` og henter *derefter* hele holdets tilstand med `POST /api/play/reconnect`. Så går ingen events tabt imellem. SignalR genforbinder automatisk, og imens viser rummet "Forbindelsen blev afbrudt. Forbinder igen...". Efter hver genforbindelse gentages `Subscribe` og tilstandskaldet.
 - **Tablet og mobil:** scenen holder 16:9 og fylder bredden, men på en tablet på langs eller en bærbar begrænses bredden, så hele scenen kan ses uden at scrolle. På en telefon er en lås kun ca. 25 px bred, så hvert objekt har et usynligt trykområde på mindst 44 × 44 px.
 - **Scene:** elevens enhed melder sin scene med `POST /api/play/scene` ved hvert sceneskift, hver genforbindelse og hvert holdskift. Kun scener, holdet har låst op, accepteres (`SCENE_LOCKED`). Det bruges kun til lærerens dashboard.
@@ -135,10 +137,11 @@ Eleverne går ind på `/join`, skriver PIN-koden, vælger hold (springes over i 
 
 ## Editoren
 
-Læreren bygger rum på `/teacher/rooms/:id/edit`. Et nyt rum kræver kun titel, fag og klassetrin (`/teacher/rooms/new`). En skabelon redigeres aldrig direkte: **Brug skabelonen** laver en kopi (`POST /api/teacher/templates/{id}/copy`), som åbnes i samme editor.
+Læreren bygger rum på `/teacher/rooms/:id/edit`. Et nyt rum kræver kun fag og klassetrin (`/teacher/rooms/new`); uden titel hedder det "Unavngivet rum", og nye scener hedder "Scene 2", "Scene 3" … på lærerens sprog. En skabelon redigeres aldrig direkte: **Brug skabelonen** laver en kopi (`POST /api/teacher/templates/{id}/copy`), som åbnes i samme editor.
 
 - **Træk og slip:** klistermærker fra asset-biblioteket trækkes ind på scenen, eller klikkes for at lande midt på. Objekter flyttes med musen, fingeren eller piletasterne (Shift giver større skridt). Positioner gemmes i procent af billedet.
-- **Panelet** viser kun det, der er relevant for objektet: spørgsmål, svartype og svar for en lås (tolerance kun ved talsvar, svarmuligheder kun ved multiple choice, hint kun når læreren beder om det), tekst for et brev og målscene for en dør. `unlockedBy` er én dropdown: "Synlig fra start" eller "Vises når … er løst". Den tilbyder kun låse og døre, der ikke allerede venter på objektet, så der ikke kan opstå ringe.
+- **Panelet** viser kun det, der er relevant for objektet. For en ny lås vælger læreren gådetype på fire store kort ("Multiple choice", "Skriv svaret", "Træk i rækkefølge", "Flere trin"), og grafikken kan skiftes bagefter uden at røre gåden. "Flere trin" er ikke en svartype: det er en lås med flere trin, hvor hvert trin har en af de tre andre typer. Tolerance vises kun ved talsvar (skrives "± 1,0" med komma eller punktum), synonymer og "Accepter små stavefejl" kun ved ordsvar, hint kun når læreren beder om det. Ventetiden efter forkert svar vælges for hele rummet. En dør har sin målscene og sin åbningsbetingelse. `unlockedBy` er én dropdown: "Synlig fra start" eller "Vises når … er løst". Den tilbyder kun låse og døre, der ikke allerede venter på objektet, så der ikke kan opstå ringe.
+- **Sortering ved træk:** scener, trin, svarmuligheder og elementer sorteres ved at trække dem (mus eller finger); rækkefølgen i listen er rækkefølgen. Piletasterne på et element gør det samme for tastaturbrugere.
 - **Fortryd/gentag** (også Ctrl+Z / Ctrl+Y) går gennem hele versioner af rummet. Et træk eller én omgang skrivning i et felt er ét skridt.
 - **Autosave:** editoren sender hele rummet med `PUT /api/teacher/rooms/{id}/editor` kort efter hver ændring. Scener og objekter får id'er i klienten (UUID v7), så fortryd kan genskabe dem præcis. Hver gemning bærer rummets `revision`; en ældre revision afvises med `ROOM_CHANGED`, så to faner ikke overskriver hinanden.
 - **Kladder er tilladt:** en lås uden spørgsmål eller en dør uden mål kan gemmes. Serveren returnerer problemerne (`EscapeRoom.Validate()`), og editoren viser dem med et link til objektet. Et rum med problemer kan ikke startes eller prøves (`ROOM_INVALID`).
@@ -147,7 +150,7 @@ Læreren bygger rum på `/teacher/rooms/:id/edit`. Et nyt rum kræver kun titel,
 - **Tekstfelter** trækkes ind som de andre objekter og viser lærerens tekst direkte på billedet, fx "Vagten er gået til frokost". De klikkes ikke, men kan vente på en lås via `unlockedBy`.
 - **Fortællertekst:** hver scene kan have en tekst (scenepanelet), som vises stort oven på billedet, når eleven kommer ind i scenen. Eleven trykker "Videre" og kan læse den igen. Den bruges til at fortælle historien og sætte stemningen, fx i en indledningsscene.
 - **Kortet** viser scenerne og dørene imellem dem fra startscenen og frem. Scener, ingen dør fører til, er stiplede.
-- **Prøv rummet** (`POST /api/teacher/rooms/{id}/preview`) starter en skjult preview-session i Individual-mode uden klasse, melder lærerens enhed ind og låser den straks. Elevvisningen åbner i en ny fane og spilles på serveren som enhver anden session. Preview-sessioner vises ikke på dashboardet eller i historikken og udløber efter 2 timer (`Sessions__PreviewLifetime`).
+- **Prøv rummet** (`POST /api/teacher/rooms/{id}/preview`) starter en skjult preview-session i Individual-mode uden klasse, melder lærerens enhed ind og låser den straks. Elevvisningen åbner i en ny fane og spilles på serveren som enhver anden session. Den starter i den scene, læreren arbejder på, med låsene i scenerne før løst; **Start forfra** spiller hele rummet. Preview-sessioner vises ikke på dashboardet eller i historikken og udløber efter 2 timer (`Sessions__PreviewLifetime`).
 
 ### Egne baggrundsbilleder (R2)
 
@@ -180,7 +183,7 @@ cd frontend && npm run test:e2e   # End-to-end (Playwright)
 
 Backendens database-tests opretter og sletter deres egen midlertidige database på den server, `ConnectionStrings:Default` peger på. Uden connection string springes de over lokalt; i CI kører de altid mod en PostgreSQL-service.
 
-Playwright starter selv backend og frontend. Kører de allerede lokalt på port 5115 og 5173, genbruges de, så stop dem fra andre checkouts først. [e2e/full-flow.spec.ts](frontend/e2e/full-flow.spec.ts) går hele forløbet igennem: en ny lærer opretter en konto, bygger et rum med to scener og starter en session. To elever på samme hold (én på tablet, én på telefon) løser rummet, og læreren lukker sessionen. [e2e/wake-up.spec.ts](frontend/e2e/wake-up.spec.ts) tjekker, at lærer og elev ser "Gør klar …" i stedet for en fejl, mens backenden vågner. Fordi hver test opretter sin egen lærer fra samme IP, hæver Playwright login-grænsen for den backend, testene kører mod.
+Playwright starter selv backend og frontend. Kører de allerede lokalt på port 5115 og 5173, genbruges de, så stop dem fra andre checkouts først. [e2e/full-flow.spec.ts](frontend/e2e/full-flow.spec.ts) går hele forløbet igennem: en ny lærer opretter en konto, bygger et rum med to scener og starter en session. To elever på samme hold (én på tablet, én på telefon) løser rummet, og læreren lukker sessionen. [e2e/chemistry-lesson.spec.ts](frontend/e2e/chemistry-lesson.spec.ts) bygger en lås med to trin (et ord med stavefejl og elementer, læreren trækker i rækkefølge), og to elever løser den: den ene trækker kortene med fingeren, ventetiden ses af begge, og slutdøren åbner af sig selv. [e2e/escape-all-teams.spec.ts](frontend/e2e/escape-all-teams.spec.ts) lader tre hold nå slutskærmen hver for sig. [e2e/wake-up.spec.ts](frontend/e2e/wake-up.spec.ts) tjekker, at lærer og elev ser "Gør klar …" i stedet for en fejl, mens backenden vågner. Fordi hver test opretter sin egen lærer fra samme IP, hæver Playwright login-grænsen for den backend, testene kører mod.
 
 GitHub Actions bygger projektet og kører alle tests på hver pull request. CI bygger også backendens Docker-image og tjekker, at containeren svarer på `/health`, så en ødelagt Dockerfile fanges før deploy. Ved push til `development` og `main` kører CI derefter migrationerne mod Neon (se [Migrationer mod Neon](#migrationer-mod-neon)).
 

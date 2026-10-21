@@ -123,11 +123,14 @@ public class RoomEditingTests
         var choice = hall.AddObject(new Lock(
             Center, "builtin:padlock", null, "By?", AnswerType.MultipleChoice, "Paris", options: ["Paris", "Rom"]));
         var door = hall.AddObject(new Door(Center, "builtin:door", null, library.Id));
-        door.SetUnlockedBy(mathLock);
-        library.AddObject(new Letter(Center, "builtin:letter", "Side 42"));
-        library.AddObject(new ExitDoor(Center, "builtin:exit-door", null)).SetUnlockedBy(door);
+        door.SetOpenCondition(DoorOpenCondition.SelectedLocks, [mathLock.Id]);
+        var letter = library.AddObject(new Letter(Center, "builtin:letter", "Side 42"));
+        letter.SetUnlockedBy(door);
+        library.AddObject(new ExitDoor(Center, "builtin:exit-door", null))
+            .SetOpenCondition(DoorOpenCondition.SelectedLocks, [mathLock.Id, choice.Id]);
         // Students start in the library, so they need a way into the hall.
         library.AddObject(new Door(Center, "builtin:door", null, hall.Id));
+        template.SetWrongAnswerCooldown(30);
         var teacherId = Guid.NewGuid();
 
         var copy = template.CopyFor(teacherId);
@@ -143,17 +146,24 @@ public class RoomEditingTests
         var originalIds = template.Scenes.Select(s => s.Id).Concat(template.Objects.Select(o => o.Id)).ToHashSet();
         Assert.DoesNotContain(copy.Scenes.Select(s => s.Id).Concat(copy.Objects.Select(o => o.Id)), originalIds.Contains);
 
+        Assert.Equal(30, copy.WrongAnswerCooldownSeconds);
+
         var copiedHall = copy.Scenes[0];
         var copiedLock = Assert.IsType<Lock>(copiedHall.Objects[0]);
+        var copiedStep = Assert.Single(copiedLock.Steps);
         Assert.Equal(
             (mathLock.Position, "2 + 2?", AnswerType.Text, "4", 0.5m, "Tæl på fingrene"),
-            (copiedLock.Position, copiedLock.Question, copiedLock.AnswerType, copiedLock.CorrectAnswer,
-                copiedLock.Tolerance, copiedLock.Hint));
-        Assert.Equal(choice.Options, Assert.IsType<Lock>(copiedHall.Objects[1]).Options);
+            (copiedLock.Position, copiedStep.Question, copiedStep.AnswerType, copiedStep.CorrectAnswer,
+                copiedStep.Tolerance, copiedStep.Hint));
+        Assert.NotEqual(mathLock.Steps[0].Id, copiedStep.Id);
+        var copiedChoice = Assert.IsType<Lock>(copiedHall.Objects[1]);
+        Assert.Equal(choice.Steps[0].Options, copiedChoice.Steps[0].Options);
         var copiedDoor = Assert.IsType<Door>(copiedHall.Objects[2]);
         Assert.Equal(copy.Scenes[1].Id, copiedDoor.TargetSceneId);
-        Assert.Equal(copiedLock.Id, copiedDoor.UnlockedById);
-        Assert.Equal(copiedDoor.Id, copy.Scenes[1].Objects.OfType<ExitDoor>().Single().UnlockedById);
+        Assert.Equal(DoorOpenCondition.SelectedLocks, copiedDoor.OpenCondition);
+        Assert.Equal([copiedLock.Id], copiedDoor.RequiredLockIds);
+        Assert.Equal([copiedLock.Id, copiedChoice.Id], copy.Scenes[1].Objects.OfType<ExitDoor>().Single().RequiredLockIds);
+        Assert.Equal(copiedDoor.Id, copy.Scenes[1].Objects.OfType<Letter>().Single().UnlockedById);
         Assert.All(copy.Objects, o => Assert.Contains(o.SceneId, copy.Scenes.Select(s => s.Id)));
     }
 

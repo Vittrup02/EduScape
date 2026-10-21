@@ -9,6 +9,20 @@ public static class DomainErrors
 
     public const string LockToleranceInvalid = "LOCK_TOLERANCE_INVALID";
 
+    /// <summary>A step setting that does not fit its answer type, or a broken step; the editor never sends these.</summary>
+    public const string LockStepInvalid = "LOCK_STEP_INVALID";
+
+    /// <summary>Too many steps, options, accepted answers or order items.</summary>
+    public const string ListTooLong = "LIST_TOO_LONG";
+
+    public const string DoorConditionInvalid = "DOOR_CONDITION_INVALID";
+
+    /// <summary>Doors open by their condition; they cannot wait for anything with unlockedBy.</summary>
+    public const string DoorCannotWait = "DOOR_CANNOT_WAIT";
+
+    /// <summary>The wait after a wrong answer must be between 0 and <see cref="Rooms.EscapeRoom.MaxWrongAnswerCooldownSeconds"/>.</summary>
+    public const string CooldownInvalid = "COOLDOWN_INVALID";
+
     // Thrown for options on a lock that is not multiple choice; otherwise reported by EscapeRoom.Validate.
     public const string LockOptionsInvalid = "LOCK_OPTIONS_INVALID";
     public const string LockAnswerNotInOptions = "LOCK_ANSWER_NOT_IN_OPTIONS";
@@ -49,6 +63,13 @@ public static class DomainErrors
     public const string LetterTextMissing = "LETTER_TEXT_MISSING";
     public const string TextBoxTextMissing = "TEXT_BOX_TEXT_MISSING";
     public const string ExitDoorMissing = "EXIT_DOOR_MISSING";
+    public const string LockPuzzleMissing = "LOCK_PUZZLE_MISSING";
+
+    /// <summary>An order step needs at least two items, each with a text.</summary>
+    public const string OrderItemsInvalid = "ORDER_ITEMS_INVALID";
+
+    /// <summary>A door that opens with selected locks has none chosen, or one that is no longer in the room.</summary>
+    public const string DoorLocksMissing = "DOOR_LOCKS_MISSING";
 
     /// <summary>A lock or exit door students can never reach, so they can never escape.</summary>
     public const string ObjectUnreachable = "OBJECT_UNREACHABLE";

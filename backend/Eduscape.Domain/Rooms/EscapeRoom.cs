@@ -51,6 +51,42 @@ public sealed class EscapeRoom
     /// <summary>Increases with every save from the editor, so that two open editors cannot overwrite each other.</summary>
     public int Revision { get; private set; }
 
+    public const int DefaultWrongAnswerCooldownSeconds = 15;
+    public const int MaxWrongAnswerCooldownSeconds = 300;
+
+    /// <summary>
+    /// How long a lock stays locked for a team after a wrong answer, so guessing doesn't pay; 0 turns it off.
+    /// Enforced on the server.
+    /// </summary>
+    public int WrongAnswerCooldownSeconds { get; private set; } = DefaultWrongAnswerCooldownSeconds;
+
+    public void SetWrongAnswerCooldown(int seconds)
+    {
+        if (seconds is < 0 or > MaxWrongAnswerCooldownSeconds)
+        {
+            throw new DomainException(DomainErrors.CooldownInvalid);
+        }
+
+        WrongAnswerCooldownSeconds = seconds;
+    }
+
+    /// <summary>Puts the scenes in the given order (e.g. after the teacher dragged one), which must name every scene.</summary>
+    public void ReorderScenes(IReadOnlyList<Guid> sceneIds)
+    {
+        if (sceneIds.Count != _scenes.Count || _scenes.Any(s => !sceneIds.Contains(s.Id)))
+        {
+            throw new DomainException(DomainErrors.SceneNotFound);
+        }
+
+        var positions = sceneIds.Select((id, index) => (id, index)).ToDictionary(p => p.id, p => p.index);
+        foreach (var scene in _scenes)
+        {
+            scene.SortOrder = positions[scene.Id];
+        }
+
+        _scenes.Sort((a, b) => a.SortOrder.CompareTo(b.SortOrder));
+    }
+
     /// <summary>Adds a scene. The first scene becomes the start scene.</summary>
     public Scene AddScene(string name, string backgroundImageKey, Guid? id = null)
     {
@@ -88,6 +124,14 @@ public sealed class EscapeRoom
             {
                 door.SetTarget(null);
             }
+
+            if (roomObject is Doorway doorway)
+            {
+                foreach (var removed in removedObjects)
+                {
+                    doorway.ForgetLock(removed);
+                }
+            }
         }
 
         if (scene.IsStartScene)
@@ -104,12 +148,15 @@ public sealed class EscapeRoom
     public void MarkEdited() => Revision++;
 
     /// <summary>
-    /// A copy of the room for a teacher to edit, typically of a template. Scenes and objects get new ids, and doors
-    /// and unlockedBy references point into the copy.
+    /// A copy of the room for a teacher to edit, typically of a template. Scenes and objects get new ids, and doors,
+    /// their locks and unlockedBy references point into the copy.
     /// </summary>
     public EscapeRoom CopyFor(Guid teacherId)
     {
-        var copy = new EscapeRoom(Title, Subject, GradeLevel, teacherId);
+        var copy = new EscapeRoom(Title, Subject, GradeLevel, teacherId)
+        {
+            WrongAnswerCooldownSeconds = WrongAnswerCooldownSeconds,
+        };
         var sceneIds = new Dictionary<Guid, Guid>();
         var objectIds = new Dictionary<Guid, Guid>();
         var copiedObjects = new List<(RoomObject Original, RoomObject Copy)>();
@@ -138,6 +185,13 @@ public sealed class EscapeRoom
             objectCopy.SetUnlockedBy(original.UnlockedById is { } id && objectIds.TryGetValue(id, out var copiedId)
                 ? copiedId
                 : null);
+
+            if (original is Doorway doorway && objectCopy is Doorway doorwayCopy)
+            {
+                doorwayCopy.SetOpenCondition(
+                    doorway.OpenCondition,
+                    doorway.RequiredLockIds.Where(objectIds.ContainsKey).Select(lockId => objectIds[lockId]));
+            }
         }
 
         return copy;
@@ -145,8 +199,8 @@ public sealed class EscapeRoom
 
     private static RoomObject CopyObject(RoomObject original, Dictionary<Guid, Guid> sceneIds) => original switch
     {
-        Lock l => new Lock(
-            l.Position, l.GraphicKey, l.UnlockedGraphicKey, l.Question, l.AnswerType, l.CorrectAnswer, l.Tolerance, l.Hint, l.Options),
+        // Steps are immutable, but each copy gets new step ids of its own.
+        Lock l => new Lock(l.Position, l.GraphicKey, l.UnlockedGraphicKey, l.Steps.Select(CopyStep)),
         Letter letter => new Letter(letter.Position, letter.GraphicKey, letter.Text),
         Door door => new Door(
             door.Position,
@@ -157,6 +211,17 @@ public sealed class EscapeRoom
         TextBox textBox => new TextBox(textBox.Position, textBox.Text),
         _ => throw new InvalidOperationException($"Unknown object type {original.Type}."),
     };
+
+    private static LockStep CopyStep(LockStep step) => new(
+        step.Question,
+        step.AnswerType,
+        step.CorrectAnswer,
+        step.Tolerance,
+        step.Hint,
+        step.Options,
+        step.AcceptedAnswers,
+        step.AcceptTypos,
+        step.OrderItems.Select(i => new OrderItem(Guid.NewGuid(), i.Text, i.ImageKey)));
 
     /// <summary>Throws <see cref="DomainErrors.RoomInvalid"/> if <see cref="Validate"/> reports any problem.</summary>
     public void EnsurePlayable()
@@ -181,9 +246,9 @@ public sealed class EscapeRoom
     }
 
     /// <summary>
-    /// Finds problems that make the room unplayable: no start scene, unfinished locks and letters, broken or circular
-    /// unlockedBy references, doors without a target scene in this room, and a room students can never escape from
-    /// (no exit door, or locks and exit doors they can never reach).
+    /// Finds problems that make the room unplayable: no start scene, unfinished locks (and their steps) and letters,
+    /// broken or circular unlockedBy references, doors without a target scene in this room or without the locks they
+    /// open with, and a room students can never escape from (no exit door, or locks and exit doors they can never reach).
     /// </summary>
     public IReadOnlyList<RoomValidationError> Validate()
     {
@@ -205,6 +270,17 @@ public sealed class EscapeRoom
         foreach (var roomObject in objects.Values)
         {
             errors.AddRange(roomObject.ContentErrors().Select(code => new RoomValidationError(code, roomObject.Id)));
+            if (roomObject is Lock @lock)
+            {
+                errors.AddRange(@lock.PuzzleErrors().Select(e => new RoomValidationError(e.Code, @lock.Id, e.StepIndex)));
+            }
+
+            if (roomObject is Doorway { OpenCondition: DoorOpenCondition.SelectedLocks } doorway
+                && (doorway.RequiredLockIds.Count == 0
+                    || doorway.RequiredLockIds.Any(id => !objects.TryGetValue(id, out var required) || required is not Lock)))
+            {
+                errors.Add(new RoomValidationError(DomainErrors.DoorLocksMissing, doorway.Id));
+            }
 
             var unlockedByError = ValidateUnlockedBy(roomObject, objects);
             if (unlockedByError is not null)
@@ -219,10 +295,11 @@ public sealed class EscapeRoom
             }
         }
 
-        // Objects with a broken unlockedBy are unreachable as well, but their own error already says why.
+        // Objects with a broken unlockedBy are unreachable as well, but their own error already says why; they count as
+        // solved here, so nothing that depends on them (e.g. the exit door in their scene) is reported a second time.
         if (StartScene is not null)
         {
-            errors.AddRange(UnreachableObjects()
+            errors.AddRange(UnreachableObjects(brokenUnlockedBy)
                 .Where(o => !brokenUnlockedBy.Contains(o.Id))
                 .Select(o => new RoomValidationError(DomainErrors.ObjectUnreachable, o.Id)));
         }
@@ -231,34 +308,33 @@ public sealed class EscapeRoom
     }
 
     /// <summary>
-    /// Plays the room like a team that solves every lock and opens every door it can see, until nothing new appears.
-    /// Locks and exit doors still out of reach can then never be completed, so the team can never escape: no door
-    /// leads to their scene, or they wait for something behind themselves (e.g. a door that waits for a lock in the
-    /// scene the door leads to).
+    /// Plays the room like a team that solves every lock it can see (the doors then open by themselves), until nothing
+    /// new appears. Locks still out of reach, and exit doors that never open, mean the team can never finish: no door
+    /// leads to their scene, or something waits for itself (e.g. a door that opens with a lock in the scene the door
+    /// leads to).
     /// </summary>
-    private IEnumerable<RoomObject> UnreachableObjects()
+    private IEnumerable<RoomObject> UnreachableObjects(IEnumerable<Guid> assumeSolved)
     {
-        var solved = new HashSet<Guid>();
-        var opened = new HashSet<Guid>();
+        var solved = new HashSet<Guid>(assumeSolved);
+        RoomProgress progress;
         bool progressed;
         do
         {
-            var progress = new RoomProgress(this, solved, opened);
+            progress = new RoomProgress(this, solved);
             progressed = false;
-            foreach (var roomObject in Objects.Where(progress.IsAvailable))
+            foreach (var @lock in Objects.OfType<Lock>().Where(progress.IsAvailable))
             {
-                progressed |= roomObject switch
-                {
-                    Lock => solved.Add(roomObject.Id),
-                    Door => opened.Add(roomObject.Id),
-                    _ => false,
-                };
+                progressed |= solved.Add(@lock.Id);
             }
         }
         while (progressed);
 
-        var final = new RoomProgress(this, solved, opened);
-        return Objects.Where(o => o is Lock or ExitDoor && !final.IsAvailable(o));
+        return Objects.Where(o => o switch
+        {
+            Lock => !progress.IsAvailable(o),
+            ExitDoor exit => !progress.CanOpenExitDoor(exit),
+            _ => false,
+        });
     }
 
     private static string? ValidateUnlockedBy(RoomObject roomObject, Dictionary<Guid, RoomObject> objects)

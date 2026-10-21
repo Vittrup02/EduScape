@@ -38,13 +38,16 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture database) : IClass
         Assert.Single(room.Objects.OfType<Door>());
         Assert.Single(room.Objects.OfType<ExitDoor>());
 
-        var numeric = Assert.Single(locks, l => l.AnswerType == AnswerType.Text);
-        Assert.Equal(0.01m, numeric.Tolerance);
+        // The steps survive the round trip through their jsonb column.
+        var numeric = Assert.Single(locks, l => l.Steps[0].AnswerType == AnswerType.Text);
+        Assert.Equal(0.01m, numeric.Steps[0].Tolerance);
         Assert.NotNull(numeric.UnlockedById);
         Assert.Equal(new Position(65, 50), numeric.Position);
 
-        var multipleChoice = Assert.Single(locks, l => l.AnswerType == AnswerType.MultipleChoice);
-        Assert.Equal(["9", "15", "17", "21"], multipleChoice.Options);
+        var multipleChoice = Assert.Single(locks, l => l.Steps[0].AnswerType == AnswerType.MultipleChoice);
+        Assert.Equal(["9", "15", "17", "21"], multipleChoice.Steps[0].Options);
+        Assert.Equal(DoorOpenCondition.AllInScene, room.Objects.OfType<Door>().Single().OpenCondition);
+        Assert.Equal(5, room.WrongAnswerCooldownSeconds);
     }
 
     [PostgresFact]
